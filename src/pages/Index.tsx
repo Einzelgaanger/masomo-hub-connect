@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { Link, Navigate } from "react-router-dom";
-import { GraduationCap, BookOpen, Users, Trophy, ArrowRight, Shield, Star, Zap, Target, MessageCircle, Upload, Calendar, TrendingUp, Award, Sparkles, Play } from "lucide-react";
+import { GraduationCap, BookOpen, Users, Trophy, ArrowRight, Shield, Star, Zap, Target, MessageCircle, Upload, Calendar, TrendingUp, Award, Sparkles, Play, Facebook, Twitter, Instagram, Linkedin } from "lucide-react";
 import Logo from "@/components/ui/Logo";
 import { CHARACTERS } from "@/types/characters";
 
@@ -26,46 +26,54 @@ const Index = () => {
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
       <section className="relative overflow-hidden min-h-screen flex flex-col justify-center">
-        <div className="container mx-auto px-4 py-20 relative flex-1 flex flex-col justify-center">
-          <div className="text-center mb-16">
-            <div className="flex justify-center mb-8 animate-fade-in">
-              <Logo size="xl" showText={true} className="scale-200" />
+        {/* Animated Background Balls - Clean & Simple */}
+        <div className="absolute inset-0">
+          <div className="absolute top-20 left-10 w-24 h-24 bg-blue-400/25 rounded-full animate-float blur-sm"></div>
+          <div className="absolute top-40 right-20 w-20 h-20 bg-orange-400/25 rounded-full animate-float animation-delay-300 blur-sm"></div>
+          <div className="absolute bottom-40 left-20 w-28 h-28 bg-green-400/25 rounded-full animate-float animation-delay-600 blur-sm"></div>
+          <div className="absolute bottom-20 right-10 w-16 h-16 bg-purple-400/25 rounded-full animate-float animation-delay-900 blur-sm"></div>
+        </div>
+        
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 relative flex-1 flex flex-col justify-center z-10">
+          <div className="text-center mb-8 sm:mb-16">
+            <div className="flex justify-center mb-6 sm:mb-8 animate-fade-in">
+              <Logo size="xl" showText={true} className="scale-150 sm:scale-200" />
             </div>
-            <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto fredoka-medium animate-slide-up animation-delay-200">
+            <p className="text-lg sm:text-xl md:text-2xl text-gray-600 mb-6 sm:mb-8 max-w-xs sm:max-w-2xl md:max-w-3xl mx-auto fredoka-medium animate-slide-up animation-delay-200 px-4">
               Transform your university experience with our revolutionary gamified learning platform. 
               Share, learn, and grow together with your classmates.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12 animate-slide-up animation-delay-400">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-8 sm:mb-12 animate-slide-up animation-delay-400 px-4">
               <Link to="/login">
-                <Button size="lg" className="gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg fredoka-semibold">
-                  Start Learning <ArrowRight className="h-5 w-5" />
+                <Button size="lg" className="w-full sm:w-auto gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg fredoka-semibold">
+                  Start Learning <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </Link>
               <Link to="/admin/login">
-                <Button size="lg" variant="outline" className="gap-2 border-2 border-gray-300 hover:border-blue-500 px-8 py-4 text-lg fredoka-medium">
-                  <Shield className="h-5 w-5" />
+                <Button size="lg" variant="outline" className="w-full sm:w-auto gap-2 border-2 border-gray-300 hover:border-blue-500 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg fredoka-medium">
+                  <Shield className="h-4 w-4 sm:h-5 sm:w-5" />
                   Admin Portal
                 </Button>
               </Link>
             </div>
             
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-4xl mx-auto animate-slide-up animation-delay-600">
+            {/* Stats - Mobile Optimized */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-xs sm:max-w-2xl md:max-w-4xl mx-auto animate-slide-up animation-delay-600 px-4">
               <div className="text-center">
-                <div className="text-3xl font-bold text-blue-600 fredoka-bold">10K+</div>
-                <div className="text-gray-600 fredoka-medium">Students</div>
+                <div className="text-2xl sm:text-3xl font-bold text-blue-600 fredoka-bold">10K+</div>
+                <div className="text-sm sm:text-base text-gray-600 fredoka-medium">Students</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-orange-500 fredoka-bold">500+</div>
-                <div className="text-gray-600 fredoka-medium">Universities</div>
+                <div className="text-2xl sm:text-3xl font-bold text-orange-500 fredoka-bold">500+</div>
+                <div className="text-sm sm:text-base text-gray-600 fredoka-medium">Universities</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-green-600 fredoka-bold">50K+</div>
-                <div className="text-gray-600 fredoka-medium">Resources Shared</div>
+                <div className="text-2xl sm:text-3xl font-bold text-green-600 fredoka-bold">50K+</div>
+                <div className="text-sm sm:text-base text-gray-600 fredoka-medium">Resources</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-purple-600 fredoka-bold">99%</div>
-                <div className="text-gray-600 fredoka-medium">Satisfaction</div>
+                <div className="text-2xl sm:text-3xl font-bold text-purple-600 fredoka-bold">99%</div>
+                <div className="text-sm sm:text-base text-gray-600 fredoka-medium">Satisfaction</div>
               </div>
             </div>
           </div>
@@ -73,18 +81,18 @@ const Index = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 fredoka-bold">
+      <section className="py-12 sm:py-16 lg:py-20 bg-gray-50">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4 sm:mb-6 fredoka-bold px-4">
               Why Students Love Bunifu
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto fredoka-medium">
+            <p className="text-lg sm:text-xl text-gray-600 max-w-xs sm:max-w-xl md:max-w-2xl mx-auto fredoka-medium px-4">
               Discover the features that make learning engaging, collaborative, and fun
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-12 sm:mb-16">
             {/* Collaborative Learning Card */}
             <Card className="text-center hover:shadow-2xl transition-all duration-500 hover:-translate-y-4 border-0 shadow-lg group animate-fade-in-up animation-delay-100">
               <CardHeader className="pb-4">
@@ -101,13 +109,13 @@ const Index = () => {
                 <CardTitle className="text-2xl fredoka-bold group-hover:text-blue-600 transition-colors duration-300">
                   Collaborative Learning
                 </CardTitle>
-              </CardHeader>
-              <CardContent>
+            </CardHeader>
+            <CardContent>
                 <CardDescription className="text-gray-600 fredoka-medium group-hover:text-gray-700 transition-colors duration-300">
                   Share notes, past papers, and resources with your classmates. Learn together, grow together in a supportive community.
-                </CardDescription>
-              </CardContent>
-            </Card>
+              </CardDescription>
+            </CardContent>
+          </Card>
 
             {/* Gamified Experience Card */}
             <Card className="text-center hover:shadow-2xl transition-all duration-500 hover:-translate-y-4 border-0 shadow-lg group animate-fade-in-up animation-delay-200">
@@ -125,13 +133,13 @@ const Index = () => {
                 <CardTitle className="text-2xl fredoka-bold group-hover:text-orange-600 transition-colors duration-300">
                   Gamified Experience
                 </CardTitle>
-              </CardHeader>
-              <CardContent>
+            </CardHeader>
+            <CardContent>
                 <CardDescription className="text-gray-600 fredoka-medium group-hover:text-gray-700 transition-colors duration-300">
                   Earn points, climb rankings, and unlock unique characters as you contribute to the learning community.
-                </CardDescription>
-              </CardContent>
-            </Card>
+              </CardDescription>
+            </CardContent>
+          </Card>
 
             {/* Class Organization Card */}
             <Card className="text-center hover:shadow-2xl transition-all duration-500 hover:-translate-y-4 border-0 shadow-lg group animate-fade-in-up animation-delay-300">
@@ -149,13 +157,13 @@ const Index = () => {
                 <CardTitle className="text-2xl fredoka-bold group-hover:text-green-600 transition-colors duration-300">
                   Class Organization
                 </CardTitle>
-              </CardHeader>
-              <CardContent>
+            </CardHeader>
+            <CardContent>
                 <CardDescription className="text-gray-600 fredoka-medium group-hover:text-gray-700 transition-colors duration-300">
                   Stay organized with your class schedule, assignments, and events all in one beautifully designed platform.
-                </CardDescription>
-              </CardContent>
-            </Card>
+              </CardDescription>
+            </CardContent>
+          </Card>
           </div>
         </div>
       </section>
@@ -284,9 +292,9 @@ const Index = () => {
               </div>
               <h3 className="text-xl font-semibold mb-2 fredoka-bold">Earn Points</h3>
               <p className="text-gray-600 fredoka-medium">Get points for sharing content, helping others, and staying active</p>
-            </div>
+        </div>
 
-            <div className="text-center">
+        <div className="text-center">
               <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-2xl font-bold fredoka-bold">
                 4
               </div>
@@ -297,137 +305,160 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Ultra Compact CTA Section */}
-      <section className="py-8 bg-blue-600 text-white relative overflow-hidden">
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0">
-          <div className="absolute top-2 left-2 w-8 h-8 bg-orange-400/20 rounded-full animate-bounce"></div>
-          <div className="absolute top-4 right-4 w-6 h-6 bg-green-400/20 rounded-full animate-bounce animation-delay-200"></div>
-          <div className="absolute bottom-2 left-6 w-4 h-4 bg-purple-400/20 rounded-full animate-bounce animation-delay-400"></div>
-          <div className="absolute bottom-4 right-2 w-6 h-6 bg-yellow-400/20 rounded-full animate-bounce animation-delay-600"></div>
+      {/* Minimalist CTA Section */}
+      <section className="py-12 sm:py-16 bg-white text-gray-900 relative overflow-hidden">
+        {/* Subtle Background Pattern - Mobile Responsive */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute top-6 sm:top-10 left-6 sm:left-10 w-12 sm:w-16 md:w-20 h-12 sm:h-16 md:h-20 bg-gray-400 rounded-full blur-xl"></div>
+          <div className="absolute top-12 sm:top-20 right-6 sm:right-20 w-10 sm:w-12 md:w-16 h-10 sm:h-12 md:h-16 bg-gray-300 rounded-full blur-xl"></div>
+          <div className="absolute bottom-12 sm:bottom-20 left-6 sm:left-20 w-14 sm:w-18 md:w-24 h-14 sm:h-18 md:h-24 bg-gray-400 rounded-full blur-xl"></div>
+          <div className="absolute bottom-6 sm:bottom-10 right-6 sm:right-10 w-8 sm:w-10 md:w-12 h-8 sm:h-10 md:h-12 bg-gray-300 rounded-full blur-xl"></div>
         </div>
         
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center gap-2 bg-orange-500 rounded-full px-4 py-1 mb-3">
-              <Trophy className="h-4 w-4 text-white" />
-              <span className="fredoka-semibold text-white text-sm">Gamified Learning</span>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          {/* Header Section */}
+          <div className="text-center mb-6 sm:mb-8">
+            <div className="inline-flex items-center gap-2 bg-gray-100 rounded-full px-3 sm:px-4 py-1 sm:py-2 mb-3 sm:mb-4">
+              <Trophy className="h-3 w-3 sm:h-4 sm:w-4 text-gray-600" />
+              <span className="fredoka-semibold text-gray-700 text-xs sm:text-sm">Gamified Learning Platform</span>
             </div>
-            <h2 className="text-2xl md:text-3xl font-bold mb-3 fredoka-bold">
+            
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-3 fredoka-bold leading-tight text-gray-900 px-4">
               Ready to Level Up Your
-              <span className="block text-yellow-300">
-                Learning Game?
+              <span className="block text-gray-600 mt-1">
+                Learning Experience?
               </span>
             </h2>
-            <p className="text-base opacity-90 max-w-xl mx-auto fredoka-medium mb-4">
-              Earn points, unlock characters, and climb leaderboards!
+            
+            <p className="text-base sm:text-lg text-gray-600 max-w-xs sm:max-w-lg md:max-w-xl mx-auto fredoka-medium mb-4 sm:mb-6 px-4">
+              Join thousands of students earning points, unlocking characters, and climbing leaderboards
             </p>
           </div>
 
-          {/* Ultra Compact Point System */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="bg-orange-500/20 rounded-lg p-3 text-center hover:bg-orange-500/30 transition-all duration-300 hover:scale-105 border border-orange-400/30">
-              <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-2 animate-pulse">
-                <Upload className="h-4 w-4 text-white" />
-              </div>
-              <h3 className="text-sm font-semibold mb-1 fredoka-bold">Share</h3>
-              <div className="inline-flex items-center gap-1 bg-green-500 rounded-full px-2 py-1">
-                <span className="text-sm font-bold text-white fredoka-bold">+10-20</span>
-              </div>
-            </div>
-
-            <div className="bg-blue-500/20 rounded-lg p-3 text-center hover:bg-blue-500/30 transition-all duration-300 hover:scale-105 border border-blue-400/30">
-              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-2 animate-pulse animation-delay-200">
-                <MessageCircle className="h-4 w-4 text-white" />
-              </div>
-              <h3 className="text-sm font-semibold mb-1 fredoka-bold">Help</h3>
-              <div className="inline-flex items-center gap-1 bg-purple-500 rounded-full px-2 py-1">
-                <span className="text-sm font-bold text-white fredoka-bold">+3</span>
-              </div>
-            </div>
-
-            <div className="bg-green-500/20 rounded-lg p-3 text-center hover:bg-green-500/30 transition-all duration-300 hover:scale-105 border border-green-400/30">
-              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-2 animate-pulse animation-delay-400">
-                <Calendar className="h-4 w-4 text-white" />
-              </div>
-              <h3 className="text-sm font-semibold mb-1 fredoka-bold">Active</h3>
-              <div className="inline-flex items-center gap-1 bg-teal-500 rounded-full px-2 py-1">
-                <span className="text-sm font-bold text-white fredoka-bold">+5</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Ultra Compact CTA Buttons */}
-          <div className="text-center">
-            <div className="mb-3">
-              <div className="inline-flex items-center gap-3 bg-white/10 rounded-full px-4 py-2 mb-3">
-                <div className="flex items-center gap-1">
-                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
-                  <span className="fredoka-medium text-xs">10,000+ Students</span>
+          {/* Two Column Layout - Mobile First */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 items-center mb-6 sm:mb-8">
+            
+            {/* Left Column - Features */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-300 border border-gray-200">
+                <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
+                  <Upload className="h-5 w-5 text-white" />
                 </div>
-                <div className="w-px h-3 bg-white/30"></div>
-                <div className="flex items-center gap-1">
-                  <Star className="h-2.5 w-2.5 text-yellow-300" />
-                  <span className="fredoka-medium text-xs">4.9/5 Rating</span>
+                <div>
+                  <h3 className="text-base font-semibold fredoka-bold mb-0.5 text-gray-900">Share & Earn</h3>
+                  <p className="text-gray-600 fredoka-medium text-xs">Upload notes and resources</p>
+                </div>
+                <div className="ml-auto bg-gray-800 text-white px-2 py-1 rounded-full fredoka-bold text-xs">
+                  +10-20 pts
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-300 border border-gray-200">
+                <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                  <MessageCircle className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold fredoka-bold mb-0.5 text-gray-900">Help Others</h3>
+                  <p className="text-gray-600 fredoka-medium text-xs">Comment and provide feedback</p>
+                </div>
+                <div className="ml-auto bg-gray-800 text-white px-2 py-1 rounded-full fredoka-bold text-xs">
+                  +3 pts
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-300 border border-gray-200">
+                <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+                  <Calendar className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold fredoka-bold mb-0.5 text-gray-900">Stay Active</h3>
+                  <p className="text-gray-600 fredoka-medium text-xs">Daily visits and engagement</p>
+                </div>
+                <div className="ml-auto bg-gray-800 text-white px-2 py-1 rounded-full fredoka-bold text-xs">
+                  +5 pts
                 </div>
               </div>
             </div>
-            
-            <div className="flex flex-col sm:flex-row gap-2 justify-center">
-              <Link to="/login">
-                <Button size="lg" className="gap-2 bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 text-base fredoka-bold shadow-lg hover:shadow-orange-500/25 transition-all duration-300 hover:scale-105">
-                  <Play className="h-4 w-4" />
-                  Start Journey
-                </Button>
-              </Link>
-              <Link to="/login">
-                <Button size="lg" variant="outline" className="gap-2 border-2 border-white text-white hover:bg-white hover:text-blue-600 px-6 py-3 text-base fredoka-semibold hover:scale-105 transition-all duration-300">
-                  Sign In
-                </Button>
-              </Link>
+
+            {/* Right Column - CTA */}
+            <div className="text-center lg:text-left">
+              <div className="bg-gray-50 rounded-xl p-6 mb-4 border border-gray-200">
+                <div className="flex items-center justify-center lg:justify-start gap-3 mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span className="fredoka-medium text-xs text-gray-600">10,000+ Active Students</span>
+                  </div>
+                  <div className="w-px h-3 bg-gray-300"></div>
+                  <div className="flex items-center gap-2">
+                    <Star className="h-3 w-3 text-gray-600" />
+                    <span className="fredoka-medium text-xs text-gray-600">4.9/5 Rating</span>
+                  </div>
+                </div>
+                
+                <h3 className="text-xl font-bold fredoka-bold mb-3 text-gray-900">
+                  Start Your Journey Today
+                </h3>
+                
+                <div className="flex flex-col sm:flex-row gap-2 justify-center lg:justify-start">
+                  <Link to="/login">
+                    <Button size="lg" className="w-full sm:w-auto gap-2 bg-gray-900 hover:bg-gray-800 text-white px-6 py-3 text-base fredoka-bold shadow-lg hover:shadow-gray-900/25 transition-all duration-300 hover:scale-105">
+                      <Play className="h-4 w-4" />
+                      Get Started
+                    </Button>
+                  </Link>
+          <Link to="/login">
+                    <Button size="lg" variant="outline" className="w-full sm:w-auto gap-2 border-2 border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white px-6 py-3 text-base fredoka-semibold hover:scale-105 transition-all duration-300">
+                      Sign In
+            </Button>
+          </Link>
+                </div>
+              </div>
+              
+              <p className="text-gray-600 fredoka-medium text-xs">
+                🚀 Join the revolution and make learning legendary!
+              </p>
             </div>
-            
-            <p className="text-white/80 fredoka-medium mt-3 text-xs">
-              🚀 Make learning legendary!
-            </p>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-black text-white py-16 relative overflow-hidden">
-        {/* Animated Background Elements */}
+      <footer className="bg-black text-white py-12 sm:py-16">
+        {/* Animated Background Elements - Mobile Responsive */}
         <div className="absolute inset-0">
-          <div className="absolute top-10 left-10 w-32 h-32 bg-blue-500 rounded-full animate-float opacity-5"></div>
-          <div className="absolute top-20 right-20 w-24 h-24 bg-purple-500 rounded-full animate-float animation-delay-200 opacity-5"></div>
-          <div className="absolute bottom-20 left-32 w-16 h-16 bg-orange-500 rounded-full animate-float animation-delay-400 opacity-5"></div>
-          <div className="absolute bottom-32 right-10 w-28 h-28 bg-green-500 rounded-full animate-float animation-delay-600 opacity-5"></div>
+          <div className="absolute top-6 sm:top-10 left-6 sm:left-10 w-20 sm:w-24 md:w-32 h-20 sm:h-24 md:h-32 bg-blue-500 rounded-full animate-float opacity-5"></div>
+          <div className="absolute top-12 sm:top-20 right-6 sm:right-20 w-16 sm:w-20 md:w-24 h-16 sm:h-20 md:h-24 bg-purple-500 rounded-full animate-float animation-delay-200 opacity-5"></div>
+          <div className="absolute bottom-12 sm:bottom-20 left-16 sm:left-32 w-10 sm:w-12 md:w-16 h-10 sm:h-12 md:h-16 bg-orange-500 rounded-full animate-float animation-delay-400 opacity-5"></div>
+          <div className="absolute bottom-20 sm:bottom-32 right-6 sm:right-10 w-18 sm:w-22 md:w-28 h-18 sm:h-22 md:h-28 bg-green-500 rounded-full animate-float animation-delay-600 opacity-5"></div>
         </div>
         
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mb-6 sm:mb-8">
             {/* Logo and Description */}
-            <div className="col-span-1 md:col-span-2">
-              <div className="flex items-center mb-4">
-                <Logo size="md" showText={true} />
+            <div className="col-span-1 sm:col-span-2 lg:col-span-2">
+              <div className="flex items-center mb-3 sm:mb-4">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <img src="/logo.svg" alt="Bunifu Logo" className="h-10 w-10 sm:h-12 sm:w-12" />
+                  <span className="text-xl sm:text-2xl font-bold fredoka-bold text-white">Bunifu</span>
+                </div>
               </div>
-              <p className="text-gray-300 fredoka-medium mb-6 max-w-md">
+              <p className="text-white fredoka-medium mb-4 sm:mb-6 max-w-sm sm:max-w-md text-sm sm:text-base lg:text-lg">
                 Transform your university experience with our revolutionary gamified learning platform. 
                 Share, learn, and grow together with your classmates.
               </p>
-              <div className="flex space-x-4">
-                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-500 transition-all duration-300 cursor-pointer hover:scale-110 transform shadow-lg hover:shadow-blue-500/25">
-                  <span className="text-sm font-bold text-white">f</span>
-                </div>
-                <div className="w-10 h-10 bg-cyan-500 rounded-full flex items-center justify-center hover:bg-cyan-400 transition-all duration-300 cursor-pointer hover:scale-110 transform shadow-lg hover:shadow-cyan-500/25">
-                  <span className="text-sm font-bold text-white">t</span>
-                </div>
-                <div className="w-10 h-10 bg-blue-700 rounded-full flex items-center justify-center hover:bg-blue-600 transition-all duration-300 cursor-pointer hover:scale-110 transform shadow-lg hover:shadow-blue-500/25">
-                  <span className="text-sm font-bold text-white">in</span>
-                </div>
-                <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center hover:bg-purple-500 transition-all duration-300 cursor-pointer hover:scale-110 transform shadow-lg hover:shadow-purple-500/25">
-                  <span className="text-sm font-bold text-white">ig</span>
-                </div>
+              <div className="flex space-x-3 sm:space-x-4">
+                <a href="#" className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-500 transition-all duration-300 cursor-pointer hover:scale-110 transform shadow-lg hover:shadow-blue-500/25">
+                  <Facebook className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                </a>
+                <a href="#" className="w-8 h-8 sm:w-10 sm:h-10 bg-cyan-500 rounded-full flex items-center justify-center hover:bg-cyan-400 transition-all duration-300 cursor-pointer hover:scale-110 transform shadow-lg hover:shadow-cyan-500/25">
+                  <Twitter className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                </a>
+                <a href="#" className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-700 rounded-full flex items-center justify-center hover:bg-blue-600 transition-all duration-300 cursor-pointer hover:scale-110 transform shadow-lg hover:shadow-blue-500/25">
+                  <Linkedin className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                </a>
+                <a href="#" className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-600 rounded-full flex items-center justify-center hover:bg-purple-500 transition-all duration-300 cursor-pointer hover:scale-110 transform shadow-lg hover:shadow-purple-500/25">
+                  <Instagram className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                </a>
               </div>
             </div>
 
@@ -437,7 +468,6 @@ const Index = () => {
               <ul className="space-y-3">
                 <li><Link to="/login" className="text-gray-300 hover:text-orange-400 transition-colors fredoka-medium hover:translate-x-1 transform duration-300 inline-block">Get Started</Link></li>
                 <li><Link to="/login" className="text-gray-300 hover:text-orange-400 transition-colors fredoka-medium hover:translate-x-1 transform duration-300 inline-block">Sign In</Link></li>
-                <li><Link to="/admin/login" className="text-gray-300 hover:text-orange-400 transition-colors fredoka-medium hover:translate-x-1 transform duration-300 inline-block">Admin Portal</Link></li>
                 <li><a href="#features" className="text-gray-300 hover:text-orange-400 transition-colors fredoka-medium hover:translate-x-1 transform duration-300 inline-block">Features</a></li>
                 <li><a href="#characters" className="text-gray-300 hover:text-orange-400 transition-colors fredoka-medium hover:translate-x-1 transform duration-300 inline-block">Characters</a></li>
               </ul>
@@ -457,21 +487,14 @@ const Index = () => {
           </div>
 
           {/* Bottom Bar */}
-          <div className="border-t border-gray-800 pt-8">
-            <div className="flex flex-col md:flex-row justify-between items-center">
-              <p className="text-gray-300 fredoka-medium mb-4 md:mb-0">
-                © 2024 Bunifu. All rights reserved.
+          <div className="border-t border-gray-800 pt-6 sm:pt-8">
+            <div className="text-center">
+              <p className="text-gray-300 fredoka-medium text-sm sm:text-base">
+                © 2025 Bunifu. All rights reserved.
               </p>
-              <div className="flex items-center space-x-6">
-                <span className="text-gray-300 fredoka-medium">Made with <span className="text-red-500">❤️</span> for students</span>
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  <span className="text-green-400 text-sm fredoka-medium">All systems operational</span>
-                </div>
-              </div>
             </div>
           </div>
-        </div>
+      </div>
       </footer>
     </div>
   );
