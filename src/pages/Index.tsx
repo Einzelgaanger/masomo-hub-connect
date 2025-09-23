@@ -294,9 +294,9 @@ const Index = () => {
             </p>
           </div>
 
-          {/* Mobile: Animated Horizontal Scroll, Desktop: Grid */}
+          {/* Mobile: Circular Animated Cards with Infinite Loop */}
           <div className="block lg:hidden">
-            {/* Mobile Horizontal Scroll Container with Snap */}
+            {/* Mobile Circular Cards Container */}
             <div className="relative">
               <div 
                 className="overflow-x-auto scrollbar-hide pb-4 snap-x snap-mandatory scroll-smooth" 
@@ -306,63 +306,80 @@ const Index = () => {
                   scrollBehavior: 'smooth'
                 }}
               >
-                <div className="flex gap-4 px-4" style={{width: 'calc(100% + 2rem)'}}>
-                  {/* Step 1 */}
-                  <div className="flex-shrink-0 w-72 snap-center bg-white rounded-xl p-6 shadow-lg border border-gray-200 transform transition-all duration-500 ease-out hover:scale-105 hover:shadow-xl">
-                    <div className="text-center">
-                      <div className="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold transform transition-all duration-300 hover:scale-110">
-                        1
+                <div className="flex gap-6 px-8" style={{width: 'calc(100% + 4rem)'}}>
+                  {/* Step 1 - Duplicated for infinite loop */}
+                  <div className="flex-shrink-0 w-64 snap-center">
+                    <div className="bg-white rounded-full p-8 shadow-xl border-4 border-blue-200 transform transition-all duration-700 ease-out hover:shadow-2xl">
+                      <div className="text-center">
+                        <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-2xl font-bold fredoka-bold">
+                          1
+                        </div>
+                        <h3 className="text-xl font-semibold mb-3 fredoka-bold">Register</h3>
+                        <p className="text-gray-600 fredoka-medium text-sm">Enter your university details and admission number to get started</p>
                       </div>
-                      <h3 className="text-lg font-semibold mb-2 fredoka-bold">Register</h3>
-                      <p className="text-gray-600 fredoka-medium text-sm">Enter your university details and admission number to get started</p>
                     </div>
                   </div>
 
                   {/* Step 2 */}
-                  <div className="flex-shrink-0 w-72 snap-center bg-white rounded-xl p-6 shadow-lg border border-gray-200 transform transition-all duration-500 ease-out hover:scale-105 hover:shadow-xl">
-                    <div className="text-center">
-                      <div className="w-14 h-14 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold transform transition-all duration-300 hover:scale-110">
-                        2
+                  <div className="flex-shrink-0 w-64 snap-center">
+                    <div className="bg-white rounded-full p-8 shadow-xl border-4 border-orange-200 transform transition-all duration-700 ease-out hover:shadow-2xl">
+                      <div className="text-center">
+                        <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-2xl font-bold fredoka-bold">
+                          2
+                        </div>
+                        <h3 className="text-xl font-semibold mb-3 fredoka-bold">Share</h3>
+                        <p className="text-gray-600 fredoka-medium text-sm">Upload notes, past papers, and help your classmates learn</p>
                       </div>
-                      <h3 className="text-lg font-semibold mb-2 fredoka-bold">Share</h3>
-                      <p className="text-gray-600 fredoka-medium text-sm">Upload notes, past papers, and help your classmates learn</p>
                     </div>
                   </div>
 
                   {/* Step 3 */}
-                  <div className="flex-shrink-0 w-72 snap-center bg-white rounded-xl p-6 shadow-lg border border-gray-200 transform transition-all duration-500 ease-out hover:scale-105 hover:shadow-xl">
-                    <div className="text-center">
-                      <div className="w-14 h-14 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold transform transition-all duration-300 hover:scale-110">
-                        3
+                  <div className="flex-shrink-0 w-64 snap-center">
+                    <div className="bg-white rounded-full p-8 shadow-xl border-4 border-green-200 transform transition-all duration-700 ease-out hover:shadow-2xl">
+                      <div className="text-center">
+                        <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-2xl font-bold fredoka-bold">
+                          3
+                        </div>
+                        <h3 className="text-xl font-semibold mb-3 fredoka-bold">Earn Points</h3>
+                        <p className="text-gray-600 fredoka-medium text-sm">Get points for sharing content, helping others, and staying active</p>
                       </div>
-                      <h3 className="text-lg font-semibold mb-2 fredoka-bold">Earn Points</h3>
-                      <p className="text-gray-600 fredoka-medium text-sm">Get points for sharing content, helping others, and staying active</p>
                     </div>
                   </div>
 
                   {/* Step 4 */}
-                  <div className="flex-shrink-0 w-72 snap-center bg-white rounded-xl p-6 shadow-lg border border-gray-200 transform transition-all duration-500 ease-out hover:scale-105 hover:shadow-xl">
-                    <div className="text-center">
-                      <div className="w-14 h-14 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold transform transition-all duration-300 hover:scale-110">
-                        4
+                  <div className="flex-shrink-0 w-64 snap-center">
+                    <div className="bg-white rounded-full p-8 shadow-xl border-4 border-purple-200 transform transition-all duration-700 ease-out hover:shadow-2xl">
+                      <div className="text-center">
+                        <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-2xl font-bold fredoka-bold">
+                          4
+                        </div>
+                        <h3 className="text-xl font-semibold mb-3 fredoka-bold">Level Up</h3>
+                        <p className="text-gray-600 fredoka-medium text-sm">Unlock new characters and climb the leaderboards</p>
                       </div>
-                      <h3 className="text-lg font-semibold mb-2 fredoka-bold">Level Up</h3>
-                      <p className="text-gray-600 fredoka-medium text-sm">Unlock new characters and climb the leaderboards</p>
+                    </div>
+                  </div>
+
+                  {/* Step 1 - Duplicated for infinite loop */}
+                  <div className="flex-shrink-0 w-64 snap-center">
+                    <div className="bg-white rounded-full p-8 shadow-xl border-4 border-blue-200 transform transition-all duration-700 ease-out hover:shadow-2xl">
+                      <div className="text-center">
+                        <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-2xl font-bold fredoka-bold">
+                          1
+                        </div>
+                        <h3 className="text-xl font-semibold mb-3 fredoka-bold">Register</h3>
+                        <p className="text-gray-600 fredoka-medium text-sm">Enter your university details and admission number to get started</p>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
               
-              {/* Enhanced Gradient fade indicators */}
-              <div className="absolute left-0 top-0 bottom-4 w-8 bg-gradient-to-r from-gray-50 via-gray-50/80 to-transparent pointer-events-none z-10"></div>
-              <div className="absolute right-0 top-0 bottom-4 w-8 bg-gradient-to-l from-gray-50 via-gray-50/80 to-transparent pointer-events-none z-10"></div>
-              
-              {/* Scroll indicators */}
-              <div className="flex justify-center mt-4 space-x-2">
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse animation-delay-200"></div>
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse animation-delay-400"></div>
-                <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse animation-delay-600"></div>
+              {/* Circular Progress Indicators */}
+              <div className="flex justify-center mt-6 space-x-3">
+                <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
+                <div className="w-3 h-3 bg-orange-400 rounded-full animate-pulse animation-delay-200"></div>
+                <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse animation-delay-400"></div>
+                <div className="w-3 h-3 bg-purple-400 rounded-full animate-pulse animation-delay-600"></div>
               </div>
             </div>
           </div>
