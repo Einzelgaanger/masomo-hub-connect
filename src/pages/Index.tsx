@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { Link, Navigate } from "react-router-dom";
-import { GraduationCap, BookOpen, Users, Trophy, ArrowRight } from "lucide-react";
+import { GraduationCap, BookOpen, Users, Trophy, ArrowRight, Shield } from "lucide-react";
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -32,11 +32,19 @@ const Index = () => {
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             Where learning meets creativity. Transform your university experience with our gamified learning platform.
           </p>
-          <Link to="/login">
-            <Button size="lg" className="gap-2">
-              Get Started <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
+          <div className="flex gap-4 justify-center">
+            <Link to="/login">
+              <Button size="lg" className="gap-2">
+                Get Started <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+            <Link to="/admin-login">
+              <Button size="lg" variant="outline" className="gap-2">
+                <Shield className="h-4 w-4" />
+                Admin Access
+              </Button>
+            </Link>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">

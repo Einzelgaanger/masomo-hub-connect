@@ -1,4 +1,4 @@
-import { BookOpen, Settings, Info, User, GraduationCap } from "lucide-react";
+import { BookOpen, Settings, Info, User, GraduationCap, Shield } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
   Sidebar as SidebarComponent,
@@ -64,6 +64,16 @@ export function Sidebar({ profile }: SidebarProps) {
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              {profile && ['admin', 'super_admin'].includes(profile.role) && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink to="/admin" className={getNavLinkClass}>
+                      <Shield className="h-4 w-4" />
+                      {!collapsed && <span>Admin Panel</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
