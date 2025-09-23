@@ -45,13 +45,16 @@ const Index = () => {
           <div className="text-center mb-8 sm:mb-16">
             {/* Mobile: Custom Layout, Desktop: Logo Component */}
             <div className="block sm:hidden mb-6 animate-fade-in">
-              <div className="flex items-start justify-end mb-4">
-                <div className="flex items-center gap-3">
-                  <img src="/logo.svg" alt="Bunifu Logo" className="h-12 w-12 flex-shrink-0" />
-                  <div className="text-left">
-                    <h1 className="text-2xl font-bold fredoka-bold text-gray-900 leading-tight">Bunifu</h1>
-                    <p className="text-sm fredoka-medium text-gray-600 mt-1">Where learning meets creativity</p>
-                  </div>
+              <div className="flex items-start gap-2 mb-4">
+                {/* Large Owl Icon filling top-left */}
+                <div className="flex-shrink-0">
+                  <img src="/logo.svg" alt="Bunifu Logo" className="h-20 w-20" />
+                </div>
+                
+                {/* Name and Tagline to the right */}
+                <div className="flex-1 min-w-0 text-left">
+                  <h1 className="text-2xl font-bold fredoka-bold text-gray-900 leading-tight mb-1">Bunifu</h1>
+                  <p className="text-sm fredoka-medium text-gray-600 leading-tight">Where learning meets creativity</p>
                 </div>
               </div>
             </div>
@@ -71,10 +74,10 @@ const Index = () => {
                   Start Learning <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </Link>
-              <Link to="/admin/login">
+              <Link to="/login">
                 <Button size="lg" variant="outline" className="w-full sm:w-auto gap-2 border-2 border-gray-300 hover:border-blue-500 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg fredoka-medium">
-                  <Shield className="h-4 w-4 sm:h-5 sm:w-5" />
-                  Admin Portal
+                  <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
+                  Sign In
                 </Button>
               </Link>
             </div>
