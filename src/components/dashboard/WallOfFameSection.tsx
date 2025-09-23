@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Trophy, Medal, Award } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { getCharacterById } from "@/types/characters";
 
 export function WallOfFameSection() {
   const { user } = useAuth();
@@ -139,6 +140,23 @@ export function WallOfFameSection() {
                     <span className="text-xs text-muted-foreground truncate">
                       {profile.classes?.universities?.name}
                     </span>
+                  </div>
+                  <div className="flex items-center gap-1 mt-1">
+                    {(() => {
+                      const character = getCharacterById(profile.character_id || 'people');
+                      return (
+                        <>
+                          <img 
+                            src={character?.image || '/characters/people.png'} 
+                            alt={character?.name || 'Regular Person'}
+                            className="w-3 h-3 object-contain"
+                          />
+                          <span className="text-xs text-muted-foreground truncate">
+                            {character?.name || 'Regular Person'}
+                          </span>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
                 

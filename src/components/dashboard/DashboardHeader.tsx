@@ -1,6 +1,7 @@
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
+import { getCharacterByPoints } from "@/types/characters";
 
 interface DashboardHeaderProps {
   profile: any;
@@ -18,6 +19,8 @@ export function DashboardHeader({ profile }: DashboardHeaderProps) {
     }
   };
 
+  const currentCharacter = getCharacterByPoints(profile?.points || 0);
+
   return (
     <header className="border-b bg-card h-16 flex items-center justify-between px-6">
       <SidebarTrigger className="md:hidden" />
@@ -30,6 +33,14 @@ export function DashboardHeader({ profile }: DashboardHeaderProps) {
               {profile?.rank}
             </Badge>
             <span className="text-xs text-muted-foreground">{profile?.points} points</span>
+          </div>
+          <div className="flex items-center gap-1 mt-1">
+            <img 
+              src={currentCharacter.image} 
+              alt={currentCharacter.name}
+              className="w-4 h-4 object-contain"
+            />
+            <span className="text-xs text-muted-foreground">{currentCharacter.name}</span>
           </div>
         </div>
         

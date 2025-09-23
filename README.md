@@ -1,4 +1,4 @@
-# Masomo Hub - Where Learning Meets Creativity
+# Bunifu - Where Learning Meets Creativity
 
 A comprehensive educational platform that transforms university learning through gamification, collaborative features, and structured content management.
 
@@ -215,4 +215,4 @@ For support and questions:
 
 ---
 
-**Masomo Hub** - Transforming education through technology and gamification! 🎓✨
+**Bunifu** - Transforming education through technology and gamification! 🎓✨

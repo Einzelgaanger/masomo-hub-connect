@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Upload, Download, ThumbsUp, ThumbsDown, MessageCircle, Trash2, Eye } from "lucide-react";
+import { Plus, Upload, Download, ThumbsUp, ThumbsDown, MessageCircle, Trash2, Eye, FileText } from "lucide-react";
 import { format } from "date-fns";
 
 interface Note {

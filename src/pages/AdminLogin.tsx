@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Shield, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import Logo from "@/components/ui/Logo";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -46,10 +47,10 @@ const AdminLogin = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <Shield className="h-8 w-8 text-primary" />
-            <CardTitle className="text-2xl">Admin Access</CardTitle>
+          <div className="flex justify-center mb-4">
+            <Logo size="lg" showText={true} />
           </div>
+          <CardTitle className="text-2xl mb-2">Admin Access</CardTitle>
           <p className="text-muted-foreground">
             Enter the admin password to access the admin panel
           </p>

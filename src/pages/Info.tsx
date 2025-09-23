@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Trophy, Star, Target, Zap, Users, MessageCircle, Upload, Calendar, ThumbsUp, ThumbsDown, Award, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { CharacterSelector } from "@/components/ui/CharacterSelector";
 
 const Info = () => {
   const { user } = useAuth();
@@ -326,6 +327,22 @@ const Info = () => {
                     </ul>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Character Collection */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Character Collection
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CharacterSelector 
+                  currentPoints={profile?.points || 0}
+                  currentCharacterId={profile?.character_id}
+                />
               </CardContent>
             </Card>
 

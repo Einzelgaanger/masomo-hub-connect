@@ -9,6 +9,8 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminClasses from "./pages/admin/AdminClasses";
+import AdminContent from "./pages/admin/AdminContent";
 import UnitPage from "./pages/UnitPage";
 import Settings from "./pages/Settings";
 import Info from "./pages/Info";
@@ -47,6 +49,8 @@ const App = () => (
             } />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/classes" element={<AdminClasses />} />
+            <Route path="/admin/content" element={<AdminContent />} />
             <Route path="/unit/:unitId" element={
               <ProtectedRoute>
                 <UnitPage />

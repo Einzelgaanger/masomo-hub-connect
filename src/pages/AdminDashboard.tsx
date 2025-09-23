@@ -1,16 +1,12 @@
 import { useState, useEffect } from "react";
-import { Sidebar } from "@/components/layout/Sidebar";
+import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminHeader } from "@/components/admin/AdminHeader";
-import { AdminStatsSection } from "@/components/admin/AdminStatsSection";
-import { ClassManagementSection } from "@/components/admin/ClassManagementSection";
-import { StudentManagementSection } from "@/components/admin/StudentManagementSection";
-import { ContentManagementSection } from "@/components/admin/ContentManagementSection";
+import { AdminDashboardStats } from "@/components/admin/AdminDashboardStats";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, BookOpen, Upload, Settings } from "lucide-react";
+import { BarChart3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const AdminDashboard = () => {
@@ -23,7 +19,7 @@ const AdminDashboard = () => {
     // Check if admin session exists
     const adminSession = sessionStorage.getItem('admin_session');
     if (!adminSession) {
-      navigate('/admin-login');
+      navigate('/admin/login');
       return;
     }
     
@@ -31,7 +27,7 @@ const AdminDashboard = () => {
     setProfile({
       id: 'admin-1',
       full_name: 'System Administrator',
-      email: 'admin@masomohub.com',
+      email: 'admin@bunifu.com',
       role: 'super_admin',
       profile_picture_url: null,
       points: 0,
@@ -62,64 +58,23 @@ const AdminDashboard = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <Sidebar profile={profile} />
+        <AdminSidebar profile={profile} />
         <main className="flex-1 flex flex-col">
           <AdminHeader profile={profile} />
           <div className="flex-1 p-6 space-y-6 overflow-auto">
             <div className="mb-6">
-              <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-blue-50 rounded-lg">
+                  <BarChart3 className="h-6 w-6 text-blue-600" />
+                </div>
+                <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+              </div>
               <p className="text-muted-foreground">
-                Manage classes, students, and content for your university
+                System overview and key metrics for your Bunifu platform
               </p>
             </div>
 
-            <AdminStatsSection />
-
-            <Tabs defaultValue="classes" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="classes" className="flex items-center gap-2">
-                  <BookOpen className="h-4 w-4" />
-                  Classes
-                </TabsTrigger>
-                <TabsTrigger value="students" className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Students
-                </TabsTrigger>
-                <TabsTrigger value="content" className="flex items-center gap-2">
-                  <Upload className="h-4 w-4" />
-                  Content
-                </TabsTrigger>
-                <TabsTrigger value="settings" className="flex items-center gap-2">
-                  <Settings className="h-4 w-4" />
-                  Settings
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="classes" className="space-y-6">
-                <ClassManagementSection />
-              </TabsContent>
-
-              <TabsContent value="students" className="space-y-6">
-                <StudentManagementSection />
-              </TabsContent>
-
-              <TabsContent value="content" className="space-y-6">
-                <ContentManagementSection />
-              </TabsContent>
-
-              <TabsContent value="settings" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Admin Settings</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground">
-                      Admin settings and configuration options will be available here.
-                    </p>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
+            <AdminDashboardStats />
           </div>
         </main>
       </div>

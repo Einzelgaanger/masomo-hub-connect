@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import Logo from "@/components/ui/Logo";
+import { getCharacterByPoints } from "@/types/characters";
 
 interface SidebarProps {
   profile: any;
@@ -35,6 +37,8 @@ export function Sidebar({ profile }: SidebarProps) {
     }
   };
 
+  const currentCharacter = getCharacterByPoints(profile?.points || 0);
+
   const getNavLinkClass = ({ isActive }: { isActive: boolean }) =>
     isActive 
       ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" 
@@ -43,11 +47,8 @@ export function Sidebar({ profile }: SidebarProps) {
   return (
     <SidebarComponent className={collapsed ? "w-16" : "w-64"}>
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
-          <GraduationCap className="h-6 w-6 text-sidebar-primary" />
-          {!collapsed && (
-            <span className="font-bold text-lg text-sidebar-primary">Masomo Hub</span>
-          )}
+        <div className="flex items-center justify-center">
+          <Logo size={collapsed ? "sm" : "md"} showText={!collapsed} />
         </div>
       </SidebarHeader>
 
@@ -140,6 +141,14 @@ export function Sidebar({ profile }: SidebarProps) {
                     {profile.rank}
                   </Badge>
                   <span className="text-xs text-muted-foreground">{profile.points} pts</span>
+                </div>
+                <div className="flex items-center gap-1 mt-1">
+                  <img 
+                    src={currentCharacter.image} 
+                    alt={currentCharacter.name}
+                    className="w-3 h-3 object-contain"
+                  />
+                  <span className="text-xs text-muted-foreground truncate">{currentCharacter.name}</span>
                 </div>
               </div>
             )}

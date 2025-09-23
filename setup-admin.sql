@@ -1,4 +1,4 @@
--- Masomo Hub Admin Setup Script
+-- Bunifu Admin Setup Script
 -- Run this in your Supabase SQL Editor
 
 -- 1. Add sample countries
@@ -57,7 +57,7 @@ SET
   class_id = (SELECT id FROM classes WHERE course_name = 'Computer Science' LIMIT 1)
 WHERE user_id = (
   SELECT id FROM auth.users 
-  WHERE email = 'admin@masomohub.com'  -- Replace with your admin email
+  WHERE email = 'admin@bunifu.com'  -- Replace with your admin email
 );
 
 -- 6. Create sample students for testing
@@ -79,10 +79,10 @@ ON CONFLICT (email) DO NOTHING;
 -- 7. Create sample announcement
 INSERT INTO announcements (title, content, university_id, created_by)
 SELECT 
-  'Welcome to Masomo Hub!',
+  'Welcome to Bunifu!',
   'Welcome to our new learning platform. Here you can share notes, access past papers, and track your academic progress. Start by exploring your units and uploading your first note!',
   u.id,
-  (SELECT id FROM auth.users WHERE email = 'admin@masomohub.com' LIMIT 1)
+  (SELECT id FROM auth.users WHERE email = 'admin@bunifu.com' LIMIT 1)
 FROM universities u 
 WHERE u.name = 'University of Nairobi'
 ON CONFLICT DO NOTHING;
