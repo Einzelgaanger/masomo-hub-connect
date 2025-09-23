@@ -251,3 +251,18 @@ All colors MUST be HSL.
 .animate-character-tape:hover {
   animation-play-state: paused;
 }
+
+/* Horizontal Scroll Styles for How It Works Section */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Smooth scrolling for mobile */
+.scroll-smooth {
+  scroll-behavior: smooth;
+}

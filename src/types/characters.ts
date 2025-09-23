@@ -33,7 +33,7 @@ export const CHARACTERS: Character[] = [
   },
   {
     id: 'guard',
-    name: 'Guardian',
+    name: 'Guardian Angel',
     image: '/characters/guard.png',
     description: 'A vigilant protector of knowledge. Students who help others and maintain academic integrity.',
     pointsRequired: 100,
@@ -45,7 +45,7 @@ export const CHARACTERS: Character[] = [
   // Intermediate characters
   {
     id: 'elf',
-    name: 'Scholar Elf',
+    name: 'Elf',
     image: '/characters/elf.png',
     description: 'A mystical being with ancient wisdom. For students who excel in research and critical thinking.',
     pointsRequired: 200,
@@ -65,7 +65,7 @@ export const CHARACTERS: Character[] = [
   },
   {
     id: 'swordsman',
-    name: 'Scholar Swordsman',
+    name: 'Swordsman',
     image: '/characters/swordsman.png',
     description: 'A warrior of knowledge, cutting through ignorance with sharp intellect.',
     pointsRequired: 500,
@@ -77,7 +77,7 @@ export const CHARACTERS: Character[] = [
   // Advanced characters
   {
     id: 'pirate',
-    name: 'Knowledge Pirate',
+    name: 'Pirate',
     image: '/characters/pirate.png',
     description: 'Sailing the seas of academia, collecting treasures of knowledge and sharing them freely.',
     pointsRequired: 750,
@@ -87,7 +87,7 @@ export const CHARACTERS: Character[] = [
   },
   {
     id: 'superhero',
-    name: 'Academic Superhero',
+    name: 'Superhero',
     image: '/characters/superhero.png',
     description: 'Using the power of knowledge to help fellow students and make the world a better place.',
     pointsRequired: 1000,
@@ -109,7 +109,7 @@ export const CHARACTERS: Character[] = [
   // Legendary characters
   {
     id: 'assasin',
-    name: 'Knowledge Assassin',
+    name: 'Assassin',
     image: '/characters/assasin.png',
     description: 'A stealthy master of learning, silently acquiring knowledge and eliminating ignorance.',
     pointsRequired: 2000,
@@ -119,7 +119,7 @@ export const CHARACTERS: Character[] = [
   },
   {
     id: 'zombie',
-    name: 'Undead Scholar',
+    name: 'Zombie',
     image: '/characters/zombie.png',
     description: 'A relentless pursuer of knowledge, never stopping in the quest for academic excellence.',
     pointsRequired: 2500,
@@ -129,7 +129,7 @@ export const CHARACTERS: Character[] = [
   },
   {
     id: 'halloween',
-    name: 'Mysterious Scholar',
+    name: 'Ghost',
     image: '/characters/halloween.png',
     description: 'A shadowy figure who emerges during the most challenging academic periods, mastering the dark arts of learning.',
     pointsRequired: 3000,

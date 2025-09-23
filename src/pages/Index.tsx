@@ -26,12 +26,19 @@ const Index = () => {
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
       <section className="relative overflow-hidden min-h-screen flex flex-col justify-center">
-        {/* Animated Background Balls - Clean & Simple */}
+        {/* Animated Background Balls - 8 Different Sizes */}
         <div className="absolute inset-0">
+          {/* Original 4 balls */}
           <div className="absolute top-20 left-10 w-24 h-24 bg-blue-400/25 rounded-full animate-float blur-sm"></div>
           <div className="absolute top-40 right-20 w-20 h-20 bg-orange-400/25 rounded-full animate-float animation-delay-300 blur-sm"></div>
           <div className="absolute bottom-40 left-20 w-28 h-28 bg-green-400/25 rounded-full animate-float animation-delay-600 blur-sm"></div>
           <div className="absolute bottom-20 right-10 w-16 h-16 bg-purple-400/25 rounded-full animate-float animation-delay-900 blur-sm"></div>
+          
+          {/* 4 Additional balls with different sizes */}
+          <div className="absolute top-60 left-1/4 w-12 h-12 bg-pink-400/25 rounded-full animate-float animation-delay-200 blur-sm"></div>
+          <div className="absolute top-10 right-1/3 w-32 h-32 bg-cyan-400/25 rounded-full animate-float animation-delay-500 blur-sm"></div>
+          <div className="absolute bottom-60 right-1/4 w-18 h-18 bg-yellow-400/25 rounded-full animate-float animation-delay-800 blur-sm"></div>
+          <div className="absolute bottom-10 left-1/3 w-14 h-14 bg-red-400/25 rounded-full animate-float animation-delay-1100 blur-sm"></div>
         </div>
         
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 relative flex-1 flex flex-col justify-center z-10">
@@ -92,74 +99,74 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-12 sm:mb-16">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mb-8 sm:mb-12 lg:mb-16">
             {/* Collaborative Learning Card */}
-            <Card className="text-center hover:shadow-2xl transition-all duration-500 hover:-translate-y-4 border-0 shadow-lg group animate-fade-in-up animation-delay-100">
-              <CardHeader className="pb-4">
-                <div className="relative mx-auto mb-6 group-hover:scale-110 transition-transform duration-500">
-                  <div className="w-24 h-24 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-lg border-2 border-blue-200 group-hover:shadow-blue-500/25 transition-all duration-500">
+            <Card className="text-center hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 lg:hover:-translate-y-4 border-0 shadow-lg group animate-fade-in-up animation-delay-100">
+              <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
+                <div className="relative mx-auto mb-4 sm:mb-6 group-hover:scale-110 transition-transform duration-500">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-lg border-2 border-blue-200 group-hover:shadow-blue-500/25 transition-all duration-500">
                     <img 
                       src="/collaborativelearning.png" 
                       alt="Collaborative Learning" 
-                      className="w-16 h-16 object-contain"
+                      className="w-12 h-12 sm:w-16 sm:h-16 object-contain"
                     />
                   </div>
-                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-400 rounded-full animate-pulse"></div>
+                  <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 w-4 h-4 sm:w-6 sm:h-6 bg-blue-400 rounded-full animate-pulse"></div>
                 </div>
-                <CardTitle className="text-2xl fredoka-bold group-hover:text-blue-600 transition-colors duration-300">
+                <CardTitle className="text-xl sm:text-2xl fredoka-bold group-hover:text-blue-600 transition-colors duration-300">
                   Collaborative Learning
                 </CardTitle>
             </CardHeader>
-            <CardContent>
-                <CardDescription className="text-gray-600 fredoka-medium group-hover:text-gray-700 transition-colors duration-300">
+            <CardContent className="px-4 sm:px-6">
+                <CardDescription className="text-sm sm:text-base text-gray-600 fredoka-medium group-hover:text-gray-700 transition-colors duration-300 leading-relaxed">
                   Share notes, past papers, and resources with your classmates. Learn together, grow together in a supportive community.
               </CardDescription>
             </CardContent>
           </Card>
 
             {/* Gamified Experience Card */}
-            <Card className="text-center hover:shadow-2xl transition-all duration-500 hover:-translate-y-4 border-0 shadow-lg group animate-fade-in-up animation-delay-200">
-              <CardHeader className="pb-4">
-                <div className="relative mx-auto mb-6 group-hover:scale-110 transition-transform duration-500">
-                  <div className="w-24 h-24 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-lg border-2 border-orange-200 group-hover:shadow-orange-500/25 transition-all duration-500">
+            <Card className="text-center hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 lg:hover:-translate-y-4 border-0 shadow-lg group animate-fade-in-up animation-delay-200">
+              <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
+                <div className="relative mx-auto mb-4 sm:mb-6 group-hover:scale-110 transition-transform duration-500">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-lg border-2 border-orange-200 group-hover:shadow-orange-500/25 transition-all duration-500">
                     <img 
                       src="/gamifiedexperience.png" 
                       alt="Gamified Experience" 
-                      className="w-16 h-16 object-contain"
+                      className="w-12 h-12 sm:w-16 sm:h-16 object-contain"
                     />
                   </div>
-                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-orange-400 rounded-full animate-pulse animation-delay-300"></div>
+                  <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 w-4 h-4 sm:w-6 sm:h-6 bg-orange-400 rounded-full animate-pulse animation-delay-300"></div>
                 </div>
-                <CardTitle className="text-2xl fredoka-bold group-hover:text-orange-600 transition-colors duration-300">
+                <CardTitle className="text-xl sm:text-2xl fredoka-bold group-hover:text-orange-600 transition-colors duration-300">
                   Gamified Experience
                 </CardTitle>
             </CardHeader>
-            <CardContent>
-                <CardDescription className="text-gray-600 fredoka-medium group-hover:text-gray-700 transition-colors duration-300">
+            <CardContent className="px-4 sm:px-6">
+                <CardDescription className="text-sm sm:text-base text-gray-600 fredoka-medium group-hover:text-gray-700 transition-colors duration-300 leading-relaxed">
                   Earn points, climb rankings, and unlock unique characters as you contribute to the learning community.
               </CardDescription>
             </CardContent>
           </Card>
 
             {/* Class Organization Card */}
-            <Card className="text-center hover:shadow-2xl transition-all duration-500 hover:-translate-y-4 border-0 shadow-lg group animate-fade-in-up animation-delay-300">
-              <CardHeader className="pb-4">
-                <div className="relative mx-auto mb-6 group-hover:scale-110 transition-transform duration-500">
-                  <div className="w-24 h-24 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-lg border-2 border-green-200 group-hover:shadow-green-500/25 transition-all duration-500">
+            <Card className="text-center hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 lg:hover:-translate-y-4 border-0 shadow-lg group animate-fade-in-up animation-delay-300">
+              <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
+                <div className="relative mx-auto mb-4 sm:mb-6 group-hover:scale-110 transition-transform duration-500">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-lg border-2 border-green-200 group-hover:shadow-green-500/25 transition-all duration-500">
                     <img 
                       src="/classorganization.png" 
                       alt="Class Organization" 
-                      className="w-16 h-16 object-contain"
+                      className="w-12 h-12 sm:w-16 sm:h-16 object-contain"
                     />
                   </div>
-                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-400 rounded-full animate-pulse animation-delay-500"></div>
+                  <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 w-4 h-4 sm:w-6 sm:h-6 bg-green-400 rounded-full animate-pulse animation-delay-500"></div>
                 </div>
-                <CardTitle className="text-2xl fredoka-bold group-hover:text-green-600 transition-colors duration-300">
+                <CardTitle className="text-xl sm:text-2xl fredoka-bold group-hover:text-green-600 transition-colors duration-300">
                   Class Organization
                 </CardTitle>
             </CardHeader>
-            <CardContent>
-                <CardDescription className="text-gray-600 fredoka-medium group-hover:text-gray-700 transition-colors duration-300">
+            <CardContent className="px-4 sm:px-6">
+                <CardDescription className="text-sm sm:text-base text-gray-600 fredoka-medium group-hover:text-gray-700 transition-colors duration-300 leading-relaxed">
                   Stay organized with your class schedule, assignments, and events all in one beautifully designed platform.
               </CardDescription>
             </CardContent>
@@ -258,18 +265,77 @@ const Index = () => {
       </section>
 
       {/* How It Works */}
-      <section className="py-20 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 fredoka-bold">
+      <section className="py-12 sm:py-16 lg:py-20 bg-gray-50">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8 sm:mb-12 lg:mb-16">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4 sm:mb-6 fredoka-bold">
               How It Works
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto fredoka-medium">
+            <p className="text-lg sm:text-xl text-gray-600 max-w-xs sm:max-w-xl md:max-w-2xl mx-auto fredoka-medium px-4">
               Get started in minutes and transform your learning experience
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          {/* Mobile: Horizontal Scroll, Desktop: Grid */}
+          <div className="block lg:hidden">
+            {/* Mobile Horizontal Scroll Container */}
+            <div className="relative">
+              <div className="overflow-x-auto scrollbar-hide pb-4" style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
+                <div className="flex gap-4 px-4" style={{width: 'calc(100% + 2rem)'}}>
+                  {/* Step 1 */}
+                  <div className="flex-shrink-0 w-72 bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+                    <div className="text-center">
+                      <div className="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold">
+                        1
+                      </div>
+                      <h3 className="text-lg font-semibold mb-2 fredoka-bold">Register</h3>
+                      <p className="text-gray-600 fredoka-medium text-sm">Enter your university details and admission number to get started</p>
+                    </div>
+                  </div>
+
+                  {/* Step 2 */}
+                  <div className="flex-shrink-0 w-72 bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+                    <div className="text-center">
+                      <div className="w-14 h-14 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold">
+                        2
+                      </div>
+                      <h3 className="text-lg font-semibold mb-2 fredoka-bold">Share</h3>
+                      <p className="text-gray-600 fredoka-medium text-sm">Upload notes, past papers, and help your classmates learn</p>
+                    </div>
+                  </div>
+
+                  {/* Step 3 */}
+                  <div className="flex-shrink-0 w-72 bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+                    <div className="text-center">
+                      <div className="w-14 h-14 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold">
+                        3
+                      </div>
+                      <h3 className="text-lg font-semibold mb-2 fredoka-bold">Earn Points</h3>
+                      <p className="text-gray-600 fredoka-medium text-sm">Get points for sharing content, helping others, and staying active</p>
+                    </div>
+                  </div>
+
+                  {/* Step 4 */}
+                  <div className="flex-shrink-0 w-72 bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+                    <div className="text-center">
+                      <div className="w-14 h-14 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold">
+                        4
+                      </div>
+                      <h3 className="text-lg font-semibold mb-2 fredoka-bold">Level Up</h3>
+                      <p className="text-gray-600 fredoka-medium text-sm">Unlock new characters and climb the leaderboards</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Gradient fade indicators */}
+              <div className="absolute left-0 top-0 bottom-4 w-8 bg-gradient-to-r from-gray-50 to-transparent pointer-events-none"></div>
+              <div className="absolute right-0 top-0 bottom-4 w-8 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none"></div>
+            </div>
+          </div>
+
+          {/* Desktop: Grid Layout */}
+          <div className="hidden lg:grid grid-cols-4 gap-6 lg:gap-8">
             <div className="text-center">
               <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-2xl font-bold fredoka-bold">
                 1
@@ -292,9 +358,9 @@ const Index = () => {
               </div>
               <h3 className="text-xl font-semibold mb-2 fredoka-bold">Earn Points</h3>
               <p className="text-gray-600 fredoka-medium">Get points for sharing content, helping others, and staying active</p>
-        </div>
+            </div>
 
-        <div className="text-center">
+            <div className="text-center">
               <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-2xl font-bold fredoka-bold">
                 4
               </div>
@@ -307,13 +373,6 @@ const Index = () => {
 
       {/* Minimalist CTA Section */}
       <section className="py-12 sm:py-16 bg-white text-gray-900 relative overflow-hidden">
-        {/* Subtle Background Pattern - Mobile Responsive */}
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-6 sm:top-10 left-6 sm:left-10 w-12 sm:w-16 md:w-20 h-12 sm:h-16 md:h-20 bg-gray-400 rounded-full blur-xl"></div>
-          <div className="absolute top-12 sm:top-20 right-6 sm:right-20 w-10 sm:w-12 md:w-16 h-10 sm:h-12 md:h-16 bg-gray-300 rounded-full blur-xl"></div>
-          <div className="absolute bottom-12 sm:bottom-20 left-6 sm:left-20 w-14 sm:w-18 md:w-24 h-14 sm:h-18 md:h-24 bg-gray-400 rounded-full blur-xl"></div>
-          <div className="absolute bottom-6 sm:bottom-10 right-6 sm:right-10 w-8 sm:w-10 md:w-12 h-8 sm:h-10 md:h-12 bg-gray-300 rounded-full blur-xl"></div>
-        </div>
         
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           {/* Header Section */}
@@ -339,42 +398,42 @@ const Index = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 items-center mb-6 sm:mb-8">
             
             {/* Left Column - Features */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-300 border border-gray-200">
-                <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center">
-                  <Upload className="h-5 w-5 text-white" />
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-300 border border-gray-200">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Upload className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </div>
-                <div>
-                  <h3 className="text-base font-semibold fredoka-bold mb-0.5 text-gray-900">Share & Earn</h3>
-                  <p className="text-gray-600 fredoka-medium text-xs">Upload notes and resources</p>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-sm sm:text-base font-semibold fredoka-bold mb-0.5 text-gray-900">Share & Earn</h3>
+                  <p className="text-gray-600 fredoka-medium text-xs sm:text-xs">Upload notes and resources</p>
                 </div>
-                <div className="ml-auto bg-gray-800 text-white px-2 py-1 rounded-full fredoka-bold text-xs">
+                <div className="ml-auto bg-gray-800 text-white px-2 py-1 rounded-full fredoka-bold text-xs flex-shrink-0">
                   +10-20 pts
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-300 border border-gray-200">
-                <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                  <MessageCircle className="h-5 w-5 text-white" />
+              <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-300 border border-gray-200">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </div>
-                <div>
-                  <h3 className="text-base font-semibold fredoka-bold mb-0.5 text-gray-900">Help Others</h3>
-                  <p className="text-gray-600 fredoka-medium text-xs">Comment and provide feedback</p>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-sm sm:text-base font-semibold fredoka-bold mb-0.5 text-gray-900">Help Others</h3>
+                  <p className="text-gray-600 fredoka-medium text-xs sm:text-xs">Comment and provide feedback</p>
                 </div>
-                <div className="ml-auto bg-gray-800 text-white px-2 py-1 rounded-full fredoka-bold text-xs">
+                <div className="ml-auto bg-gray-800 text-white px-2 py-1 rounded-full fredoka-bold text-xs flex-shrink-0">
                   +3 pts
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-300 border border-gray-200">
-                <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
-                  <Calendar className="h-5 w-5 text-white" />
+              <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-300 border border-gray-200">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </div>
-                <div>
-                  <h3 className="text-base font-semibold fredoka-bold mb-0.5 text-gray-900">Stay Active</h3>
-                  <p className="text-gray-600 fredoka-medium text-xs">Daily visits and engagement</p>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-sm sm:text-base font-semibold fredoka-bold mb-0.5 text-gray-900">Stay Active</h3>
+                  <p className="text-gray-600 fredoka-medium text-xs sm:text-xs">Daily visits and engagement</p>
                 </div>
-                <div className="ml-auto bg-gray-800 text-white px-2 py-1 rounded-full fredoka-bold text-xs">
+                <div className="ml-auto bg-gray-800 text-white px-2 py-1 rounded-full fredoka-bold text-xs flex-shrink-0">
                   +5 pts
                 </div>
               </div>
@@ -382,20 +441,20 @@ const Index = () => {
 
             {/* Right Column - CTA */}
             <div className="text-center lg:text-left">
-              <div className="bg-gray-50 rounded-xl p-6 mb-4 border border-gray-200">
-                <div className="flex items-center justify-center lg:justify-start gap-3 mb-3">
+              <div className="bg-gray-50 rounded-xl p-4 sm:p-6 mb-4 border border-gray-200">
+                <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-2 sm:gap-3 mb-3">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                     <span className="fredoka-medium text-xs text-gray-600">10,000+ Active Students</span>
                   </div>
-                  <div className="w-px h-3 bg-gray-300"></div>
+                  <div className="hidden sm:block w-px h-3 bg-gray-300"></div>
                   <div className="flex items-center gap-2">
                     <Star className="h-3 w-3 text-gray-600" />
                     <span className="fredoka-medium text-xs text-gray-600">4.9/5 Rating</span>
                   </div>
                 </div>
                 
-                <h3 className="text-xl font-bold fredoka-bold mb-3 text-gray-900">
+                <h3 className="text-lg sm:text-xl font-bold fredoka-bold mb-3 text-gray-900">
                   Start Your Journey Today
                 </h3>
                 
@@ -424,13 +483,6 @@ const Index = () => {
 
       {/* Footer */}
       <footer className="bg-black text-white py-12 sm:py-16">
-        {/* Animated Background Elements - Mobile Responsive */}
-        <div className="absolute inset-0">
-          <div className="absolute top-6 sm:top-10 left-6 sm:left-10 w-20 sm:w-24 md:w-32 h-20 sm:h-24 md:h-32 bg-blue-500 rounded-full animate-float opacity-5"></div>
-          <div className="absolute top-12 sm:top-20 right-6 sm:right-20 w-16 sm:w-20 md:w-24 h-16 sm:h-20 md:h-24 bg-purple-500 rounded-full animate-float animation-delay-200 opacity-5"></div>
-          <div className="absolute bottom-12 sm:bottom-20 left-16 sm:left-32 w-10 sm:w-12 md:w-16 h-10 sm:h-12 md:h-16 bg-orange-500 rounded-full animate-float animation-delay-400 opacity-5"></div>
-          <div className="absolute bottom-20 sm:bottom-32 right-6 sm:right-10 w-18 sm:w-22 md:w-28 h-18 sm:h-22 md:h-28 bg-green-500 rounded-full animate-float animation-delay-600 opacity-5"></div>
-        </div>
         
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mb-6 sm:mb-8">
