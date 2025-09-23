@@ -9,6 +9,16 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
+  preview: {
+    host: "::",
+    port: 10000,
+    allowedHosts: [
+      "localhost",
+      "127.0.0.1",
+      "bunifu.onrender.com",
+      ".onrender.com"
+    ],
+  },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
     alias: {
