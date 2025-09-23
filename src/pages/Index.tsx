@@ -43,9 +43,24 @@ const Index = () => {
         
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 relative flex-1 flex flex-col justify-center z-10">
           <div className="text-center mb-8 sm:mb-16">
-            <div className="flex justify-center mb-6 sm:mb-8 animate-fade-in">
+            {/* Mobile: Custom Layout, Desktop: Logo Component */}
+            <div className="block sm:hidden mb-6 animate-fade-in">
+              <div className="flex items-start justify-end mb-4">
+                <div className="flex items-center gap-3">
+                  <img src="/logo.svg" alt="Bunifu Logo" className="h-12 w-12 flex-shrink-0" />
+                  <div className="text-left">
+                    <h1 className="text-2xl font-bold fredoka-bold text-gray-900 leading-tight">Bunifu</h1>
+                    <p className="text-sm fredoka-medium text-gray-600 mt-1">Where learning meets creativity</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Desktop: Logo Component */}
+            <div className="hidden sm:flex justify-center mb-6 sm:mb-8 animate-fade-in">
               <Logo size="xl" showText={true} className="scale-150 sm:scale-200" />
             </div>
+            
             <p className="text-lg sm:text-xl md:text-2xl text-gray-600 mb-6 sm:mb-8 max-w-xs sm:max-w-2xl md:max-w-3xl mx-auto fredoka-medium animate-slide-up animation-delay-200 px-4">
               Transform your university experience with our revolutionary gamified learning platform. 
               Share, learn, and grow together with your classmates.
@@ -276,16 +291,23 @@ const Index = () => {
             </p>
           </div>
 
-          {/* Mobile: Horizontal Scroll, Desktop: Grid */}
+          {/* Mobile: Animated Horizontal Scroll, Desktop: Grid */}
           <div className="block lg:hidden">
-            {/* Mobile Horizontal Scroll Container */}
+            {/* Mobile Horizontal Scroll Container with Snap */}
             <div className="relative">
-              <div className="overflow-x-auto scrollbar-hide pb-4" style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
+              <div 
+                className="overflow-x-auto scrollbar-hide pb-4 snap-x snap-mandatory scroll-smooth" 
+                style={{
+                  scrollbarWidth: 'none', 
+                  msOverflowStyle: 'none',
+                  scrollBehavior: 'smooth'
+                }}
+              >
                 <div className="flex gap-4 px-4" style={{width: 'calc(100% + 2rem)'}}>
                   {/* Step 1 */}
-                  <div className="flex-shrink-0 w-72 bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+                  <div className="flex-shrink-0 w-72 snap-center bg-white rounded-xl p-6 shadow-lg border border-gray-200 transform transition-all duration-500 ease-out hover:scale-105 hover:shadow-xl">
                     <div className="text-center">
-                      <div className="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold">
+                      <div className="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold transform transition-all duration-300 hover:scale-110">
                         1
                       </div>
                       <h3 className="text-lg font-semibold mb-2 fredoka-bold">Register</h3>
@@ -294,9 +316,9 @@ const Index = () => {
                   </div>
 
                   {/* Step 2 */}
-                  <div className="flex-shrink-0 w-72 bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+                  <div className="flex-shrink-0 w-72 snap-center bg-white rounded-xl p-6 shadow-lg border border-gray-200 transform transition-all duration-500 ease-out hover:scale-105 hover:shadow-xl">
                     <div className="text-center">
-                      <div className="w-14 h-14 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold">
+                      <div className="w-14 h-14 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold transform transition-all duration-300 hover:scale-110">
                         2
                       </div>
                       <h3 className="text-lg font-semibold mb-2 fredoka-bold">Share</h3>
@@ -305,9 +327,9 @@ const Index = () => {
                   </div>
 
                   {/* Step 3 */}
-                  <div className="flex-shrink-0 w-72 bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+                  <div className="flex-shrink-0 w-72 snap-center bg-white rounded-xl p-6 shadow-lg border border-gray-200 transform transition-all duration-500 ease-out hover:scale-105 hover:shadow-xl">
                     <div className="text-center">
-                      <div className="w-14 h-14 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold">
+                      <div className="w-14 h-14 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold transform transition-all duration-300 hover:scale-110">
                         3
                       </div>
                       <h3 className="text-lg font-semibold mb-2 fredoka-bold">Earn Points</h3>
@@ -316,9 +338,9 @@ const Index = () => {
                   </div>
 
                   {/* Step 4 */}
-                  <div className="flex-shrink-0 w-72 bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+                  <div className="flex-shrink-0 w-72 snap-center bg-white rounded-xl p-6 shadow-lg border border-gray-200 transform transition-all duration-500 ease-out hover:scale-105 hover:shadow-xl">
                     <div className="text-center">
-                      <div className="w-14 h-14 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold">
+                      <div className="w-14 h-14 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold transform transition-all duration-300 hover:scale-110">
                         4
                       </div>
                       <h3 className="text-lg font-semibold mb-2 fredoka-bold">Level Up</h3>
@@ -328,9 +350,17 @@ const Index = () => {
                 </div>
               </div>
               
-              {/* Gradient fade indicators */}
-              <div className="absolute left-0 top-0 bottom-4 w-8 bg-gradient-to-r from-gray-50 to-transparent pointer-events-none"></div>
-              <div className="absolute right-0 top-0 bottom-4 w-8 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none"></div>
+              {/* Enhanced Gradient fade indicators */}
+              <div className="absolute left-0 top-0 bottom-4 w-8 bg-gradient-to-r from-gray-50 via-gray-50/80 to-transparent pointer-events-none z-10"></div>
+              <div className="absolute right-0 top-0 bottom-4 w-8 bg-gradient-to-l from-gray-50 via-gray-50/80 to-transparent pointer-events-none z-10"></div>
+              
+              {/* Scroll indicators */}
+              <div className="flex justify-center mt-4 space-x-2">
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse animation-delay-200"></div>
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse animation-delay-400"></div>
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse animation-delay-600"></div>
+              </div>
             </div>
           </div>
 
