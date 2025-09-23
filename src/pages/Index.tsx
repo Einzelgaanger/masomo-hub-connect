@@ -48,7 +48,7 @@ const Index = () => {
               <div className="flex items-start gap-2 mb-4">
                 {/* Large Owl Icon filling top-left */}
                 <div className="flex-shrink-0">
-                  <img src="/logo.svg" alt="Bunifu Logo" className="h-20 w-20" />
+                  <img src="/logo.svg" alt="Bunifu Logo" className="h-32 w-32" />
                 </div>
                 
                 {/* Name and Tagline to the right */}
