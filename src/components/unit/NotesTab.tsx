@@ -23,7 +23,7 @@ interface Note {
   uploaded_by: string;
   likes_count: number;
   dislikes_count: number;
-  profiles: {
+  profiles?: {
     full_name: string;
     profile_picture_url: string;
   };
@@ -36,7 +36,7 @@ interface Note {
     content: string;
     created_at: string;
     commented_by: string;
-    profiles: {
+    profiles?: {
       full_name: string;
       profile_picture_url: string;
     };
@@ -100,7 +100,7 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setNotes(data || []);
+      setNotes((data || []) as unknown as Note[]);
     } catch (error) {
       console.error('Error fetching notes:', error);
       toast({

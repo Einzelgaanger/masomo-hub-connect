@@ -173,7 +173,7 @@ export function StudentManagementSection() {
         .update({
           full_name: formData.full_name,
           admission_number: formData.admission_number,
-          role: formData.role,
+          role: formData.role as any,
           class_id: formData.class_id
         })
         .eq('user_id', authData.user.id);
@@ -334,7 +334,7 @@ export function StudentManagementSection() {
                          student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          student.admission_number.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesClass = selectedClass === "all" || student.class_id === selectedClass;
+    const matchesClass = selectedClass === "all" || (student.classes && 'id' in student.classes ? student.classes.id === selectedClass : false);
     
     return matchesSearch && matchesClass;
   });

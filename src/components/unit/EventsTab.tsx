@@ -20,7 +20,7 @@ interface Event {
   event_date: string;
   created_at: string;
   created_by: string;
-  profiles: {
+  profiles?: {
     full_name: string;
     profile_picture_url: string;
   };
@@ -65,7 +65,7 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
         .order('event_date', { ascending: true });
 
       if (error) throw error;
-      setEvents(data || []);
+      setEvents((data || []) as unknown as Event[]);
     } catch (error) {
       console.error('Error fetching events:', error);
       toast({

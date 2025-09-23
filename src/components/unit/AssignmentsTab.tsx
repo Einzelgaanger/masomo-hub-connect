@@ -21,7 +21,7 @@ interface Assignment {
   deadline: string;
   created_at: string;
   created_by: string;
-  profiles: {
+  profiles?: {
     full_name: string;
     profile_picture_url: string;
   };
@@ -75,7 +75,7 @@ export function AssignmentsTab({ unitId, profile }: AssignmentsTabProps) {
         .order('deadline', { ascending: true });
 
       if (error) throw error;
-      setAssignments(data || []);
+      setAssignments((data || []) as unknown as Assignment[]);
     } catch (error) {
       console.error('Error fetching assignments:', error);
       toast({

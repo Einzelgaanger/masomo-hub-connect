@@ -23,7 +23,7 @@ interface PastPaper {
   uploaded_by: string;
   likes_count: number;
   dislikes_count: number;
-  profiles: {
+  profiles?: {
     full_name: string;
     profile_picture_url: string;
   };
@@ -36,7 +36,7 @@ interface PastPaper {
     content: string;
     created_at: string;
     commented_by: string;
-    profiles: {
+    profiles?: {
       full_name: string;
       profile_picture_url: string;
     };
@@ -100,7 +100,7 @@ export function PastPapersTab({ unitId, profile }: PastPapersTabProps) {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPastPapers(data || []);
+      setPastPapers((data || []) as unknown as PastPaper[]);
     } catch (error) {
       console.error('Error fetching past papers:', error);
       toast({
