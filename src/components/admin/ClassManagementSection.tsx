@@ -75,6 +75,11 @@ export function ClassManagementSection() {
   const [editingClass, setEditingClass] = useState<Class | null>(null);
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
   
+  // Unit management states
+  const [isUnitDialogOpen, setIsUnitDialogOpen] = useState(false);
+  const [editingUnit, setEditingUnit] = useState<{ id?: string; name: string; description: string } | null>(null);
+  const [isAddingUnit, setIsAddingUnit] = useState(false);
+  
   // Filtering states
   const [countryFilter, setCountryFilter] = useState<string>("all");
   const [universityFilter, setUniversityFilter] = useState<string>("all");
@@ -405,6 +410,371 @@ export function ClassManagementSection() {
     }
   };
 
+  const handleEditClass = (classItem: Class) => {
+    setEditingClass(classItem);
+    setFormData({
+      country_name: classItem.universities.countries.name,
+      university_name: classItem.universities.name,
+      course_name: classItem.course_name,
+      course_year: classItem.course_year,
+      semester: classItem.semester,
+      course_group: classItem.course_group
+    });
+    setUnits(classItem.units.map(unit => ({ name: unit.name, description: unit.description })));
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateClass = async () => {
+    try {
+      if (!editingClass || !formData.country_name || !formData.university_name || !formData.course_name) {
+        toast({
+          title: "Error",
+          description: "Please fill in all required fields.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Get or create country
+      let { data: countryData, error: countryError } = await supabase
+        .from('countries')
+        .select('id')
+        .eq('name', formData.country_name)
+        .single();
+
+      if (countryError && countryError.code === 'PGRST116') {
+        const { data: newCountry, error: newCountryError } = await supabase
+          .from('countries')
+          .insert({ name: formData.country_name })
+          .select('id')
+          .single();
+
+        if (newCountryError) throw newCountryError;
+        countryData = newCountry;
+      } else if (countryError) {
+        throw countryError;
+      }
+
+      // Get or create university
+      let { data: universityData, error: universityError } = await supabase
+        .from('universities')
+        .select('id')
+        .eq('name', formData.university_name)
+        .eq('country_id', countryData.id)
+        .single();
+
+      if (universityError && universityError.code === 'PGRST116') {
+        const { data: newUniversity, error: newUniversityError } = await supabase
+          .from('universities')
+          .insert({ 
+            name: formData.university_name,
+            country_id: countryData.id
+          })
+          .select('id')
+          .single();
+
+        if (newUniversityError) throw newUniversityError;
+        universityData = newUniversity;
+      } else if (universityError) {
+        throw universityError;
+      }
+
+      // Update class
+      const { error: classError } = await supabase
+        .from('classes')
+        .update({
+          university_id: universityData.id,
+          course_name: formData.course_name,
+          course_year: formData.course_year,
+          semester: formData.semester,
+          course_group: formData.course_group
+        })
+        .eq('id', editingClass.id);
+
+      if (classError) throw classError;
+
+      // Delete existing units
+      const { error: deleteUnitsError } = await supabase
+        .from('units')
+        .delete()
+        .eq('class_id', editingClass.id);
+
+      if (deleteUnitsError) throw deleteUnitsError;
+
+      // Create new units
+      const validUnits = units.filter(unit => unit.name.trim());
+      if (validUnits.length > 0) {
+        const { error: unitsError } = await supabase
+          .from('units')
+          .insert(
+            validUnits.map(unit => ({
+              class_id: editingClass.id,
+              name: unit.name,
+              description: unit.description
+            }))
+          );
+
+        if (unitsError) throw unitsError;
+      }
+
+      toast({
+        title: "Success",
+        description: "Class updated successfully.",
+      });
+
+      setIsEditDialogOpen(false);
+      setEditingClass(null);
+      resetForm();
+      fetchData();
+    } catch (error) {
+      console.error('Error updating class:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update class.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteClass = async (classId: string) => {
+    if (!confirm('Are you sure you want to delete this class? This will also delete all units and remove students from the class.')) {
+      return;
+    }
+
+    try {
+      // First, remove all students from this class
+      await supabase
+        .from('profiles')
+        .update({ class_id: null })
+        .eq('class_id', classId);
+
+      // Delete units (cascade should handle this, but let's be explicit)
+      await supabase
+        .from('units')
+        .delete()
+        .eq('class_id', classId);
+
+      // Delete the class
+      const { error } = await supabase
+        .from('classes')
+        .delete()
+        .eq('id', classId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Class deleted successfully.",
+      });
+
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting class:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete class.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Unit management functions
+  const handleAddUnit = () => {
+    setEditingUnit({ name: "", description: "" });
+    setIsAddingUnit(true);
+    setIsUnitDialogOpen(true);
+  };
+
+  const handleEditUnit = (unit: { id: string; name: string; description: string }) => {
+    setEditingUnit({ id: unit.id, name: unit.name, description: unit.description });
+    setIsAddingUnit(false);
+    setIsUnitDialogOpen(true);
+  };
+
+  const handleSaveUnit = async () => {
+    if (!selectedClass || !editingUnit || !editingUnit.name.trim()) {
+      toast({
+        title: "Error",
+        description: "Please fill in the unit name.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      if (isAddingUnit) {
+        // Add new unit
+        const { error } = await supabase
+          .from('units')
+          .insert({
+            class_id: selectedClass.id,
+            name: editingUnit.name,
+            description: editingUnit.description
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Unit added successfully.",
+        });
+      } else {
+        // Update existing unit
+        const { error } = await supabase
+          .from('units')
+          .update({
+            name: editingUnit.name,
+            description: editingUnit.description
+          })
+          .eq('id', editingUnit.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Unit updated successfully.",
+        });
+      }
+
+      setIsUnitDialogOpen(false);
+      setEditingUnit(null);
+      setIsAddingUnit(false);
+      
+      // Refresh the selected class data
+      if (selectedClass) {
+        await fetchClassDetails(selectedClass.id);
+      }
+    } catch (error) {
+      console.error('Error saving unit:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save unit.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteUnit = async (unitId: string) => {
+    if (!confirm('Are you sure you want to delete this unit? This will also delete all uploads and assignments for this unit.')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('units')
+        .delete()
+        .eq('id', unitId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Unit deleted successfully.",
+      });
+
+      // Refresh the selected class data
+      if (selectedClass) {
+        await fetchClassDetails(selectedClass.id);
+      }
+    } catch (error) {
+      console.error('Error deleting unit:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete unit.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchClassDetails = async (classId: string) => {
+    try {
+      const { data: classData, error } = await supabase
+        .from('classes')
+        .select(`
+          *,
+          universities!inner (
+            id,
+            name,
+            countries!inner (
+              id,
+              name
+            )
+          ),
+          units (
+            id,
+            name,
+            description
+          )
+        `)
+        .eq('id', classId)
+        .single();
+
+      if (error) throw error;
+
+      if (classData) {
+        setSelectedClass(classData as Class);
+      }
+    } catch (error) {
+      console.error('Error fetching class details:', error);
+    }
+  };
+
+  const handleProgressSemester = async (classId: string) => {
+    if (!confirm('Are you sure you want to progress all students to the next semester? This will update the class semester and create new units for the next semester.')) {
+      return;
+    }
+
+    try {
+      // Get current class details
+      const { data: currentClass, error: classError } = await supabase
+        .from('classes')
+        .select('*')
+        .eq('id', classId)
+        .single();
+
+      if (classError) throw classError;
+
+      // Determine next semester
+      let nextSemester = currentClass.semester + 1;
+      let nextYear = currentClass.course_year;
+
+      // If semester > 2, move to next year
+      if (nextSemester > 2) {
+        nextSemester = 1;
+        nextYear = currentClass.course_year + 1;
+      }
+
+      // Update class to next semester
+      const { error: updateError } = await supabase
+        .from('classes')
+        .update({
+          semester: nextSemester,
+          course_year: nextYear
+        })
+        .eq('id', classId);
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: "Success",
+        description: `Class progressed to Year ${nextYear}, Semester ${nextSemester}. You can now add new units for this semester.`,
+      });
+
+      // Refresh data
+      fetchData();
+      if (selectedClass) {
+        await fetchClassDetails(selectedClass.id);
+      }
+    } catch (error) {
+      console.error('Error progressing semester:', error);
+      toast({
+        title: "Error",
+        description: "Failed to progress semester.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleCreateClass = async () => {
     try {
       if (!formData.country_name || !formData.university_name || !formData.course_name) {
@@ -603,9 +973,20 @@ export function ClassManagementSection() {
                 </p>
               </div>
             </div>
-            <Badge variant="secondary">
-              Year {selectedClass.course_year}, Sem {selectedClass.semester}
-            </Badge>
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary">
+                Year {selectedClass.course_year}, Sem {selectedClass.semester}
+              </Badge>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => handleProgressSemester(selectedClass.id)}
+                className="text-blue-600 border-blue-600 hover:bg-blue-50"
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Progress to Next Semester
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="units" className="w-full">
@@ -625,19 +1006,57 @@ export function ClassManagementSection() {
               </TabsList>
               
               <TabsContent value="units" className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold">Units ({selectedClass.units.length})</h3>
+                  <Button onClick={handleAddUnit} size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Unit
+                  </Button>
+                </div>
+                
                 <div className="grid gap-4">
-                  {selectedClass.units.map((unit) => (
-                    <Card key={unit.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h3 className="font-semibold">{unit.name}</h3>
-                            <p className="text-sm text-muted-foreground">{unit.description}</p>
+                  {selectedClass.units.length === 0 ? (
+                    <div className="text-center py-12">
+                      <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No units yet</h3>
+                      <p className="text-gray-600 mb-4">Add units to organize course content.</p>
+                      <Button onClick={handleAddUnit}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add First Unit
+                      </Button>
+                    </div>
+                  ) : (
+                    selectedClass.units.map((unit) => (
+                      <Card key={unit.id}>
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-lg">{unit.name}</h3>
+                              <p className="text-sm text-muted-foreground mt-1">{unit.description || 'No description'}</p>
+                            </div>
+                            <div className="flex gap-2 ml-4">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditUnit(unit)}
+                              >
+                                <Edit className="h-4 w-4 mr-1" />
+                                Edit
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleDeleteUnit(unit.id)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Delete
+                              </Button>
+                            </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
                 </div>
               </TabsContent>
 
@@ -924,6 +1343,184 @@ export function ClassManagementSection() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          {/* Edit Class Dialog */}
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Edit Class</DialogTitle>
+                <DialogDescription>
+                  Update class details and manage units.
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-country">Country</Label>
+                    <Input
+                      id="edit-country"
+                      value={formData.country_name}
+                      onChange={(e) => setFormData({ ...formData, country_name: e.target.value })}
+                      placeholder="e.g., Kenya"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-university">University</Label>
+                    <Input
+                      id="edit-university"
+                      value={formData.university_name}
+                      onChange={(e) => setFormData({ ...formData, university_name: e.target.value })}
+                      placeholder="e.g., University of Nairobi"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="edit-course">Course Name</Label>
+                  <Input
+                    id="edit-course"
+                    value={formData.course_name}
+                    onChange={(e) => setFormData({ ...formData, course_name: e.target.value })}
+                    placeholder="e.g., Computer Science"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="edit-year">Course Year</Label>
+                    <Input
+                      id="edit-year"
+                      type="number"
+                      min="1"
+                      max="6"
+                      value={formData.course_year}
+                      onChange={(e) => setFormData({ ...formData, course_year: parseInt(e.target.value) || 1 })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-semester">Semester</Label>
+                    <Input
+                      id="edit-semester"
+                      type="number"
+                      min="1"
+                      max="3"
+                      value={formData.semester}
+                      onChange={(e) => setFormData({ ...formData, semester: parseInt(e.target.value) || 1 })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-group">Course Group (Optional)</Label>
+                    <Input
+                      id="edit-group"
+                      value={formData.course_group}
+                      onChange={(e) => setFormData({ ...formData, course_group: e.target.value })}
+                      placeholder="e.g., A, B, C"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <Label>Units</Label>
+                  <div className="space-y-2">
+                    {units.map((unit, index) => (
+                      <div key={index} className="grid grid-cols-2 gap-2">
+                        <Input
+                          value={unit.name}
+                          onChange={(e) => {
+                            const newUnits = [...units];
+                            newUnits[index].name = e.target.value;
+                            setUnits(newUnits);
+                          }}
+                          placeholder="Unit name"
+                        />
+                        <Input
+                          value={unit.description}
+                          onChange={(e) => {
+                            const newUnits = [...units];
+                            newUnits[index].description = e.target.value;
+                            setUnits(newUnits);
+                          }}
+                          placeholder="Unit description"
+                        />
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setUnits([...units, { name: "", description: "" }])}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Unit
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleUpdateClass}>
+                  Update Class
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Unit Dialog */}
+          <Dialog open={isUnitDialogOpen} onOpenChange={setIsUnitDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  {isAddingUnit ? 'Add New Unit' : 'Edit Unit'}
+                </DialogTitle>
+                <DialogDescription>
+                  {isAddingUnit 
+                    ? 'Add a new unit to this class.' 
+                    : 'Update unit details.'
+                  }
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="unit-name">Unit Name</Label>
+                  <Input
+                    id="unit-name"
+                    value={editingUnit?.name || ''}
+                    onChange={(e) => setEditingUnit({ 
+                      ...editingUnit!, 
+                      name: e.target.value 
+                    })}
+                    placeholder="e.g., Introduction to Programming"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="unit-description">Description</Label>
+                  <Input
+                    id="unit-description"
+                    value={editingUnit?.description || ''}
+                    onChange={(e) => setEditingUnit({ 
+                      ...editingUnit!, 
+                      description: e.target.value 
+                    })}
+                    placeholder="Brief description of the unit"
+                  />
+                </div>
+              </div>
+              
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsUnitDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveUnit}>
+                  {isAddingUnit ? 'Add Unit' : 'Update Unit'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </CardHeader>
         <CardContent>
           {/* Filters */}
@@ -1020,9 +1617,38 @@ export function ClassManagementSection() {
                     </TableCell>
                     <TableCell>{classItem.units.length} units</TableCell>
                     <TableCell>
-                      <Button variant="outline" size="sm">
-                        View Details
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleClassClick(classItem);
+                          }}
+                        >
+                          View Details
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditClass(classItem);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteClass(classItem.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

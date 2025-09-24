@@ -12,7 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminClasses from "./pages/admin/AdminClasses";
-import AdminContent from "./pages/admin/AdminContent";
+import AdminContentManagement from "./pages/admin/AdminContentManagement";
 import ClassSelection from "./pages/ClassSelection";
 import ApplicationForm from "./pages/ApplicationForm";
 import UnitPage from "./pages/UnitPage";
@@ -74,7 +74,7 @@ const App = () => (
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/classes" element={<AdminClasses />} />
-            <Route path="/admin/content" element={<AdminContent />} />
+            <Route path="/admin/content" element={<AdminContentManagement />} />
             <Route path="/class-selection" element={<ClassSelection />} />
             <Route path="/application" element={<ApplicationForm />} />
             <Route path="/unit/:unitId" element={

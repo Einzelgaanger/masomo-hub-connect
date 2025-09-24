@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Heart, MessageCircle, Share, Volume2, VolumeX, Play, Pause, ChevronLeft, X, Send, Trash2, MoreVertical, Video } from "lucide-react";
+import { Heart, MessageCircle, Share, Volume2, VolumeX, Play, Pause, ChevronLeft, X, Send, Trash2, MoreVertical, Video, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -51,7 +51,7 @@ const Tukio = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(false); // Start with sound enabled
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
@@ -79,24 +79,56 @@ const Tukio = () => {
     };
   }, [longPressTimer]);
 
-  // Handle video loading and preloading
+  // Handle video switching and management
   useEffect(() => {
     if (reels.length === 0) return;
 
-    // Only preload the next video to avoid cache issues
-    const nextVideo = currentIndex < reels.length - 1 ? reels[currentIndex + 1] : null;
+    // Pause all videos first
+    videoRefs.current.forEach((video, index) => {
+      if (video && index !== currentIndex) {
+        video.pause();
+        video.currentTime = 0; // Reset to beginning
+      }
+    });
 
-    // Preload only the next video
-    if (nextVideo && !loadedVideos.has(nextVideo.id)) {
-      const videoElement = document.createElement('video');
-      videoElement.src = nextVideo.video_url;
-      videoElement.preload = 'metadata';
-      videoElement.crossOrigin = 'anonymous';
-      videoElement.onloadeddata = () => {
-        setLoadedVideos(prev => new Set([...prev, nextVideo.id]));
+    // Play current video
+    const currentVideo = videoRefs.current[currentIndex];
+    if (currentVideo) {
+      // Load the video if not already loaded
+      if (!loadedVideos.has(reels[currentIndex].id)) {
+        currentVideo.load();
+      }
+      
+      // Play with a small delay to ensure loading
+      setTimeout(() => {
+        if (currentVideo) {
+          currentVideo.play().catch(console.error);
+          setIsPlaying(true);
+        }
+      }, 100);
+    }
+
+    // Preload next and previous videos for smoother experience
+    const nextIndex = currentIndex + 1;
+    const prevIndex = currentIndex - 1;
+    
+    if (nextIndex < reels.length && !loadedVideos.has(reels[nextIndex].id)) {
+      const nextVideo = document.createElement('video');
+      nextVideo.src = reels[nextIndex].video_url;
+      nextVideo.preload = 'metadata';
+      nextVideo.crossOrigin = 'anonymous';
+      nextVideo.onloadeddata = () => {
+        setLoadedVideos(prev => new Set([...prev, reels[nextIndex].id]));
       };
-      videoElement.onerror = () => {
-        console.warn('Failed to preload video:', nextVideo.id);
+    }
+    
+    if (prevIndex >= 0 && !loadedVideos.has(reels[prevIndex].id)) {
+      const prevVideo = document.createElement('video');
+      prevVideo.src = reels[prevIndex].video_url;
+      prevVideo.preload = 'metadata';
+      prevVideo.crossOrigin = 'anonymous';
+      prevVideo.onloadeddata = () => {
+        setLoadedVideos(prev => new Set([...prev, reels[prevIndex].id]));
       };
     }
   }, [currentIndex, reels, loadedVideos]);
@@ -146,10 +178,10 @@ const Tukio = () => {
       if (Math.abs(diff) > swipeThreshold) {
         if (diff > 0 && currentIndex > 0) {
           // Swipe up (previous video)
-          setCurrentIndex(prev => prev - 1);
+          goToPreviousVideo();
         } else if (diff < 0 && currentIndex < reels.length - 1) {
           // Swipe down (next video)
-          setCurrentIndex(prev => prev + 1);
+          goToNextVideo();
         }
       }
     };
@@ -255,15 +287,27 @@ const Tukio = () => {
     }
   };
 
+  const goToNextVideo = () => {
+    if (currentIndex < reels.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+    }
+  };
+
+  const goToPreviousVideo = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(prev => prev - 1);
+    }
+  };
+
   const handleScroll = (e: React.WheelEvent) => {
     e.preventDefault();
     
     if (e.deltaY > 0 && currentIndex < reels.length - 1) {
       // Scroll down - next reel
-      setCurrentIndex(prev => prev + 1);
+      goToNextVideo();
     } else if (e.deltaY < 0 && currentIndex > 0) {
       // Scroll up - previous reel
-      setCurrentIndex(prev => prev - 1);
+      goToPreviousVideo();
     }
   };
 
@@ -277,10 +321,10 @@ const Tukio = () => {
       if (Math.abs(deltaY) > 50) {
         if (deltaY > 0 && currentIndex < reels.length - 1) {
           // Swipe up - next reel
-          setCurrentIndex(prev => prev + 1);
+          goToNextVideo();
         } else if (deltaY < 0 && currentIndex > 0) {
           // Swipe down - previous reel
-          setCurrentIndex(prev => prev - 1);
+          goToPreviousVideo();
         }
       }
       
@@ -583,6 +627,37 @@ const Tukio = () => {
         </div>
       </div>
 
+      {/* Navigation Buttons - Desktop Only */}
+      <div className="hidden md:block">
+        {/* Previous Video Button */}
+        {currentIndex > 0 && (
+          <div className="absolute left-1/2 top-8 transform -translate-x-1/2 z-50">
+            <Button
+              onClick={goToPreviousVideo}
+              variant="ghost"
+              size="lg"
+              className="w-12 h-12 rounded-full bg-black/50 text-white hover:bg-black/70 border border-white/20"
+            >
+              <ChevronUp className="h-6 w-6" />
+            </Button>
+          </div>
+        )}
+
+        {/* Next Video Button */}
+        {currentIndex < reels.length - 1 && (
+          <div className="absolute left-1/2 bottom-8 transform -translate-x-1/2 z-50">
+            <Button
+              onClick={goToNextVideo}
+              variant="ghost"
+              size="lg"
+              className="w-12 h-12 rounded-full bg-black/50 text-white hover:bg-black/70 border border-white/20"
+            >
+              <ChevronDown className="h-6 w-6" />
+            </Button>
+          </div>
+        )}
+      </div>
+
       {/* Reel Container */}
       <div 
         className="flex transition-transform duration-300 ease-out"
@@ -610,12 +685,27 @@ const Tukio = () => {
                   loop
                   playsInline
                   autoPlay={index === currentIndex}
-                  preload="none"
+                  preload="metadata"
                   crossOrigin="anonymous"
-                  onPlay={() => setIsPlaying(true)}
-                  onPause={() => setIsPlaying(false)}
+                  onPlay={() => {
+                    if (index === currentIndex) {
+                      setIsPlaying(true);
+                    }
+                  }}
+                  onPause={() => {
+                    if (index === currentIndex) {
+                      setIsPlaying(false);
+                    }
+                  }}
                   onLoadedData={() => {
                     setLoadedVideos(prev => new Set([...prev, reel.id]));
+                    // Auto-play current video when loaded
+                    if (index === currentIndex) {
+                      const video = videoRefs.current[index];
+                      if (video && video.paused) {
+                        video.play().catch(console.error);
+                      }
+                    }
                   }}
                   onError={(e) => {
                     console.error('Video loading error:', e);
