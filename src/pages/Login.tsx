@@ -180,25 +180,36 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-start justify-center pt-16 sm:pt-20 pb-16 sm:pb-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 via-white to-orange-50 relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-4 -left-4 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-        <div className="absolute -bottom-8 -right-4 w-72 h-72 bg-orange-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-        <div className="absolute -bottom-4 left-20 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+    <div className="min-h-screen bg-white relative overflow-hidden">
+      {/* Animated Background Balls */}
+      <div className="absolute inset-0">
+        <div className="absolute top-20 left-10 w-24 h-24 bg-blue-400/25 rounded-full animate-float blur-sm"></div>
+        <div className="absolute top-40 right-20 w-20 h-20 bg-orange-400/25 rounded-full animate-float animation-delay-300 blur-sm"></div>
+        <div className="absolute bottom-40 left-20 w-28 h-28 bg-green-400/25 rounded-full animate-float animation-delay-600 blur-sm"></div>
+        <div className="absolute bottom-20 right-10 w-16 h-16 bg-purple-400/25 rounded-full animate-float animation-delay-900 blur-sm"></div>
+        <div className="absolute top-60 left-1/4 w-12 h-12 bg-pink-400/25 rounded-full animate-float animation-delay-200 blur-sm"></div>
+        <div className="absolute top-10 right-1/3 w-32 h-32 bg-cyan-400/25 rounded-full animate-float animation-delay-500 blur-sm"></div>
+        <div className="absolute bottom-60 right-1/4 w-18 h-18 bg-yellow-400/25 rounded-full animate-float animation-delay-800 blur-sm"></div>
+        <div className="absolute bottom-10 left-1/3 w-14 h-14 bg-red-400/25 rounded-full animate-float animation-delay-1100 blur-sm"></div>
       </div>
 
-      <div className="max-w-sm w-full space-y-8 relative">
+      <div className="relative z-10 min-h-screen flex flex-col justify-start px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20 pb-16 sm:pb-20">
+
+        <div className="max-w-sm mx-auto w-full">
+        {/* Header with Logo */}
+        <div className="text-center mb-6">
+          <Link to="/" className="inline-block">
+            <Logo size="lg" showText={true} className="scale-125 sm:scale-150" />
+          </Link>
+        </div>
+
         <Card className="backdrop-blur-sm bg-white/80 border-0 shadow-2xl">
-          <CardHeader className="space-y-6">
-            <div className="flex justify-center">
-              <Logo size="lg" className="scale-125 sm:scale-150" />
-            </div>
-            <div className="space-y-2 text-center">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+          <CardHeader className="text-center pb-4">
+            <div className="space-y-2">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 fredoka-bold">
                 {mode === 'signin' ? 'Welcome Back' : 'Join Bunifu'}
-              </h2>
-              <p className="text-sm text-gray-600">
+              </h1>
+              <p className="text-sm text-gray-600 fredoka-medium">
                 {mode === 'signin' 
                   ? 'Sign in to your account to continue learning'
                   : 'Create your account to start your academic journey'
@@ -374,6 +385,7 @@ const Login = () => {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );

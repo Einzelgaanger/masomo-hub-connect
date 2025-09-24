@@ -75,7 +75,7 @@ const Index = () => {
             </Button>
           </Link>
           <Link to="/login?mode=signin">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto gap-2 border-2 border-gray-300 hover:border-gray-400 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg fredoka-medium">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto gap-2 border-2 border-gray-300 hover:scale-105 hover:border-gray-300 hover:text-gray-700 hover:bg-transparent transition-transform duration-200 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg fredoka-medium">
                   <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
                   Sign In
                 </Button>
