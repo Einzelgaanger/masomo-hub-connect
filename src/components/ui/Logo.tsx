@@ -36,11 +36,11 @@ const Logo: React.FC<LogoProps> = ({ size = 'md', showText = false, className = 
           alt="Bunifu Logo" 
           className={`${sizeClasses[size]} flex-shrink-0`}
         />
-        <div className="flex flex-col">
-          <span className={`fredoka-bold text-gray-900 ${textSizes[size]}`}>
+        <div className="flex flex-col text-left">
+          <span className={`fredoka-bold text-gray-900 ${textSizes[size]} text-left`}>
             Bunifu
           </span>
-          <span className={`fredoka-medium text-gray-600 ${subtitleSizes[size]}`}>
+          <span className={`fredoka-medium text-gray-600 ${subtitleSizes[size]} text-left`}>
             Where learning meets creativity
           </span>
         </div>

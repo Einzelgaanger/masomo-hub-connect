@@ -266,3 +266,15 @@ All colors MUST be HSL.
 .scroll-smooth {
   scroll-behavior: smooth;
 }
+
+/* Remove double border on input focus */
+input:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Ensure single border on input focus */
+input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}

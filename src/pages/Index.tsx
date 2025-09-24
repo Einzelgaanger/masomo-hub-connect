@@ -44,20 +44,20 @@ const Index = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 relative flex-1 flex flex-col justify-center z-10">
           <div className="text-center mb-8 sm:mb-16">
             {/* Mobile: Custom Layout, Desktop: Logo Component */}
-            <div className="block sm:hidden mb-6 animate-fade-in">
-              <div className="flex items-start gap-2 mb-4">
-                {/* Large Owl Icon filling top-left */}
-                <div className="flex-shrink-0">
-                  <img src="/logo.svg" alt="Bunifu Logo" className="h-32 w-32" />
-                </div>
-                
-                {/* Name and Tagline to the right */}
-                <div className="flex-1 min-w-0 text-left">
-                  <h1 className="text-2xl font-bold fredoka-bold text-gray-900 leading-tight mb-1">Bunifu</h1>
-                  <p className="text-sm fredoka-medium text-gray-600 leading-tight">Where learning meets creativity</p>
-                </div>
-              </div>
+        <div className="block sm:hidden mb-6 animate-fade-in">
+          <div className="flex items-start gap-3 mb-4">
+            {/* Large Owl Icon filling top-left */}
+            <div className="flex-shrink-0">
+              <img src="/logo.svg" alt="Bunifu Logo" className="h-40 w-40" />
             </div>
+            
+            {/* Name and Tagline to the right */}
+            <div className="flex-1 min-w-0 text-left">
+              <h1 className="text-3xl font-bold fredoka-bold text-gray-900 leading-tight mb-1 text-left">Bunifu</h1>
+              <p className="text-base fredoka-medium text-gray-600 leading-tight text-left">Where learning meets creativity</p>
+            </div>
+          </div>
+        </div>
             
             {/* Desktop: Logo Component */}
             <div className="hidden sm:flex justify-center mb-6 sm:mb-8 animate-fade-in">
@@ -294,92 +294,140 @@ const Index = () => {
             </p>
           </div>
 
-          {/* Mobile: Circular Animated Cards with Infinite Loop */}
+          {/* Mobile: Square Cards with Infinite Loop */}
           <div className="block lg:hidden">
-            {/* Mobile Circular Cards Container */}
             <div className="relative">
               <div 
-                className="overflow-x-auto scrollbar-hide pb-4 snap-x snap-mandatory scroll-smooth" 
+                className="overflow-x-auto scrollbar-hide pb-4" 
                 style={{
                   scrollbarWidth: 'none', 
                   msOverflowStyle: 'none',
                   scrollBehavior: 'smooth'
                 }}
+                onScroll={(e) => {
+                  const container = e.target as HTMLElement;
+                  const scrollLeft = container.scrollLeft;
+                  const scrollWidth = container.scrollWidth;
+                  const clientWidth = container.clientWidth;
+                  
+                  // If scrolled to the end (near the duplicate), smoothly scroll back to start
+                  if (scrollLeft >= scrollWidth - clientWidth - 100) {
+                    container.scrollTo({ left: 0, behavior: 'smooth' });
+                  }
+                }}
               >
-                <div className="flex gap-6 px-8" style={{width: 'calc(100% + 4rem)'}}>
-                  {/* Step 1 - Duplicated for infinite loop */}
-                  <div className="flex-shrink-0 w-64 snap-center">
-                    <div className="bg-white rounded-full p-8 shadow-xl border-4 border-blue-200 transform transition-all duration-700 ease-out hover:shadow-2xl">
+                <div className="flex gap-6 px-8" style={{width: 'calc(300% + 8rem)'}}>
+                  {/* Step 1 */}
+                  <div className="flex-shrink-0 w-64">
+                    <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-blue-200 transform transition-all duration-500 ease-out hover:shadow-2xl">
                       <div className="text-center">
-                        <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-2xl font-bold fredoka-bold">
+                        <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold">
                           1
                         </div>
-                        <h3 className="text-xl font-semibold mb-3 fredoka-bold">Register</h3>
-                        <p className="text-gray-600 fredoka-medium text-sm">Enter your university details and admission number to get started</p>
+                        <h3 className="text-lg font-semibold mb-2 fredoka-bold">Register</h3>
+                        <p className="text-gray-600 fredoka-medium text-xs">Enter your university details and admission number to get started</p>
                       </div>
                     </div>
                   </div>
-
-                  {/* Step 2 */}
-                  <div className="flex-shrink-0 w-64 snap-center">
-                    <div className="bg-white rounded-full p-8 shadow-xl border-4 border-orange-200 transform transition-all duration-700 ease-out hover:shadow-2xl">
+                  
+                  <div className="flex-shrink-0 w-64">
+                    <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-orange-200 transform transition-all duration-500 ease-out hover:shadow-2xl">
                       <div className="text-center">
-                        <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-2xl font-bold fredoka-bold">
+                        <div className="w-14 h-14 bg-orange-500 rounded-xl flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold">
                           2
                         </div>
-                        <h3 className="text-xl font-semibold mb-3 fredoka-bold">Share</h3>
-                        <p className="text-gray-600 fredoka-medium text-sm">Upload notes, past papers, and help your classmates learn</p>
+                        <h3 className="text-lg font-semibold mb-2 fredoka-bold">Share</h3>
+                        <p className="text-gray-600 fredoka-medium text-xs">Upload notes, past papers, and help your classmates learn</p>
                       </div>
                     </div>
                   </div>
-
-                  {/* Step 3 */}
-                  <div className="flex-shrink-0 w-64 snap-center">
-                    <div className="bg-white rounded-full p-8 shadow-xl border-4 border-green-200 transform transition-all duration-700 ease-out hover:shadow-2xl">
+                  
+                  <div className="flex-shrink-0 w-64">
+                    <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-green-200 transform transition-all duration-500 ease-out hover:shadow-2xl">
                       <div className="text-center">
-                        <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-2xl font-bold fredoka-bold">
+                        <div className="w-14 h-14 bg-green-500 rounded-xl flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold">
                           3
                         </div>
-                        <h3 className="text-xl font-semibold mb-3 fredoka-bold">Earn Points</h3>
-                        <p className="text-gray-600 fredoka-medium text-sm">Get points for sharing content, helping others, and staying active</p>
+                        <h3 className="text-lg font-semibold mb-2 fredoka-bold">Earn Points</h3>
+                        <p className="text-gray-600 fredoka-medium text-xs">Get points for sharing content, helping others, and staying active</p>
                       </div>
                     </div>
                   </div>
-
-                  {/* Step 4 */}
-                  <div className="flex-shrink-0 w-64 snap-center">
-                    <div className="bg-white rounded-full p-8 shadow-xl border-4 border-purple-200 transform transition-all duration-700 ease-out hover:shadow-2xl">
+                  
+                  <div className="flex-shrink-0 w-64">
+                    <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-purple-200 transform transition-all duration-500 ease-out hover:shadow-2xl">
                       <div className="text-center">
-                        <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-2xl font-bold fredoka-bold">
+                        <div className="w-14 h-14 bg-purple-500 rounded-xl flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold">
                           4
                         </div>
-                        <h3 className="text-xl font-semibold mb-3 fredoka-bold">Level Up</h3>
-                        <p className="text-gray-600 fredoka-medium text-sm">Unlock new characters and climb the leaderboards</p>
+                        <h3 className="text-lg font-semibold mb-2 fredoka-bold">Level Up</h3>
+                        <p className="text-gray-600 fredoka-medium text-xs">Unlock new characters and climb the leaderboards</p>
                       </div>
                     </div>
                   </div>
-
-                  {/* Step 1 - Duplicated for infinite loop */}
-                  <div className="flex-shrink-0 w-64 snap-center">
-                    <div className="bg-white rounded-full p-8 shadow-xl border-4 border-blue-200 transform transition-all duration-700 ease-out hover:shadow-2xl">
+                  
+                  {/* Duplicate set for infinite loop */}
+                  <div className="flex-shrink-0 w-64">
+                    <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-blue-200 transform transition-all duration-500 ease-out hover:shadow-2xl">
                       <div className="text-center">
-                        <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-2xl font-bold fredoka-bold">
+                        <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold">
                           1
                         </div>
-                        <h3 className="text-xl font-semibold mb-3 fredoka-bold">Register</h3>
-                        <p className="text-gray-600 fredoka-medium text-sm">Enter your university details and admission number to get started</p>
+                        <h3 className="text-lg font-semibold mb-2 fredoka-bold">Register</h3>
+                        <p className="text-gray-600 fredoka-medium text-xs">Enter your university details and admission number to get started</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex-shrink-0 w-64">
+                    <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-orange-200 transform transition-all duration-500 ease-out hover:shadow-2xl">
+                      <div className="text-center">
+                        <div className="w-14 h-14 bg-orange-500 rounded-xl flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold">
+                          2
+                        </div>
+                        <h3 className="text-lg font-semibold mb-2 fredoka-bold">Share</h3>
+                        <p className="text-gray-600 fredoka-medium text-xs">Upload notes, past papers, and help your classmates learn</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex-shrink-0 w-64">
+                    <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-green-200 transform transition-all duration-500 ease-out hover:shadow-2xl">
+                      <div className="text-center">
+                        <div className="w-14 h-14 bg-green-500 rounded-xl flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold">
+                          3
+                        </div>
+                        <h3 className="text-lg font-semibold mb-2 fredoka-bold">Earn Points</h3>
+                        <p className="text-gray-600 fredoka-medium text-xs">Get points for sharing content, helping others, and staying active</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex-shrink-0 w-64">
+                    <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-purple-200 transform transition-all duration-500 ease-out hover:shadow-2xl">
+                      <div className="text-center">
+                        <div className="w-14 h-14 bg-purple-500 rounded-xl flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold">
+                          4
+                        </div>
+                        <h3 className="text-lg font-semibold mb-2 fredoka-bold">Level Up</h3>
+                        <p className="text-gray-600 fredoka-medium text-xs">Unlock new characters and climb the leaderboards</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Another duplicate for smoother loop */}
+                  <div className="flex-shrink-0 w-64">
+                    <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-blue-200 transform transition-all duration-500 ease-out hover:shadow-2xl">
+                      <div className="text-center">
+                        <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold">
+                          1
+                        </div>
+                        <h3 className="text-lg font-semibold mb-2 fredoka-bold">Register</h3>
+                        <p className="text-gray-600 fredoka-medium text-xs">Enter your university details and admission number to get started</p>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-              
-              {/* Circular Progress Indicators */}
-              <div className="flex justify-center mt-6 space-x-3">
-                <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
-                <div className="w-3 h-3 bg-orange-400 rounded-full animate-pulse animation-delay-200"></div>
-                <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse animation-delay-400"></div>
-                <div className="w-3 h-3 bg-purple-400 rounded-full animate-pulse animation-delay-600"></div>
               </div>
             </div>
           </div>
@@ -422,7 +470,7 @@ const Index = () => {
       </section>
 
       {/* Minimalist CTA Section */}
-      <section className="py-12 sm:py-16 bg-white text-gray-900 relative overflow-hidden">
+      <section className="py-12 sm:py-16 bg-white text-gray-900 relative overflow-hidden mb-16 sm:mb-20">
         
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           {/* Header Section */}

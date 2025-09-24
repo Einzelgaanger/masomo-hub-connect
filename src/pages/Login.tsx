@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { BookOpen, GraduationCap, ArrowLeft, Mail, User } from "lucide-react";
+import { ArrowLeft, Mail, Eye, EyeOff } from "lucide-react";
 import Logo from "@/components/ui/Logo";
 
 const Login = () => {
@@ -25,52 +25,11 @@ const Login = () => {
   // Signin form
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const generatePassword = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let password = '';
-    for (let i = 0; i < 8; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return password;
-  };
-
-  const sendWelcomeEmail = async (email: string, name: string, password: string, admissionNumber: string) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('send-email', {
-        body: JSON.stringify({
-          to: email,
-          subject: 'Bunifu - Your Account Credentials',
-          template: 'welcome',
-          context: {
-            fullName: name,
-            password: password,
-            loginUrl: window.location.origin + '/login',
-            admissionNumber: admissionNumber
-          }
-        }),
-      });
-
-      if (error) {
-        console.error('Email sending error:', error);
-        return false;
-      }
-
-      if (data && data.error) {
-        console.error('Email service error:', data.error);
-        return false;
-      }
-
-      console.log('Welcome email sent successfully');
-      return true;
-    } catch (error) {
-      console.error('Error sending email:', error);
-      return false;
-    }
-  };
 
   const handleStudentLookup = async () => {
     if (!country || !university || !admissionNumber) {
@@ -210,278 +169,251 @@ const Login = () => {
     }
   };
 
-  const handleForgotPassword = async () => {
-    if (!email) {
-      toast({
-        title: "Error",
-        description: "Please enter your email address first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      // Generate new password
-      const newPassword = generatePassword();
-
-      // Update user password
-      const { data: userData, error: userError } = await supabase.auth.admin.getUserByEmail(email);
-      
-      if (userError || !userData.user) {
-        toast({
-          title: "Error",
-          description: "User not found with this email address.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const { error: updateError } = await supabase.auth.admin.updateUserById(userData.user.id, {
-        password: newPassword
-      });
-
-      if (updateError) throw updateError;
-
-      // Get user profile for email
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('full_name, admission_number')
-        .eq('email', email)
-        .single();
-
-      // Send password reset email
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        },
-        body: JSON.stringify({
-          email,
-          type: 'password_reset',
-          name: profileData?.full_name || 'Student',
-          password: newPassword,
-          admissionNumber: profileData?.admission_number || ''
-        })
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        console.log('Password Reset Email Content:', result.emailContent);
-        toast({
-          title: "Password Reset Sent!",
-          description: `A new password has been sent to ${email}. Please check your email and login with the new password.`,
-        });
-      } else {
-        toast({
-          title: "Password Reset!",
-          description: `Your new password is: ${newPassword}. Please save this and login.`,
-        });
-      }
-    } catch (error) {
-      console.error('Forgot password error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to reset password. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+  const handleForgotPassword = () => {
+    navigate('/forgot-password');
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <Logo size="lg" showText={true} />
-          </div>
-          <CardDescription>
-            {mode === 'lookup' && "Find your student account"}
-            {mode === 'confirm' && "Confirm your details"}
-            {mode === 'signin' && "Sign in to your account"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {mode === 'lookup' && (
-            <>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Country</label>
-                <Input
-                  placeholder="e.g., Kenya, Uganda, Tanzania"
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">University</label>
-                <Input
-                  placeholder="e.g., University of Nairobi"
-                  value={university}
-                  onChange={(e) => setUniversity(e.target.value)}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Admission Number</label>
-                <Input
-                  placeholder="e.g., ADM001"
-                  value={admissionNumber}
-                  onChange={(e) => setAdmissionNumber(e.target.value)}
-                />
-              </div>
-              
-              <Button 
-                onClick={handleStudentLookup} 
-                className="w-full" 
-                disabled={loading}
-              >
-                {loading ? "Looking up..." : "Find My Account"}
-              </Button>
-              
-              <div className="text-center">
-                <Button 
-                  variant="link" 
-                  onClick={() => setMode('signin')}
-                  className="text-sm"
-                >
-                  Already have an account? Sign in
-                </Button>
-              </div>
-            </>
-          )}
+    <div className="min-h-screen bg-white relative overflow-hidden">
+      {/* Animated Background Balls */}
+      <div className="absolute inset-0">
+        <div className="absolute top-20 left-10 w-24 h-24 bg-blue-400/25 rounded-full animate-float blur-sm"></div>
+        <div className="absolute top-40 right-20 w-20 h-20 bg-orange-400/25 rounded-full animate-float animation-delay-300 blur-sm"></div>
+        <div className="absolute bottom-40 left-20 w-28 h-28 bg-green-400/25 rounded-full animate-float animation-delay-600 blur-sm"></div>
+        <div className="absolute bottom-20 right-10 w-16 h-16 bg-purple-400/25 rounded-full animate-float animation-delay-900 blur-sm"></div>
+        <div className="absolute top-60 left-1/4 w-12 h-12 bg-pink-400/25 rounded-full animate-float animation-delay-200 blur-sm"></div>
+        <div className="absolute top-10 right-1/3 w-32 h-32 bg-cyan-400/25 rounded-full animate-float animation-delay-500 blur-sm"></div>
+        <div className="absolute bottom-60 right-1/4 w-18 h-18 bg-yellow-400/25 rounded-full animate-float animation-delay-800 blur-sm"></div>
+        <div className="absolute bottom-10 left-1/3 w-14 h-14 bg-red-400/25 rounded-full animate-float animation-delay-1100 blur-sm"></div>
+      </div>
 
-          {mode === 'confirm' && studentData && (
-            <>
-              <div className="space-y-4">
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <h3 className="font-semibold text-green-800 mb-2">Student Found!</h3>
-                  <p className="text-sm text-green-700">
-                    Please confirm your details below. A password will be sent to your email.
-                  </p>
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Full Name</label>
-                  <Input
-                    value={studentData.full_name}
-                    readOnly
-                    className="bg-gray-50"
-                    placeholder="Your full name"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Email Address</label>
-                  <Input
-                    type="email"
-                    value={studentData.email}
-                    readOnly
-                    className="bg-gray-50"
-                    placeholder="Your email address"
-                  />
-                </div>
+      <div className="relative z-10 min-h-screen flex flex-col justify-start px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20 pb-16 sm:pb-20">
+        {/* Header with Logo */}
+        <div className="text-center mb-6">
+          <Link to="/" className="inline-block">
+            <Logo size="lg" showText={true} className="scale-125 sm:scale-150" />
+          </Link>
+        </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Admission Number</label>
-                  <Input
-                    value={studentData.admission_number}
-                    readOnly
-                    className="bg-gray-50"
-                    placeholder="Your admission number"
-                  />
-                </div>
-
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-start gap-2">
-                    <Mail className="h-4 w-4 text-blue-600 mt-0.5" />
-                    <div className="text-sm text-blue-800">
-                      <p className="font-medium">Next Steps:</p>
-                      <p>1. Click "Confirm Account" to activate your account</p>
-                      <p>2. A password will be sent to your email</p>
-                      <p>3. Use your email and the password to sign in</p>
-                      <p>4. You can change your password after logging in</p>
+        {/* Main Card */}
+        <div className="max-w-sm mx-auto w-full">
+          <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-sm">
+            <CardHeader className="text-center pb-4">
+              <div className="space-y-2">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 fredoka-bold">
+                  {mode === 'lookup' && "Find Your Account"}
+                  {mode === 'confirm' && "Confirm Details"}
+                  {mode === 'signin' && "Welcome Back"}
+                </h1>
+                <p className="text-sm text-gray-600 fredoka-medium">
+                  {mode === 'lookup' && "Enter your university details to find your account"}
+                  {mode === 'confirm' && "Please confirm your information below"}
+                  {mode === 'signin' && "Sign in to continue your learning journey"}
+                </p>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4 px-5 pb-5">
+              {mode === 'lookup' && (
+                <>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-gray-700 fredoka-medium">Country</label>
+                      <Input
+                        placeholder="e.g., Kenya, Uganda, Tanzania"
+                        value={country}
+                        onChange={(e) => setCountry(e.target.value)}
+                        className="h-10 border-2 border-gray-200 focus:border-blue-500 rounded-lg fredoka-medium"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-gray-700 fredoka-medium">University</label>
+                      <Input
+                        placeholder="e.g., University of Nairobi"
+                        value={university}
+                        onChange={(e) => setUniversity(e.target.value)}
+                        className="h-10 border-2 border-gray-200 focus:border-blue-500 rounded-lg fredoka-medium"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-gray-700 fredoka-medium">Admission Number</label>
+                      <Input
+                        placeholder="e.g., ADM001"
+                        value={admissionNumber}
+                        onChange={(e) => setAdmissionNumber(e.target.value)}
+                        className="h-10 border-2 border-gray-200 focus:border-blue-500 rounded-lg fredoka-medium"
+                      />
                     </div>
                   </div>
-                </div>
-              </div>
-              
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setMode('lookup')}
-                  className="flex-1"
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back
-                </Button>
-                <Button 
-                  onClick={handleConfirmStudent} 
-                  className="flex-1"
-                  disabled={loading}
-                >
-                  {loading ? "Confirming Account..." : "Confirm Account"}
-                </Button>
-              </div>
-            </>
-          )}
+                  
+                  <Button 
+                    onClick={handleStudentLookup} 
+                    className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white fredoka-semibold text-base rounded-lg transition-all duration-300 hover:scale-105" 
+                    disabled={loading}
+                  >
+                    {loading ? "Looking up..." : "Find My Account"}
+                  </Button>
+                  
+                  <div className="text-center pt-4">
+                    <Button 
+                      variant="link" 
+                      onClick={() => setMode('signin')}
+                      className="text-sm text-blue-600 hover:text-blue-700 fredoka-medium"
+                    >
+                      Already have an account? Sign in
+                    </Button>
+                  </div>
+                </>
+              )}
 
-          {mode === 'signin' && (
-            <>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Email</label>
-                <Input
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Password</label>
-                <Input
-                  type="password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-              
-              <Button 
-                onClick={handleSignIn} 
-                className="w-full" 
-                disabled={loading}
-              >
-                {loading ? "Signing in..." : "Sign In"}
-              </Button>
-              
-              <div className="text-center space-y-2">
-                <Button 
-                  variant="link" 
-                  onClick={handleForgotPassword}
-                  className="text-sm"
-                  disabled={loading}
-                >
-                  Forgot your password?
-                </Button>
-                <br />
-                <Button 
-                  variant="link" 
-                  onClick={() => setMode('lookup')}
-                  className="text-sm"
-                >
-                  New student? Find your account
-                </Button>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+              {mode === 'confirm' && studentData && (
+                <>
+                  <div className="space-y-4">
+                    <div className="p-4 bg-green-50 border-2 border-green-200 rounded-lg">
+                      <h3 className="font-semibold text-green-800 mb-2 fredoka-semibold">Student Found!</h3>
+                      <p className="text-sm text-green-700 fredoka-medium">
+                        Please confirm your details below. A password will be sent to your email.
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-gray-700 fredoka-medium">Full Name</label>
+                        <Input
+                          value={studentData.full_name}
+                          readOnly
+                          className="h-10 bg-gray-50 border-2 border-gray-200 rounded-lg fredoka-medium"
+                          placeholder="Your full name"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-gray-700 fredoka-medium">Email Address</label>
+                        <Input
+                          type="email"
+                          value={studentData.email}
+                          readOnly
+                          className="h-10 bg-gray-50 border-2 border-gray-200 rounded-lg fredoka-medium"
+                          placeholder="Your email address"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-gray-700 fredoka-medium">Admission Number</label>
+                        <Input
+                          value={studentData.admission_number}
+                          readOnly
+                          className="h-10 bg-gray-50 border-2 border-gray-200 rounded-lg fredoka-medium"
+                          placeholder="Your admission number"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <Mail className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <div className="text-sm text-blue-800">
+                          <p className="font-semibold fredoka-semibold mb-2">Next Steps:</p>
+                          <ul className="space-y-1 fredoka-medium">
+                            <li>1. Click "Confirm Account" to activate your account</li>
+                            <li>2. A password will be sent to your email</li>
+                            <li>3. Use your email and the password to sign in</li>
+                            <li>4. You can change your password after logging in</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-3">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setMode('lookup')}
+                      className="flex-1 h-10 border-2 border-gray-300 hover:border-gray-400 fredoka-medium"
+                    >
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Back
+                    </Button>
+                    <Button 
+                      onClick={handleConfirmStudent} 
+                      className="flex-1 h-10 bg-blue-600 hover:bg-blue-700 fredoka-semibold"
+                      disabled={loading}
+                    >
+                      {loading ? "Confirming..." : "Confirm Account"}
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {mode === 'signin' && (
+                <>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-gray-700 fredoka-medium">Email</label>
+                      <Input
+                        type="email"
+                        placeholder="Enter your email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="h-10 border-2 border-gray-200 focus:border-blue-500 rounded-lg fredoka-medium"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-gray-700 fredoka-medium">Password</label>
+                      <div className="relative">
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Enter your password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="h-10 border-2 border-gray-200 focus:border-blue-500 rounded-lg fredoka-medium pr-12"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        >
+                          {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    onClick={handleSignIn} 
+                    className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white fredoka-semibold text-base rounded-lg transition-all duration-300 hover:scale-105" 
+                    disabled={loading}
+                  >
+                    {loading ? "Signing in..." : "Sign In"}
+                  </Button>
+                  
+                  <div className="text-center space-y-3 pt-4">
+                    <Button 
+                      variant="link" 
+                      onClick={handleForgotPassword}
+                      className="text-sm text-blue-600 hover:text-blue-700 fredoka-medium"
+                      disabled={loading}
+                    >
+                      Forgot your password?
+                    </Button>
+                    <br />
+                    <Button 
+                      variant="link" 
+                      onClick={() => setMode('lookup')}
+                      className="text-sm text-gray-600 hover:text-gray-700 fredoka-medium"
+                    >
+                      New student? Find your account
+                    </Button>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+      </div>
     </div>
   );
 };
