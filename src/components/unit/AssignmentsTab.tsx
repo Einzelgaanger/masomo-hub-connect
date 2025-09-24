@@ -58,24 +58,47 @@ export function AssignmentsTab({ unitId, profile }: AssignmentsTabProps) {
 
   const fetchAssignments = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch assignments without foreign key relationships
+      const { data: assignmentsData, error: assignmentsError } = await supabase
         .from('assignments')
-        .select(`
-          *,
-          profiles(
-            full_name,
-            profile_picture_url
-          ),
-          assignment_completions(
-            user_id,
-            completed_at
-          )
-        `)
+        .select('*')
         .eq('unit_id', unitId)
         .order('deadline', { ascending: true });
 
-      if (error) throw error;
-      setAssignments((data || []) as unknown as Assignment[]);
+      if (assignmentsError) throw assignmentsError;
+
+      if (!assignmentsData || assignmentsData.length === 0) {
+        setAssignments([]);
+        return;
+      }
+
+      // Fetch profiles for assignment creators
+      const creatorIds = [...new Set(assignmentsData.map(assignment => assignment.created_by))];
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, profile_picture_url')
+        .in('user_id', creatorIds);
+
+      // Fetch assignment completions for all assignments
+      const assignmentIds = assignmentsData.map(assignment => assignment.id);
+      const { data: completionsData } = await supabase
+        .from('assignment_completions')
+        .select('assignment_id, user_id, completed_at')
+        .in('assignment_id', assignmentIds);
+
+      // Combine the data
+      const assignmentsWithData = assignmentsData.map(assignment => {
+        const profile = profilesData?.find(p => p.user_id === assignment.created_by);
+        const completions = completionsData?.filter(c => c.assignment_id === assignment.id) || [];
+
+        return {
+          ...assignment,
+          profiles: profile,
+          assignment_completions: completions
+        };
+      });
+
+      setAssignments(assignmentsWithData as unknown as Assignment[]);
     } catch (error) {
       console.error('Error fetching assignments:', error);
       toast({

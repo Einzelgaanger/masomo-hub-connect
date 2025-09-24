@@ -62,7 +62,8 @@ export function Sidebar({ profile }: SidebarProps) {
       </SidebarHeader>
 
       <SidebarContent className="flex flex-col h-full">
-        <div className="flex-1 overflow-y-auto">
+        {/* Fixed Navigation Section */}
+        <div className="flex-shrink-0">
           <SidebarGroup>
             <SidebarGroupLabel>Navigation</SidebarGroupLabel>
             <SidebarGroupContent>
@@ -88,8 +89,11 @@ export function Sidebar({ profile }: SidebarProps) {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
+        </div>
 
-          {profile?.classes?.units && (
+        {/* Scrollable Units Section */}
+        {profile?.classes?.units && (
+          <div className="flex-1 overflow-y-auto">
             <SidebarGroup>
               <SidebarGroupLabel>Units</SidebarGroupLabel>
               <SidebarGroupContent>
@@ -107,8 +111,11 @@ export function Sidebar({ profile }: SidebarProps) {
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
-          )}
+          </div>
+        )}
 
+        {/* Fixed Bottom Section */}
+        <div className="flex-shrink-0 space-y-4">
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
@@ -131,26 +138,26 @@ export function Sidebar({ profile }: SidebarProps) {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-        </div>
 
-        {/* Logout Section - Always visible at bottom */}
-        <div className="border-t border-sidebar-border">
-          <SidebarGroup>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span>Logout</span>
-                </Button>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          {/* Logout Section - Always visible at bottom */}
+          <div className="border-t border-sidebar-border">
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Logout</span>
+                  </Button>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </div>
         </div>
       </SidebarContent>
 

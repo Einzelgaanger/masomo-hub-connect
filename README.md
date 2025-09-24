@@ -65,8 +65,8 @@ A comprehensive educational platform that transforms university learning through
 
 5. **Start the development server**
    ```bash
-   npm run dev
-   ```
+npm run dev
+```
 
 ## 🏗️ Architecture
 

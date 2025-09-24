@@ -52,20 +52,38 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
 
   const fetchEvents = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch events without foreign key relationships
+      const { data: eventsData, error: eventsError } = await supabase
         .from('events')
-        .select(`
-          *,
-          profiles(
-            full_name,
-            profile_picture_url
-          )
-        `)
+        .select('*')
         .eq('unit_id', unitId)
         .order('event_date', { ascending: true });
 
-      if (error) throw error;
-      setEvents((data || []) as unknown as Event[]);
+      if (eventsError) throw eventsError;
+
+      if (!eventsData || eventsData.length === 0) {
+        setEvents([]);
+        return;
+      }
+
+      // Fetch profiles for event creators
+      const creatorIds = [...new Set(eventsData.map(event => event.created_by))];
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, profile_picture_url')
+        .in('user_id', creatorIds);
+
+      // Combine the data
+      const eventsWithData = eventsData.map(event => {
+        const profile = profilesData?.find(p => p.user_id === event.created_by);
+
+        return {
+          ...event,
+          profiles: profile
+        };
+      });
+
+      setEvents(eventsWithData as unknown as Event[]);
     } catch (error) {
       console.error('Error fetching events:', error);
       toast({

@@ -72,35 +72,68 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
 
   const fetchNotes = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch uploads without foreign key relationships
+      const { data: uploadsData, error: uploadsError } = await supabase
         .from('uploads')
-        .select(`
-          *,
-          profiles(
-            full_name,
-            profile_picture_url
-          ),
-          upload_reactions(
-            user_id,
-            reaction_type
-          ),
-          comments(
-            id,
-            content,
-            created_at,
-            commented_by,
-            profiles(
-              full_name,
-              profile_picture_url
-            )
-          )
-        `)
+        .select('*')
         .eq('unit_id', unitId)
         .eq('upload_type', 'note')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setNotes((data || []) as unknown as Note[]);
+      if (uploadsError) throw uploadsError;
+
+      if (!uploadsData || uploadsData.length === 0) {
+        setNotes([]);
+        return;
+      }
+
+      // Fetch profiles for uploaders
+      const uploaderIds = [...new Set(uploadsData.map(upload => upload.uploaded_by))];
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, profile_picture_url')
+        .in('user_id', uploaderIds);
+
+      // Fetch reactions for all uploads
+      const uploadIds = uploadsData.map(upload => upload.id);
+      const { data: reactionsData } = await supabase
+        .from('upload_reactions')
+        .select('upload_id, user_id, reaction_type')
+        .in('upload_id', uploadIds);
+
+      // Fetch comments for all uploads
+      const { data: commentsData } = await supabase
+        .from('comments')
+        .select('id, upload_id, content, created_at, commented_by')
+        .in('upload_id', uploadIds);
+
+      // Get commenter profiles
+      const commenterIds = commentsData ? [...new Set(commentsData.map(comment => comment.commented_by))] : [];
+      const { data: commenterProfiles } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, profile_picture_url')
+        .in('user_id', commenterIds);
+
+      // Combine the data
+      const notesWithData = uploadsData.map(upload => {
+        const profile = profilesData?.find(p => p.user_id === upload.uploaded_by);
+        const reactions = reactionsData?.filter(r => r.upload_id === upload.id) || [];
+        const comments = commentsData?.filter(c => c.upload_id === upload.id) || [];
+        
+        const commentsWithProfiles = comments.map(comment => ({
+          ...comment,
+          profiles: commenterProfiles?.find(p => p.user_id === comment.commented_by)
+        }));
+
+        return {
+          ...upload,
+          profiles: profile,
+          upload_reactions: reactions,
+          comments: commentsWithProfiles
+        };
+      });
+
+      setNotes(notesWithData as unknown as Note[]);
     } catch (error) {
       console.error('Error fetching notes:', error);
       toast({

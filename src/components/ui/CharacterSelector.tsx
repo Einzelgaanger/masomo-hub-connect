@@ -1,11 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { CHARACTERS, Character, getCharacterByPoints } from '../../types/characters';
 import { CharacterCard } from './CharacterCard';
-import { Button } from './button';
-import { Input } from './input';
-import { Search, Filter, Trophy, Star } from 'lucide-react';
+import { Trophy, Star } from 'lucide-react';
 import { Badge } from './badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
 
 interface CharacterSelectorProps {
   currentPoints: number;
@@ -16,32 +13,10 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
   currentPoints,
   currentCharacterId
 }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<'rank' | 'points' | 'name'>('rank');
-
   const currentCharacter = getCharacterByPoints(currentPoints);
   const currentCharacterData = CHARACTERS.find(c => c.id === currentCharacterId) || currentCharacter;
 
-  const filteredCharacters = CHARACTERS
-    .filter(character => {
-      const matchesSearch = character.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           character.description.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = categoryFilter === 'all' || character.category === categoryFilter;
-      return matchesSearch && matchesCategory;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'rank':
-          return a.rank - b.rank;
-        case 'points':
-          return a.pointsRequired - b.pointsRequired;
-        case 'name':
-          return a.name.localeCompare(b.name);
-        default:
-          return a.rank - b.rank;
-      }
-    });
+  const sortedCharacters = CHARACTERS.sort((a, b) => a.rank - b.rank);
 
   const unlockedCount = CHARACTERS.filter(char => char.pointsRequired <= currentPoints).length;
   const totalCount = CHARACTERS.length;
@@ -73,48 +48,10 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
         </div>
       </div>
 
-      {/* Filters and Search */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            placeholder="Search characters..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-full sm:w-48">
-            <Filter className="h-4 w-4 mr-2" />
-            <SelectValue placeholder="Filter by category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            <SelectItem value="starter">Starter</SelectItem>
-            <SelectItem value="intermediate">Intermediate</SelectItem>
-            <SelectItem value="advanced">Advanced</SelectItem>
-            <SelectItem value="legendary">Legendary</SelectItem>
-            <SelectItem value="ultimate">Ultimate</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Select value={sortBy} onValueChange={(value: 'rank' | 'points' | 'name') => setSortBy(value)}>
-          <SelectTrigger className="w-full sm:w-48">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="rank">Rank</SelectItem>
-            <SelectItem value="points">Points Required</SelectItem>
-            <SelectItem value="name">Name</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
 
       {/* Characters Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredCharacters.map((character) => {
+        {sortedCharacters.map((character) => {
           const isUnlocked = character.pointsRequired <= currentPoints;
           const isCurrentCharacter = character.id === currentCharacterData.id;
           
@@ -133,16 +70,6 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
           );
         })}
       </div>
-
-      {filteredCharacters.length === 0 && (
-        <div className="text-center py-12">
-          <div className="text-gray-400 mb-4">
-            <Search className="h-12 w-12 mx-auto" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No characters found</h3>
-          <p className="text-gray-600">Try adjusting your search or filter criteria.</p>
-        </div>
-      )}
 
       {/* Progress to Next Character */}
       {currentCharacterData && currentCharacterData.rank < CHARACTERS.length && (

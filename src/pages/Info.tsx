@@ -316,33 +316,6 @@ const Info = () => {
               </CardContent>
             </Card>
 
-            {/* Rank System */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Trophy className="h-5 w-5" />
-                  Rank System
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {ranks.map((rank, index) => (
-                    <div key={index} className="flex items-center gap-4 p-4 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        {rank.icon}
-                        <div>
-                          <h4 className="font-semibold">{rank.name}</h4>
-                          <p className="text-sm text-muted-foreground">{rank.description}</p>
-                        </div>
-                      </div>
-                      <Badge className={`${rank.color} ml-auto`}>
-                        {rank.points}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
 
             {/* Tips for Success */}
             <Card>
