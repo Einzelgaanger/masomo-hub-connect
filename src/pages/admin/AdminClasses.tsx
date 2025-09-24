@@ -53,9 +53,9 @@ const AdminClasses = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="min-h-screen flex w-full bg-background overflow-x-hidden">
         <AdminSidebar profile={profile} />
-        <main className="flex-1 flex flex-col">
+        <main className="flex-1 flex flex-col overflow-x-hidden">
           <AdminHeader profile={profile} />
           <div className="flex-1 p-6 space-y-6 overflow-auto">
             <div className="mb-6">

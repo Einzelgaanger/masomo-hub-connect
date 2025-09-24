@@ -122,13 +122,51 @@ export function ContentManagementSection() {
         return;
       }
 
+      setIsUploading(true);
+
+      let media_url = null;
+      let media_type = null;
+
+      // Upload file if provided
+      if (formData.file) {
+        // Validate file type (only images and videos)
+        const fileType = formData.file.type;
+        if (!fileType.startsWith('image/') && !fileType.startsWith('video/')) {
+          toast({
+            title: "Error",
+            description: "Only images and videos are allowed.",
+            variant: "destructive",
+          });
+          setIsUploading(false);
+          return;
+        }
+
+        // Upload to Supabase Storage
+        const fileExt = formData.file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('announcements')
+          .upload(fileName, formData.file);
+
+        if (uploadError) throw uploadError;
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('announcements')
+          .getPublicUrl(fileName);
+
+        media_url = urlData.publicUrl;
+        media_type = fileType;
+      }
+
       const { error } = await supabase
         .from('announcements')
         .insert({
           title: formData.title,
           content: formData.content,
-          media_url: formData.media_url || null,
-          media_type: formData.media_type || null,
+          media_url,
+          media_type,
           university_id: formData.university_id,
           created_by: user?.id
         });
@@ -150,6 +188,8 @@ export function ContentManagementSection() {
         description: "Failed to create announcement.",
         variant: "destructive",
       });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -183,9 +223,8 @@ export function ContentManagementSection() {
     setFormData({
       title: "",
       content: "",
-      media_url: "",
-      media_type: "",
-      university_id: ""
+      university_id: "",
+      file: null
     });
   };
 
@@ -270,34 +309,27 @@ export function ContentManagementSection() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="media_url">Media URL (Optional)</Label>
+                  <Label htmlFor="file">Media (Optional)</Label>
                   <Input
-                    id="media_url"
-                    value={formData.media_url}
-                    onChange={(e) => setFormData({ ...formData, media_url: e.target.value })}
-                    placeholder="https://example.com/image.jpg or https://example.com/video.mp4"
+                    id="file"
+                    type="file"
+                    accept="image/*,video/*"
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      file: e.target.files?.[0] || null 
+                    })}
+                    className="cursor-pointer"
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    Add an image, video, or document URL to make your announcement more engaging
+                    📸 Upload an image or 🎥 video to make your announcement more engaging. Files will be automatically processed and optimized.
                   </p>
-                </div>
-                
-                <div>
-                  <Label htmlFor="media_type">Media Type (Auto-detected if URL provided)</Label>
-                  <Select value={formData.media_type} onValueChange={(value) => setFormData({ ...formData, media_type: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select media type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="image/jpeg">📸 Image (JPEG)</SelectItem>
-                      <SelectItem value="image/png">🖼️ Image (PNG)</SelectItem>
-                      <SelectItem value="image/gif">🎞️ Image (GIF)</SelectItem>
-                      <SelectItem value="video/mp4">🎥 Video (MP4)</SelectItem>
-                      <SelectItem value="video/webm">🎬 Video (WebM)</SelectItem>
-                      <SelectItem value="application/pdf">📄 Document (PDF)</SelectItem>
-                      <SelectItem value="text/plain">📝 Text Document</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {formData.file && (
+                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                      <p className="text-sm text-green-800">
+                        ✅ Selected: {formData.file.name} ({(formData.file.size / 1024 / 1024).toFixed(2)} MB)
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -305,8 +337,8 @@ export function ContentManagementSection() {
                 <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleCreateAnnouncement}>
-                  Create Announcement
+                <Button onClick={handleCreateAnnouncement} disabled={isUploading}>
+                  {isUploading ? "Creating..." : "Create Announcement"}
                 </Button>
               </DialogFooter>
             </DialogContent>

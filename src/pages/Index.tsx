@@ -206,8 +206,8 @@ const Index = () => {
           </div>
 
           {/* Character Tape Animation */}
-          <div className="relative mb-12 -mx-4">
-            <div className="absolute inset-0 bg-gradient-to-r from-white via-transparent via-transparent to-white z-10 pointer-events-none w-screen"></div>
+          <div className="relative mb-12 overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-white via-transparent via-transparent to-white z-10 pointer-events-none"></div>
             <div className="flex animate-character-tape">
               {/* First set of characters */}
               {CHARACTERS.map((character, index) => (

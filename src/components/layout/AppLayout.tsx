@@ -80,9 +80,9 @@ export function AppLayout({ children, showHeader = false, HeaderComponent }: App
   return (
     <ProfileContext.Provider value={profile}>
       <SidebarProvider>
-        <div className="min-h-screen flex w-full bg-background">
+        <div className="min-h-screen flex w-full bg-background overflow-x-hidden">
           <Sidebar profile={profile} />
-          <main className="flex-1 flex flex-col">
+          <main className="flex-1 flex flex-col overflow-x-hidden">
             <ClientHeader />
             <div className="flex-1 p-4 lg:p-6 space-y-4 lg:space-y-6 overflow-auto">
               {children}
