@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, BookOpen, Users, Calendar, ArrowLeft, Search, Filter } from "lucide-react";
+import { Plus, Edit, Trash2, BookOpen, Users, Calendar, ArrowLeft, Search, Filter, CheckCircle, XCircle, Clock } from "lucide-react";
 import { format } from "date-fns";
 
 interface Class {
@@ -19,10 +19,11 @@ interface Class {
   course_year: number;
   semester: number;
   course_group: string;
-  created_at: string;
   universities: {
+    id: string;
     name: string;
     countries: {
+      id: string;
       name: string;
     };
   };
@@ -44,11 +45,30 @@ interface Student {
   created_at: string;
 }
 
+interface Application {
+  id: string;
+  user_id: string;
+  full_name: string;
+  admission_number: string;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+  updated_at: string;
+  approved_at?: string;
+  rejected_at?: string;
+  rejection_reason?: string;
+}
+
 export function ClassManagementSection() {
   const { toast } = useToast();
   const [classes, setClasses] = useState<Class[]>([]);
   const [filteredClasses, setFilteredClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
+  
+  // Applications state
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [loadingApplications, setLoadingApplications] = useState(false);
+  
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -59,17 +79,6 @@ export function ClassManagementSection() {
   const [countryFilter, setCountryFilter] = useState<string>("all");
   const [universityFilter, setUniversityFilter] = useState<string>("all");
   const [searchFilter, setSearchFilter] = useState<string>("");
-
-  // Student creation states
-  const [isCreateStudentDialogOpen, setIsCreateStudentDialogOpen] = useState(false);
-  const [isBulkStudentDialogOpen, setIsBulkStudentDialogOpen] = useState(false);
-  const [studentFormData, setStudentFormData] = useState({
-    full_name: "",
-    email: "",
-    admission_number: "",
-    role: "student"
-  });
-  const [bulkStudentData, setBulkStudentData] = useState("");
 
   // Form state - now with text inputs instead of selects
   const [formData, setFormData] = useState({
@@ -91,27 +100,37 @@ export function ClassManagementSection() {
 
   const fetchData = async () => {
     try {
-      // Fetch classes
-      const { data: classesData, error: classesError } = await supabase
+      const { data, error } = await supabase
         .from('classes')
         .select(`
-          *,
-          universities(
+          id,
+          course_name,
+          course_year,
+          semester,
+          course_group,
+          universities (
+            id,
             name,
-            countries(name)
+            countries (
+              id,
+              name
+            )
           ),
-          units(*)
+          units (
+            id,
+            name,
+            description
+          )
         `)
-        .order('created_at', { ascending: false });
+        .order('course_name');
 
-      if (classesError) throw classesError;
-      setClasses(classesData || []);
-      setFilteredClasses(classesData || []);
+      if (error) throw error;
+      setClasses(data || []);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching classes:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch data.",
+        description: "Failed to load classes.",
         variant: "destructive",
       });
     } finally {
@@ -120,6 +139,7 @@ export function ClassManagementSection() {
   };
 
   const fetchStudents = async (classId: string) => {
+    setLoadingStudents(true);
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -146,363 +166,94 @@ export function ClassManagementSection() {
         description: "Failed to fetch students.",
         variant: "destructive",
       });
+    } finally {
+      setLoadingStudents(false);
     }
   };
 
-  // Filter classes based on selected filters
-  useEffect(() => {
-    let filtered = classes;
-
-    if (countryFilter !== "all") {
-      filtered = filtered.filter(classItem => 
-        classItem.universities.countries.name === countryFilter
-      );
-    }
-
-    if (universityFilter !== "all") {
-      filtered = filtered.filter(classItem => 
-        classItem.universities.name === universityFilter
-      );
-    }
-
-    if (searchFilter) {
-      filtered = filtered.filter(classItem => 
-        classItem.course_name.toLowerCase().includes(searchFilter.toLowerCase()) ||
-        classItem.universities.name.toLowerCase().includes(searchFilter.toLowerCase()) ||
-        classItem.course_group.toLowerCase().includes(searchFilter.toLowerCase())
-      );
-    }
-
-    setFilteredClasses(filtered);
-  }, [classes, countryFilter, universityFilter, searchFilter]);
-
-  // Get unique countries and universities for filters
-  const uniqueCountries = Array.from(new Set(classes.map(c => c.universities.countries.name))).sort();
-  const uniqueUniversities = Array.from(new Set(classes.map(c => c.universities.name))).sort();
-
-  const handleClassClick = async (classItem: Class) => {
-    setSelectedClass(classItem);
-    await fetchStudents(classItem.id);
-  };
-
-  const handleBackToList = () => {
-    setSelectedClass(null);
-    setStudents([]);
-  };
-
-  const handleEditUnit = async (unitId: string, name: string, description: string) => {
+  const fetchApplications = async (classId: string) => {
+    setLoadingApplications(true);
     try {
-      const { error } = await supabase
-        .from('units')
-        .update({ name, description })
-        .eq('id', unitId);
+      const { data, error } = await supabase
+        .from('applications')
+        .select(`
+          id,
+          user_id,
+          full_name,
+          admission_number,
+          status,
+          created_at,
+          updated_at,
+          approved_at,
+          rejected_at,
+          rejection_reason
+        `)
+        .eq('class_id', classId)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Unit updated successfully.",
-      });
-
-      // Refresh the selected class data
-      if (selectedClass) {
-        const updatedClass = { ...selectedClass };
-        const unitIndex = updatedClass.units.findIndex(u => u.id === unitId);
-        if (unitIndex !== -1) {
-          updatedClass.units[unitIndex] = { ...updatedClass.units[unitIndex], name, description };
-          setSelectedClass(updatedClass);
-        }
-      }
+      setApplications(data || []);
     } catch (error) {
-      console.error('Error updating unit:', error);
+      console.error('Error fetching applications:', error);
       toast({
         title: "Error",
-        description: "Failed to update unit.",
+        description: "Failed to fetch applications.",
         variant: "destructive",
       });
+    } finally {
+      setLoadingApplications(false);
     }
   };
 
-  const handleDeleteUnit = async (unitId: string) => {
+  const handleApplicationAction = async (applicationId: string, action: 'approve' | 'reject') => {
     try {
-      const { error } = await supabase
-        .from('units')
-        .delete()
-        .eq('id', unitId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Unit deleted successfully.",
-      });
-
-      // Refresh the selected class data
-      if (selectedClass) {
-        const updatedClass = { ...selectedClass };
-        updatedClass.units = updatedClass.units.filter(u => u.id !== unitId);
-        setSelectedClass(updatedClass);
-      }
-    } catch (error) {
-      console.error('Error deleting unit:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete unit.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleCreateStudent = async () => {
-    if (!selectedClass) return;
-
-    try {
-      if (!studentFormData.full_name || !studentFormData.email || !studentFormData.admission_number) {
+      // Get the current admin user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
         toast({
           title: "Error",
-          description: "Please fill in all required fields.",
+          description: "Authentication required.",
           variant: "destructive",
         });
         return;
       }
 
-      // Generate a random password
-      const generatedPassword = Math.random().toString(36).slice(-8);
-
-      // Create auth user with the generated password
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: studentFormData.email,
-        password: generatedPassword,
-        email_confirm: true,
-        user_metadata: {
-          full_name: studentFormData.full_name
+      // Call the approve-application Edge Function
+      const { data, error } = await supabase.functions.invoke('approve-application', {
+        body: {
+          applicationId,
+          action,
+          adminUserId: user.id
         }
       });
 
-      if (authError) {
-        // If auth user creation fails, fall back to profile-only creation
-        console.warn('Auth user creation failed, creating profile only:', authError);
-        
-        const userId = crypto.randomUUID();
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: userId,
-            user_id: null,
-            full_name: studentFormData.full_name,
-            email: studentFormData.email,
-            admission_number: studentFormData.admission_number,
-            role: studentFormData.role,
-            class_id: selectedClass.id,
-            points: 0,
-            rank: 'bronze'
-          });
-
-        if (profileError) throw profileError;
-
-        toast({
-          title: "Success",
-          description: "Student profile created. Student can register using their admission number.",
-        });
-      } else {
-        // Create profile linked to auth user
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            user_id: authData.user.id,
-            full_name: studentFormData.full_name,
-            email: studentFormData.email,
-            admission_number: studentFormData.admission_number,
-            role: studentFormData.role,
-            class_id: selectedClass.id,
-            points: 0,
-            rank: 'bronze'
-          });
-
-        if (profileError) throw profileError;
-
-        // Send email with password
-        try {
-          const { data: emailData, error: emailError } = await supabase.functions.invoke('send-email', {
-            body: JSON.stringify({
-              to: studentFormData.email,
-              subject: 'Bunifu - Your Account Credentials',
-              template: 'welcome',
-              context: {
-                fullName: studentFormData.full_name,
-                password: generatedPassword,
-                loginUrl: window.location.origin + '/login'
-              }
-            }),
-          });
-
-          if (emailError || (emailData && emailData.error)) {
-            console.warn('Email sending failed:', emailError || emailData.error);
-            toast({
-              title: "Success with Warning",
-              description: `Student created successfully! Password: ${generatedPassword}. Email sending failed - please share this password manually.`,
-              variant: "destructive",
-            });
-          } else {
-            toast({
-              title: "Success",
-              description: "Student created successfully! Login credentials have been sent to their email.",
-            });
-          }
-        } catch (emailError) {
-          console.warn('Email sending failed:', emailError);
-          toast({
-            title: "Success with Warning",
-            description: `Student created successfully! Password: ${generatedPassword}. Email sending failed - please share this password manually.`,
-            variant: "destructive",
-          });
-        }
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
       }
 
-      // Reset form and refresh students
-      setStudentFormData({
-        full_name: "",
-        email: "",
-        admission_number: "",
-        role: "student"
+      if (data.error) {
+        console.error('Application action error:', data.error);
+        throw new Error(data.error);
+      }
+
+      toast({
+        title: action === 'approve' ? "Application Approved" : "Application Rejected",
+        description: action === 'approve' 
+          ? "Student has been approved and can now access the class."
+          : "Application has been rejected.",
       });
-      setIsCreateStudentDialogOpen(false);
-      await fetchStudents(selectedClass.id);
-    } catch (error) {
-      console.error('Error creating student:', error);
+
+      // Refresh applications and students
+      if (selectedClass) {
+        await fetchApplications(selectedClass.id);
+        await fetchStudents(selectedClass.id);
+      }
+    } catch (error: any) {
+      console.error(`Error ${action}ing application:`, error);
       toast({
         title: "Error",
-        description: "Failed to create student.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleBulkCreateStudents = async () => {
-    if (!selectedClass || !bulkStudentData.trim()) return;
-
-    try {
-      const lines = bulkStudentData.trim().split('\n');
-      const students = lines.map(line => {
-        const [full_name, email, admission_number] = line.split(',').map(s => s.trim());
-        return { full_name, email, admission_number };
-      });
-
-      let successCount = 0;
-      let emailSuccessCount = 0;
-      const passwords: { email: string; password: string }[] = [];
-
-      for (const student of students) {
-        if (!student.full_name || !student.email || !student.admission_number) continue;
-
-        try {
-          // Generate a random password
-          const generatedPassword = Math.random().toString(36).slice(-8);
-
-          // Try to create auth user first
-          const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-            email: student.email,
-            password: generatedPassword,
-            email_confirm: true,
-            user_metadata: {
-              full_name: student.full_name
-            }
-          });
-
-          if (authError) {
-            // Fall back to profile-only creation
-            const userId = crypto.randomUUID();
-            const { error: profileError } = await supabase
-              .from('profiles')
-              .insert({
-                id: userId,
-                user_id: null,
-                full_name: student.full_name,
-                email: student.email,
-                admission_number: student.admission_number,
-                role: 'student',
-                class_id: selectedClass.id,
-                points: 0,
-                rank: 'bronze'
-              });
-
-            if (profileError) {
-              console.error(`Error creating profile for ${student.email}:`, profileError);
-            } else {
-              successCount++;
-            }
-          } else {
-            // Create profile linked to auth user
-            const { error: profileError } = await supabase
-              .from('profiles')
-              .insert({
-                user_id: authData.user.id,
-                full_name: student.full_name,
-                email: student.email,
-                admission_number: student.admission_number,
-                role: 'student',
-                class_id: selectedClass.id,
-                points: 0,
-                rank: 'bronze'
-              });
-
-            if (profileError) {
-              console.error(`Error creating profile for ${student.email}:`, profileError);
-            } else {
-              successCount++;
-              passwords.push({ email: student.email, password: generatedPassword });
-            }
-          }
-        } catch (error) {
-          console.error(`Error processing ${student.email}:`, error);
-        }
-      }
-
-      // Send emails for successfully created auth users
-      for (const { email, password } of passwords) {
-        try {
-          const { data: emailData, error: emailError } = await supabase.functions.invoke('send-email', {
-            body: JSON.stringify({
-              to: email,
-              subject: 'Bunifu - Your Account Credentials',
-              template: 'welcome',
-              context: {
-                fullName: students.find(s => s.email === email)?.full_name || 'Student',
-                password: password,
-                loginUrl: window.location.origin + '/login'
-              }
-            }),
-          });
-
-          if (!emailError && (!emailData || !emailData.error)) {
-            emailSuccessCount++;
-          }
-        } catch (emailError) {
-          console.warn(`Email sending failed for ${email}:`, emailError);
-        }
-      }
-
-      let message = `Created ${successCount} out of ${students.length} student profiles.`;
-      if (emailSuccessCount > 0) {
-        message += ` Sent login credentials to ${emailSuccessCount} students.`;
-      }
-      if (passwords.length > emailSuccessCount) {
-        message += ` Some emails failed - check console for manual password sharing.`;
-      }
-
-      toast({
-        title: "Success",
-        description: message,
-      });
-
-      setBulkStudentData("");
-      setIsBulkStudentDialogOpen(false);
-      await fetchStudents(selectedClass.id);
-    } catch (error) {
-      console.error('Error bulk creating students:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create students.",
+        description: error.message || `Failed to ${action} application.`,
         variant: "destructive",
       });
     }
@@ -531,6 +282,38 @@ export function ClassManagementSection() {
       toast({
         title: "Error",
         description: "Failed to update student role.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteStudent = async (studentId: string) => {
+    if (!confirm("Are you sure you want to delete this student? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', studentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Student deleted successfully.",
+      });
+
+      // Refresh students
+      if (selectedClass) {
+        await fetchStudents(selectedClass.id);
+      }
+    } catch (error) {
+      console.error('Error deleting student:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete student.",
         variant: "destructive",
       });
     }
@@ -642,35 +425,6 @@ export function ClassManagementSection() {
     }
   };
 
-  const handleDeleteClass = async (classId: string) => {
-    if (!confirm("Are you sure you want to delete this class? This will also delete all associated units and data.")) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('classes')
-        .delete()
-        .eq('id', classId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Class deleted successfully.",
-      });
-
-      fetchData();
-    } catch (error) {
-      console.error('Error deleting class:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete class.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const resetForm = () => {
     setFormData({
       country_name: "",
@@ -694,25 +448,56 @@ export function ClassManagementSection() {
   };
 
   const updateUnit = (index: number, field: 'name' | 'description', value: string) => {
-    const updatedUnits = [...units];
-    updatedUnits[index][field] = value;
+    const updatedUnits = units.map((unit, i) => 
+      i === index ? { ...unit, [field]: value } : unit
+    );
     setUnits(updatedUnits);
   };
 
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Classes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Filter classes based on selected filters
+  useEffect(() => {
+    let filtered = classes;
+
+    if (countryFilter !== "all") {
+      filtered = filtered.filter(classItem => 
+        classItem.universities.countries.name === countryFilter
+      );
+    }
+
+    if (universityFilter !== "all") {
+      filtered = filtered.filter(classItem => 
+        classItem.universities.name === universityFilter
+      );
+    }
+
+    if (searchFilter) {
+      filtered = filtered.filter(classItem => 
+        classItem.course_name.toLowerCase().includes(searchFilter.toLowerCase()) ||
+        classItem.universities.name.toLowerCase().includes(searchFilter.toLowerCase()) ||
+        classItem.universities.countries.name.toLowerCase().includes(searchFilter.toLowerCase())
+      );
+    }
+
+    setFilteredClasses(filtered);
+  }, [classes, countryFilter, universityFilter, searchFilter]);
+
+  // Get unique countries and universities for filters
+  const uniqueCountries = Array.from(new Set(classes.map(c => c.universities.countries.name))).sort();
+  const uniqueUniversities = Array.from(new Set(classes.map(c => c.universities.name))).sort();
+
+  const handleClassClick = async (classItem: Class) => {
+    setSelectedClass(classItem);
+    await Promise.all([
+      fetchStudents(classItem.id),
+      fetchApplications(classItem.id)
+    ]);
+  };
+
+  const handleBackToList = () => {
+    setSelectedClass(null);
+    setStudents([]);
+    setApplications([]);
+  };
 
   // Show class detail view when a class is selected
   if (selectedClass) {
@@ -738,10 +523,14 @@ export function ClassManagementSection() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="units" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="units" className="flex items-center gap-2">
                   <BookOpen className="h-4 w-4" />
                   Units ({selectedClass.units.length})
+                </TabsTrigger>
+                <TabsTrigger value="applications" className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Applications ({applications.filter(app => app.status === 'pending').length})
                 </TabsTrigger>
                 <TabsTrigger value="students" className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
@@ -752,125 +541,152 @@ export function ClassManagementSection() {
               <TabsContent value="units" className="space-y-4">
                 <div className="grid gap-4">
                   {selectedClass.units.map((unit) => (
-                    <UnitEditCard
-                      key={unit.id}
-                      unit={unit}
-                      onEdit={handleEditUnit}
-                      onDelete={handleDeleteUnit}
-                    />
+                    <Card key={unit.id}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h3 className="font-semibold">{unit.name}</h3>
+                            <p className="text-sm text-muted-foreground">{unit.description}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   ))}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="applications" className="space-y-4">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-semibold">Pending Applications ({applications.filter(app => app.status === 'pending').length})</h3>
+                  </div>
+                  
+                  {loadingApplications ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                      <p className="text-gray-600">Loading applications...</p>
+                    </div>
+                  ) : applications.filter(app => app.status === 'pending').length === 0 ? (
+                    <div className="text-center py-12">
+                      <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No pending applications</h3>
+                      <p className="text-gray-600">No students have applied for this class yet.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {applications.filter(app => app.status === 'pending').map((application) => (
+                        <Card key={application.id} className="border-l-4 border-l-yellow-500">
+                          <CardContent className="p-6">
+                            <div className="flex items-start justify-between">
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                                    <Clock className="h-3 w-3 mr-1" />
+                                    Pending
+                                  </Badge>
+                                  <span className="text-sm text-gray-500">
+                                    Applied {format(new Date(application.created_at), 'MMM dd, yyyy')}
+                                  </span>
+                                </div>
+                                <h4 className="font-semibold text-lg">{application.full_name}</h4>
+                                <div className="space-y-1 text-sm text-gray-600">
+                                  <p><strong>Admission Number:</strong> {application.admission_number}</p>
+                                  <p><strong>User ID:</strong> {application.user_id}</p>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleApplicationAction(application.id, 'approve')}
+                                  className="bg-green-600 hover:bg-green-700"
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                  Approve
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleApplicationAction(application.id, 'reject')}
+                                >
+                                  <XCircle className="h-4 w-4 mr-1" />
+                                  Reject
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </TabsContent>
               
               <TabsContent value="students" className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold">Students ({students.length})</h3>
-                  <div className="flex gap-2">
-                    <Dialog open={isBulkStudentDialogOpen} onOpenChange={setIsBulkStudentDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <Users className="h-4 w-4 mr-2" />
-                          Bulk Import
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Bulk Import Students</DialogTitle>
-                          <DialogDescription>
-                            Import multiple students at once. Format: Name, Email, Admission Number (one per line)
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div>
-                            <Label htmlFor="bulk-students">Student Data</Label>
-                            <textarea
-                              id="bulk-students"
-                              className="w-full h-32 p-3 border rounded-md"
-                              placeholder="John Doe, john.doe@example.com, ADM001&#10;Jane Smith, jane.smith@example.com, ADM002"
-                              value={bulkStudentData}
-                              onChange={(e) => setBulkStudentData(e.target.value)}
-                            />
-                          </div>
-                        </div>
-                        <DialogFooter>
-                          <Button variant="outline" onClick={() => setIsBulkStudentDialogOpen(false)}>
-                            Cancel
-                          </Button>
-                          <Button onClick={handleBulkCreateStudents}>
-                            Import Students
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                    <Dialog open={isCreateStudentDialogOpen} onOpenChange={setIsCreateStudentDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button size="sm">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Student
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Add New Student</DialogTitle>
-                          <DialogDescription>
-                            Add a new student to this class.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div>
-                            <Label htmlFor="student-name">Full Name *</Label>
-                            <Input
-                              id="student-name"
-                              value={studentFormData.full_name}
-                              onChange={(e) => setStudentFormData({ ...studentFormData, full_name: e.target.value })}
-                              placeholder="John Doe"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="student-email">Email *</Label>
-                            <Input
-                              id="student-email"
-                              type="email"
-                              value={studentFormData.email}
-                              onChange={(e) => setStudentFormData({ ...studentFormData, email: e.target.value })}
-                              placeholder="john.doe@example.com"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="student-admission">Admission Number *</Label>
-                            <Input
-                              id="student-admission"
-                              value={studentFormData.admission_number}
-                              onChange={(e) => setStudentFormData({ ...studentFormData, admission_number: e.target.value })}
-                              placeholder="ADM001"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="student-role">Role</Label>
-                            <Select value={studentFormData.role} onValueChange={(value) => setStudentFormData({ ...studentFormData, role: value })}>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="student">Student</SelectItem>
-                                <SelectItem value="lecturer">Lecturer</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        <DialogFooter>
-                          <Button variant="outline" onClick={() => setIsCreateStudentDialogOpen(false)}>
-                            Cancel
-                          </Button>
-                          <Button onClick={handleCreateStudent}>
-                            Create Student
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-semibold">Approved Students ({students.length})</h3>
+                    <p className="text-sm text-gray-600">Students who have been approved and have access to this class</p>
                   </div>
+                  
+                  {loadingStudents ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                      <p className="text-gray-600">Loading students...</p>
+                    </div>
+                  ) : students.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No students yet</h3>
+                      <p className="text-gray-600">No students have been approved for this class yet.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {students.map((student) => (
+                        <Card key={student.id} className="border-l-4 border-l-green-500">
+                          <CardContent className="p-6">
+                            <div className="flex items-start justify-between">
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="default" className="bg-green-100 text-green-800">
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    {student.role}
+                                  </Badge>
+                                  <span className="text-sm text-gray-500">
+                                    Joined {format(new Date(student.created_at), 'MMM dd, yyyy')}
+                                  </span>
+                                </div>
+                                <h4 className="font-semibold text-lg">{student.full_name}</h4>
+                                <div className="space-y-1 text-sm text-gray-600">
+                                  <p><strong>Email:</strong> {student.email}</p>
+                                  <p><strong>Admission Number:</strong> {student.admission_number}</p>
+                                  <p><strong>Points:</strong> {student.points} • <strong>Rank:</strong> {student.rank}</p>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleUpdateStudentRole(student.id, student.role === 'student' ? 'lecturer' : 'student')}
+                                >
+                                  <Edit className="h-4 w-4 mr-1" />
+                                  {student.role === 'student' ? 'Make Lecturer' : 'Make Student'}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleDeleteStudent(student.id)}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" />
+                                  Delete
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <StudentsTable students={students} onUpdateRole={handleUpdateStudentRole} />
               </TabsContent>
             </Tabs>
           </CardContent>
@@ -907,40 +723,38 @@ export function ClassManagementSection() {
                     <Input
                       id="country_name"
                       value={formData.country_name}
-                      onChange={(e) => setFormData({ ...formData, country_name: e.target.value })}
-                      placeholder="e.g., Kenya, Uganda, Tanzania"
+                      onChange={(e) => setFormData({...formData, country_name: e.target.value})}
+                      placeholder="e.g., Kenya"
                     />
                   </div>
-                  
                   <div>
                     <Label htmlFor="university_name">University *</Label>
                     <Input
                       id="university_name"
                       value={formData.university_name}
-                      onChange={(e) => setFormData({ ...formData, university_name: e.target.value })}
+                      onChange={(e) => setFormData({...formData, university_name: e.target.value})}
                       placeholder="e.g., University of Nairobi"
                     />
                   </div>
                 </div>
-
+                
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="course_name">Course Name *</Label>
                     <Input
                       id="course_name"
                       value={formData.course_name}
-                      onChange={(e) => setFormData({ ...formData, course_name: e.target.value })}
+                      onChange={(e) => setFormData({...formData, course_name: e.target.value})}
                       placeholder="e.g., Computer Science"
                     />
                   </div>
-                  
                   <div>
                     <Label htmlFor="course_group">Course Group</Label>
                     <Input
                       id="course_group"
                       value={formData.course_group}
-                      onChange={(e) => setFormData({ ...formData, course_group: e.target.value })}
-                      placeholder="e.g., Group A, Section 1"
+                      onChange={(e) => setFormData({...formData, course_group: e.target.value})}
+                      placeholder="e.g., Group A"
                     />
                   </div>
                 </div>
@@ -948,28 +762,30 @@ export function ClassManagementSection() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="course_year">Course Year</Label>
-                    <Input
-                      id="course_year"
-                      type="number"
-                      min="1"
-                      max="6"
-                      value={formData.course_year}
-                      onChange={(e) => setFormData({ ...formData, course_year: parseInt(e.target.value) || 1 })}
-                      placeholder="1"
-                    />
+                    <Select value={formData.course_year.toString()} onValueChange={(value) => setFormData({...formData, course_year: parseInt(value)})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">Year 1</SelectItem>
+                        <SelectItem value="2">Year 2</SelectItem>
+                        <SelectItem value="3">Year 3</SelectItem>
+                        <SelectItem value="4">Year 4</SelectItem>
+                        <SelectItem value="5">Year 5</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  
                   <div>
                     <Label htmlFor="semester">Semester</Label>
-                    <Input
-                      id="semester"
-                      type="number"
-                      min="1"
-                      max="2"
-                      value={formData.semester}
-                      onChange={(e) => setFormData({ ...formData, semester: parseInt(e.target.value) || 1 })}
-                      placeholder="1"
-                    />
+                    <Select value={formData.semester.toString()} onValueChange={(value) => setFormData({...formData, semester: parseInt(value)})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">Semester 1</SelectItem>
+                        <SelectItem value="2">Semester 2</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
@@ -981,20 +797,23 @@ export function ClassManagementSection() {
                       Add Unit
                     </Button>
                   </div>
-                  
-                  {units.map((unit, index) => (
-                    <div key={index} className="flex gap-2 mb-2">
-                      <Input
-                        placeholder="Unit name (e.g., Introduction to Programming)"
-                        value={unit.name}
-                        onChange={(e) => updateUnit(index, 'name', e.target.value)}
-                      />
-                      <Input
-                        placeholder="Description"
-                        value={unit.description}
-                        onChange={(e) => updateUnit(index, 'description', e.target.value)}
-                      />
-                      {units.length > 1 && (
+                  <div className="space-y-3">
+                    {units.map((unit, index) => (
+                      <div key={index} className="flex gap-2 items-end">
+                        <div className="flex-1">
+                          <Input
+                            placeholder="Unit name"
+                            value={unit.name}
+                            onChange={(e) => updateUnit(index, 'name', e.target.value)}
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <Input
+                            placeholder="Unit description"
+                            value={unit.description}
+                            onChange={(e) => updateUnit(index, 'description', e.target.value)}
+                          />
+                        </div>
                         <Button
                           type="button"
                           variant="outline"
@@ -1003,9 +822,9 @@ export function ClassManagementSection() {
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                      )}
-                    </div>
-                  ))}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -1047,6 +866,9 @@ export function ClassManagementSection() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4" />
               <Select value={universityFilter} onValueChange={setUniversityFilter}>
                 <SelectTrigger className="w-48">
                   <SelectValue placeholder="University" />
@@ -1063,212 +885,66 @@ export function ClassManagementSection() {
             </div>
           </div>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Course</TableHead>
-                <TableHead>University</TableHead>
-                <TableHead>Year & Semester</TableHead>
-                <TableHead>Group</TableHead>
-                <TableHead>Units</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredClasses.map((classItem) => (
-                <TableRow 
-                  key={classItem.id} 
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleClassClick(classItem)}
-                >
-                  <TableCell className="font-medium">{classItem.course_name}</TableCell>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{classItem.universities.name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {classItem.universities.countries.name}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">
-                      Year {classItem.course_year}, Sem {classItem.semester}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{classItem.course_group || 'N/A'}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <BookOpen className="h-4 w-4" />
-                      {classItem.units?.length || 0}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {format(new Date(classItem.created_at), 'MMM dd, yyyy')}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingClass(classItem);
-                          setIsEditDialogOpen(true);
-                        }}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteClass(classItem.id);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          {/* Classes Table */}
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p>Loading classes...</p>
+            </div>
+          ) : filteredClasses.length === 0 ? (
+            <div className="text-center py-12">
+              <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">No classes found</h3>
+              <p className="text-muted-foreground">Create your first class to get started.</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Course Name</TableHead>
+                  <TableHead>University</TableHead>
+                  <TableHead>Year/Semester</TableHead>
+                  <TableHead>Units</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredClasses.map((classItem) => (
+                  <TableRow 
+                    key={classItem.id} 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleClassClick(classItem)}
+                  >
+                    <TableCell className="font-medium">{classItem.course_name}</TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{classItem.universities.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {classItem.universities.countries.name}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      Year {classItem.course_year}, Sem {classItem.semester}
+                      {classItem.course_group && (
+                        <div className="text-sm text-muted-foreground">
+                          Group {classItem.course_group}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>{classItem.units.length} units</TableCell>
+                    <TableCell>
+                      <Button variant="outline" size="sm">
+                        View Details
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-// Unit Edit Card Component
-function UnitEditCard({ 
-  unit, 
-  onEdit, 
-  onDelete 
-}: { 
-  unit: { id: string; name: string; description: string }; 
-  onEdit: (id: string, name: string, description: string) => void;
-  onDelete: (id: string) => void;
-}) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(unit.name);
-  const [editDescription, setEditDescription] = useState(unit.description);
-
-  const handleSave = () => {
-    onEdit(unit.id, editName, editDescription);
-    setIsEditing(false);
-  };
-
-  const handleCancel = () => {
-    setEditName(unit.name);
-    setEditDescription(unit.description);
-    setIsEditing(false);
-  };
-
-  if (isEditing) {
-    return (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor={`unit-name-${unit.id}`}>Unit Name</Label>
-              <Input
-                id={`unit-name-${unit.id}`}
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor={`unit-description-${unit.id}`}>Description</Label>
-              <Input
-                id={`unit-description-${unit.id}`}
-                value={editDescription}
-                onChange={(e) => setEditDescription(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button size="sm" onClick={handleSave}>
-                Save
-              </Button>
-              <Button size="sm" variant="outline" onClick={handleCancel}>
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-medium">{unit.name}</h3>
-            <p className="text-sm text-muted-foreground">{unit.description}</p>
-          </div>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
-              <Edit className="h-4 w-4" />
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => onDelete(unit.id)}>
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Students Table Component
-function StudentsTable({ students, onUpdateRole }: { students: Student[]; onUpdateRole: (studentId: string, newRole: string) => void }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead>Email</TableHead>
-          <TableHead>Admission Number</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Role</TableHead>
-          <TableHead>Points</TableHead>
-          <TableHead>Rank</TableHead>
-          <TableHead>Created</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {students.map((student) => (
-          <TableRow key={student.id}>
-            <TableCell className="font-medium">{student.full_name}</TableCell>
-            <TableCell>{student.email}</TableCell>
-            <TableCell>{student.admission_number}</TableCell>
-            <TableCell>
-              <Badge variant={student.user_id ? "default" : "secondary"}>
-                {student.user_id ? "Registered" : "Pending"}
-              </Badge>
-            </TableCell>
-            <TableCell>
-              <Select value={student.role} onValueChange={(value) => onUpdateRole(student.id, value)}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="student">Student</SelectItem>
-                  <SelectItem value="lecturer">Lecturer</SelectItem>
-                </SelectContent>
-              </Select>
-            </TableCell>
-            <TableCell>{student.points}</TableCell>
-            <TableCell>
-              <Badge variant="outline">{student.rank}</Badge>
-            </TableCell>
-            <TableCell>{format(new Date(student.created_at), 'MMM dd, yyyy')}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
   );
 }

@@ -24,7 +24,68 @@ serve(async (req) => {
     let subject = ''
     let htmlContent = ''
 
-    if (type === 'welcome') {
+    if (type === 'email_confirmation') {
+      subject = 'Welcome to Bunifu - Confirm Your Email'
+      htmlContent = `
+        <div style="font-family: 'Fredoka', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);">
+          <div style="text-align: center; margin-bottom: 30px; padding: 30px 20px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+            <div style="margin-bottom: 20px;">
+              <img src="https://bunifu.onrender.com/logo.svg" alt="Bunifu Logo" style="width: 80px; height: 80px; margin-bottom: 15px;">
+            </div>
+            <h1 style="color: #2563eb; margin: 0; font-size: 32px; font-weight: 700; font-family: 'Fredoka', sans-serif;">Bunifu</h1>
+            <p style="color: #6b7280; font-size: 18px; margin: 8px 0 0 0; font-weight: 500; font-family: 'Fredoka', sans-serif;">Where learning meets creativity</p>
+          </div>
+          
+          <div style="background: white; padding: 30px; border-radius: 20px; margin-bottom: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.08);">
+            <h2 style="color: #1f2937; margin-bottom: 20px; font-size: 24px; font-weight: 600; font-family: 'Fredoka', sans-serif;">🎓 Welcome to Your Learning Journey!</h2>
+            <p style="color: #4b5563; line-height: 1.6; font-size: 16px; margin-bottom: 20px;">
+              Hi there!<br><br>
+              Thank you for signing up to Bunifu! We're excited to have you join our community of learners and creators.
+            </p>
+            <p style="color: #4b5563; line-height: 1.6; font-size: 16px; margin-bottom: 25px;">
+              To complete your registration and start your learning adventure, please confirm your email address by clicking the button below:
+            </p>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${email}" 
+                 style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; display: inline-block; font-weight: 600; font-size: 18px; font-family: 'Fredoka', sans-serif; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3); transition: all 0.3s ease;">
+                ✨ Confirm My Email
+              </a>
+            </div>
+
+            <div style="background: #eff6ff; border-left: 4px solid #2563eb; padding: 20px; margin: 25px 0; border-radius: 8px;">
+              <h4 style="color: #1e40af; margin-bottom: 12px; font-size: 18px; font-weight: 600; font-family: 'Fredoka', sans-serif;">🚀 What's Next?</h4>
+              <ol style="color: #1e40af; padding-left: 20px; line-height: 1.8;">
+                <li>Click the confirmation button above</li>
+                <li>Choose your university and class</li>
+                <li>Submit your application for approval</li>
+                <li>Start learning and earning points!</li>
+              </ol>
+            </div>
+
+            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 8px;">
+              <p style="color: #92400e; margin: 0; font-size: 14px; font-weight: 500;">
+                <strong>Important:</strong> Please use your school email address for registration to ensure your application is processed correctly.
+              </p>
+            </div>
+          </div>
+
+          <div style="text-align: center; padding: 20px; background: white; border-radius: 15px; box-shadow: 0 3px 10px rgba(0,0,0,0.05);">
+            <p style="color: #6b7280; font-size: 14px; margin: 0; line-height: 1.5;">
+              If you didn't create an account with Bunifu, you can safely ignore this email.<br>
+              This confirmation link will expire in 24 hours.
+            </p>
+          </div>
+
+          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+            <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+              © 2025 Bunifu. All rights reserved.<br>
+              <a href="https://bunifu.onrender.com" style="color: #6b7280; text-decoration: none;">Visit our website</a>
+            </p>
+          </div>
+        </div>
+      `
+    } else if (type === 'welcome') {
       subject = 'Welcome to Bunifu - Your Login Credentials'
       htmlContent = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">

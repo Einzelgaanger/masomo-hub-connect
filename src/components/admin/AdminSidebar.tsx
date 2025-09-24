@@ -1,4 +1,4 @@
-import { BookOpen, Upload, BarChart3 } from "lucide-react";
+import { BookOpen, Upload, BarChart3, Users } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
   Sidebar as SidebarComponent,
