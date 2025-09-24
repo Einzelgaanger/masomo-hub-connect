@@ -45,7 +45,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ profile }) => {
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <NavLink to="/admin" className={getNavLinkClass}>
-                    <BarChart3 className="h-4 w-4" />
+                    <BarChart3 className="h-5 w-5" />
                     {!collapsed && <span>Dashboard</span>}
                   </NavLink>
                 </SidebarMenuButton>
@@ -54,7 +54,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ profile }) => {
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <NavLink to="/admin/classes" className={getNavLinkClass}>
-                    <BookOpen className="h-4 w-4" />
+                    <BookOpen className="h-5 w-5" />
                     {!collapsed && <span>Classes</span>}
                   </NavLink>
                 </SidebarMenuButton>
@@ -63,7 +63,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ profile }) => {
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <NavLink to="/admin/content" className={getNavLinkClass}>
-                    <Upload className="h-4 w-4" />
+                    <Upload className="h-5 w-5" />
                     {!collapsed && <span>Content Management</span>}
                   </NavLink>
                 </SidebarMenuButton>

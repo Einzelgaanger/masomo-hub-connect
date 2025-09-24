@@ -47,14 +47,14 @@ const Index = () => {
         <div className="block sm:hidden mb-6 animate-fade-in">
           <div className="flex items-start gap-3 mb-4">
             {/* Large Owl Icon filling top-left */}
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 -mt-4">
               <img src="/logo.svg" alt="Bunifu Logo" className="h-40 w-40" />
             </div>
             
             {/* Name and Tagline to the right */}
             <div className="flex-1 min-w-0 text-left">
-              <h1 className="text-3xl font-bold fredoka-bold text-gray-900 leading-tight mb-1 text-left">Bunifu</h1>
-              <p className="text-base fredoka-medium text-gray-600 leading-tight text-left">Where learning meets creativity</p>
+              <h1 className="text-4xl font-bold fredoka-bold text-gray-900 leading-tight mb-1 text-left">Bunifu</h1>
+              <p className="text-lg fredoka-medium text-gray-600 leading-tight text-left">Where learning meets creativity</p>
             </div>
           </div>
         </div>
@@ -62,7 +62,7 @@ const Index = () => {
             {/* Desktop: Logo Component */}
             <div className="hidden sm:flex justify-center mb-6 sm:mb-8 animate-fade-in">
               <Logo size="xl" showText={true} className="scale-150 sm:scale-200" />
-            </div>
+          </div>
             
             <p className="text-lg sm:text-xl md:text-2xl text-gray-600 mb-6 sm:mb-8 max-w-xs sm:max-w-2xl md:max-w-3xl mx-auto fredoka-medium animate-slide-up animation-delay-200 px-4">
               Transform your university experience with our revolutionary gamified learning platform. 
@@ -74,14 +74,14 @@ const Index = () => {
                   Start Learning <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </Link>
-              <Link to="/login">
+          <Link to="/login">
                 <Button size="lg" variant="outline" className="w-full sm:w-auto gap-2 border-2 border-gray-300 hover:border-blue-500 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg fredoka-medium">
                   <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
                   Sign In
-                </Button>
-              </Link>
-            </div>
-            
+            </Button>
+          </Link>
+        </div>
+
             {/* Stats - Mobile Optimized */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-xs sm:max-w-2xl md:max-w-4xl mx-auto animate-slide-up animation-delay-600 px-4">
               <div className="text-center">
@@ -456,9 +456,9 @@ const Index = () => {
               </div>
               <h3 className="text-xl font-semibold mb-2 fredoka-bold">Earn Points</h3>
               <p className="text-gray-600 fredoka-medium">Get points for sharing content, helping others, and staying active</p>
-            </div>
+        </div>
 
-            <div className="text-center">
+        <div className="text-center">
               <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-2xl font-bold fredoka-bold">
                 4
               </div>
@@ -568,8 +568,8 @@ const Index = () => {
                       Sign In
             </Button>
           </Link>
-                </div>
-              </div>
+        </div>
+      </div>
               
               <p className="text-gray-600 fredoka-medium text-xs">
                 🚀 Join the revolution and make learning legendary!

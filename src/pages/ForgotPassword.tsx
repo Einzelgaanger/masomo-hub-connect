@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Mail, ArrowLeft, CheckCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle } from "lucide-react";
 import Logo from "@/components/ui/Logo";
 
 const ForgotPassword = () => {
@@ -151,23 +151,16 @@ const ForgotPassword = () => {
         <div className="max-w-sm mx-auto w-full">
           <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-sm">
             <CardHeader className="text-center pb-4">
-              <div className="space-y-3">
-                <div className="flex justify-center">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                    <Mail className="h-6 w-6 text-white" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900 fredoka-bold">
-                    {emailSent ? "Check Your Email" : "Forgot Password"}
-                  </h1>
-                  <p className="text-sm text-gray-600 fredoka-medium">
-                    {emailSent 
-                      ? "We've sent you a new password" 
-                      : "Enter your email to receive a new password"
-                    }
-                  </p>
-                </div>
+              <div className="space-y-2">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 fredoka-bold">
+                  {emailSent ? "Check Your Email" : "Forgot Password"}
+                </h1>
+                <p className="text-sm text-gray-600 fredoka-medium">
+                  {emailSent 
+                    ? "We've sent you a new password" 
+                    : "Enter your email to receive a new password"
+                  }
+                </p>
               </div>
             </CardHeader>
             
