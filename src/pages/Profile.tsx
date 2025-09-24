@@ -332,39 +332,43 @@ const Profile = () => {
 
   return (
     <AppLayout>
-      <div className="min-h-screen bg-gray-50">
+      <div className="bg-gray-50">
         {/* Header */}
         <div className="bg-white border-b">
-          <div className="max-w-4xl mx-auto px-4 py-6">
-            <div className="flex items-center gap-6">
-              <Avatar className="h-24 w-24">
-                <AvatarImage src={profile.profile_picture_url} />
-                <AvatarFallback className="text-2xl">
-                  {profile.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-            
-            <div className="flex-1">
+          <div className="max-w-4xl mx-auto px-4 py-2 sm:py-3">
+            {/* Mobile Layout */}
+            <div className="block sm:hidden">
               <div className="flex items-center gap-4 mb-4">
-                <h1 className="text-2xl font-bold fredoka-bold">{profile.full_name}</h1>
-                {!isOwnProfile && (
-                  <Button
-                    onClick={handleFollow}
-                    variant={isFollowing ? "outline" : "default"}
-                    className="gap-2"
-                  >
-                    {isFollowing ? <UserMinus className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
-                    {isFollowing ? "Following" : "Follow"}
-                  </Button>
-                )}
-                {isOwnProfile && (
-                  <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button className="gap-2">
-                        <Upload className="h-4 w-4" />
-                        Upload Video
-                      </Button>
-                    </DialogTrigger>
+                <Avatar className="h-16 w-16 flex-shrink-0">
+                  <AvatarImage src={profile.profile_picture_url} />
+                  <AvatarFallback className="text-lg">
+                    {profile.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-lg font-bold fredoka-bold truncate">{profile.full_name}</h1>
+                  <p className="text-sm text-gray-500 truncate">{profile.email}</p>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {!isOwnProfile && (
+                    <Button
+                      onClick={handleFollow}
+                      variant={isFollowing ? "outline" : "default"}
+                      size="sm"
+                      className="gap-1 text-xs px-3"
+                    >
+                      {isFollowing ? <UserMinus className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
+                      {isFollowing ? "Following" : "Follow"}
+                    </Button>
+                  )}
+                  {isOwnProfile && (
+                    <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" className="gap-1 text-xs px-3">
+                          <Upload className="h-3 w-3" />
+                          Upload
+                        </Button>
+                      </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
                         <DialogTitle>Upload New Video</DialogTitle>
@@ -425,103 +429,270 @@ const Profile = () => {
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
-                )}
+                  )}
+                </div>
               </div>
               
-              {/* Stats */}
-              <div className="flex items-center gap-6 mb-4">
+              {/* Mobile Stats */}
+              <div className="flex items-center justify-around py-2 border-t border-gray-200">
                 <div className="text-center">
                   <div className="font-bold text-lg">{videos.length}</div>
-                  <div className="text-sm text-gray-600">Videos</div>
+                  <div className="text-xs text-gray-600">Videos</div>
                 </div>
                 <div className="text-center">
                   <div className="font-bold text-lg">{profile.follower_count}</div>
-                  <div className="text-sm text-gray-600">Followers</div>
+                  <div className="text-xs text-gray-600">Followers</div>
                 </div>
                 <div className="text-center">
                   <div className="font-bold text-lg">{profile.following_count}</div>
-                  <div className="text-sm text-gray-600">Following</div>
+                  <div className="text-xs text-gray-600">Following</div>
                 </div>
               </div>
               
-              {/* Bio and Info */}
-              <div className="space-y-2">
+              {/* Mobile Bio and Info */}
+              <div className="space-y-2 pt-2">
                 {profile.bio && (
-                  <p className="text-gray-700 fredoka-medium">{profile.bio}</p>
+                  <p className="text-gray-700 fredoka-medium text-sm leading-relaxed">{profile.bio}</p>
                 )}
-                <div className="flex items-center gap-4 text-sm text-gray-500">
-                  <div className="flex items-center gap-1">
-                    <MapPin className="h-4 w-4" />
-                    {profile.classes?.universities?.name}, {profile.classes?.universities?.countries?.name}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <MapPin className="h-3 w-3 flex-shrink-0" />
+                    <span className="truncate">{profile.classes?.universities?.name}, {profile.classes?.universities?.countries?.name}</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    Joined {format(new Date(profile.created_at), 'MMM yyyy')}
+                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <Calendar className="h-3 w-3 flex-shrink-0" />
+                    <span>Joined {format(new Date(profile.created_at), 'MMM yyyy')}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop Layout */}
+            <div className="hidden sm:flex items-center gap-6">
+              <Avatar className="h-24 w-24">
+                <AvatarImage src={profile.profile_picture_url} />
+                <AvatarFallback className="text-2xl">
+                  {profile.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            
+              <div className="flex-1">
+                <div className="flex items-center gap-4 mb-4">
+                  <h1 className="text-2xl font-bold fredoka-bold">{profile.full_name}</h1>
+                  {!isOwnProfile && (
+                    <Button
+                      onClick={handleFollow}
+                      variant={isFollowing ? "outline" : "default"}
+                      className="gap-2"
+                    >
+                      {isFollowing ? <UserMinus className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+                      {isFollowing ? "Following" : "Follow"}
+                    </Button>
+                  )}
+                  {isOwnProfile && (
+                    <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button className="gap-2">
+                          <Upload className="h-4 w-4" />
+                          Upload Video
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Upload New Video</DialogTitle>
+                          <DialogDescription>
+                            Share a new video with your followers
+                          </DialogDescription>
+                        </DialogHeader>
+                        
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor="title">Title *</Label>
+                            <Input
+                              id="title"
+                              value={uploadForm.title}
+                              onChange={(e) => setUploadForm({ ...uploadForm, title: e.target.value })}
+                              placeholder="Enter video title"
+                            />
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor="description">Description</Label>
+                            <Textarea
+                              id="description"
+                              value={uploadForm.description}
+                              onChange={(e) => setUploadForm({ ...uploadForm, description: e.target.value })}
+                              placeholder="Describe your video"
+                              rows={3}
+                            />
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor="video">Video File *</Label>
+                            <Input
+                              id="video"
+                              type="file"
+                              accept="video/*"
+                              onChange={(e) => setUploadForm({ 
+                                ...uploadForm, 
+                                video: e.target.files?.[0] || null 
+                              })}
+                              className="cursor-pointer"
+                            />
+                            {uploadForm.video && (
+                              <p className="text-sm text-green-600 mt-1">
+                                Selected: {uploadForm.video.name}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <DialogFooter>
+                          <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>
+                            Cancel
+                          </Button>
+                          <Button onClick={handleVideoUpload} disabled={isUploading}>
+                            {isUploading ? "Uploading..." : "Upload Video"}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                </div>
+                
+                {/* Desktop Stats */}
+                <div className="flex items-center gap-6 mb-3">
+                  <div className="text-center">
+                    <div className="font-bold text-lg">{videos.length}</div>
+                    <div className="text-sm text-gray-600">Videos</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-bold text-lg">{profile.follower_count}</div>
+                    <div className="text-sm text-gray-600">Followers</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-bold text-lg">{profile.following_count}</div>
+                    <div className="text-sm text-gray-600">Following</div>
+                  </div>
+                </div>
+                
+                {/* Desktop Bio and Info */}
+                <div className="space-y-1">
+                  {profile.bio && (
+                    <p className="text-gray-700 fredoka-medium">{profile.bio}</p>
+                  )}
+                  <div className="flex items-center gap-4 text-sm text-gray-500">
+                    <div className="flex items-center gap-1">
+                      <MapPin className="h-4 w-4" />
+                      {profile.classes?.universities?.name}, {profile.classes?.universities?.countries?.name}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      Joined {format(new Date(profile.created_at), 'MMM yyyy')}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Videos Grid */}
-      <div className="max-w-4xl mx-auto px-4 py-6">
+        {/* Videos Grid */}
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-2 sm:py-4">
         {videos.length === 0 ? (
-          <div className="text-center py-12">
-            <Video className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
+          <div className="text-center py-8 sm:py-12">
+            <Video className="h-12 w-12 sm:h-16 sm:w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 fredoka-bold">
               {isOwnProfile ? "No videos yet" : "No videos uploaded"}
             </h3>
-            <p className="text-gray-500 mb-6">
+            <p className="text-gray-500 mb-6 text-sm sm:text-base px-4">
               {isOwnProfile 
                 ? "Upload your first video to start sharing with your followers!" 
                 : `${profile.full_name} hasn't uploaded any videos yet.`}
             </p>
             {isOwnProfile && (
-              <Button onClick={() => setIsUploadDialogOpen(true)} className="gap-2">
+              <Button onClick={() => setIsUploadDialogOpen(true)} className="gap-2" size="sm">
                 <Upload className="h-4 w-4" />
                 Upload Your First Video
               </Button>
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {videos.map((video) => (
-              <Card 
-                key={video.id} 
-                className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-                onClick={() => handleVideoClick(video.id)}
-              >
-                <div className="relative aspect-[9/16] bg-gray-100">
+          <>
+            {/* Mobile Grid - 3 columns */}
+            <div className="grid grid-cols-3 gap-1 sm:hidden">
+              {videos.map((video) => (
+                <div 
+                  key={video.id} 
+                  className="relative aspect-[9/16] bg-gray-100 rounded-lg overflow-hidden cursor-pointer"
+                  onClick={() => handleVideoClick(video.id)}
+                >
                   <video
                     src={video.video_url}
                     className="w-full h-full object-cover"
                     poster={video.thumbnail_url}
                   />
                   <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                    <Play className="h-12 w-12 text-white" />
+                    <Play className="h-6 w-6 text-white" />
                   </div>
-                  <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                  <div className="absolute bottom-1 right-1 bg-black/70 text-white text-xs px-1 py-0.5 rounded text-[10px]">
                     {video.duration ? `${Math.floor(video.duration / 60)}:${(video.duration % 60).toString().padStart(2, '0')}` : '0:00'}
                   </div>
-                </div>
-                <CardContent className="p-3">
-                  <h3 className="font-semibold text-sm line-clamp-2 mb-1">
-                    {video.title}
-                  </h3>
-                  <div className="flex items-center gap-2 text-xs text-gray-500">
-                    <Heart className="h-3 w-3" />
-                    {video.video_likes.length}
-                    <MessageCircle className="h-3 w-3" />
-                    {video.video_comments.length}
+                  {/* Mobile overlay with likes/comments */}
+                  <div className="absolute top-1 left-1 flex items-center gap-1">
+                    <div className="bg-black/50 rounded-full px-1 py-0.5 flex items-center gap-1">
+                      <Heart className="h-2 w-2 text-white fill-current" />
+                      <span className="text-[10px] text-white">{video.video_likes.length}</span>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  <div className="absolute top-1 right-1">
+                    <div className="bg-black/50 rounded-full px-1 py-0.5 flex items-center gap-1">
+                      <MessageCircle className="h-2 w-2 text-white" />
+                      <span className="text-[10px] text-white">{video.video_comments.length}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop/Tablet Grid */}
+            <div className="hidden sm:grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {videos.map((video) => (
+                <Card 
+                  key={video.id} 
+                  className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => handleVideoClick(video.id)}
+                >
+                  <div className="relative aspect-[9/16] bg-gray-100">
+                    <video
+                      src={video.video_url}
+                      className="w-full h-full object-cover"
+                      poster={video.thumbnail_url}
+                    />
+                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                      <Play className="h-12 w-12 text-white" />
+                    </div>
+                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                      {video.duration ? `${Math.floor(video.duration / 60)}:${(video.duration % 60).toString().padStart(2, '0')}` : '0:00'}
+                    </div>
+                  </div>
+                  <CardContent className="p-3">
+                    <h3 className="font-semibold text-sm line-clamp-2 mb-1 fredoka-medium">
+                      {video.title}
+                    </h3>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <Heart className="h-3 w-3" />
+                      {video.video_likes.length}
+                      <MessageCircle className="h-3 w-3" />
+                      {video.video_comments.length}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </>
         )}
-      </div>
+        </div>
       </div>
     </AppLayout>
   );

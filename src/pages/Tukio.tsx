@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 
@@ -50,21 +51,120 @@ const Tukio = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set());
   const [likedVideos, setLikedVideos] = useState<Set<string>>(new Set());
   const [animatingLikes, setAnimatingLikes] = useState<Set<string>>(new Set());
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [loadedVideos, setLoadedVideos] = useState<Set<string>>(new Set());
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isScrolling = useRef(false);
 
   useEffect(() => {
     if (user) {
       fetchReels();
     }
   }, [user]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+      }
+    };
+  }, [longPressTimer]);
+
+  // Handle video loading and preloading
+  useEffect(() => {
+    if (reels.length === 0) return;
+
+    // Only preload the next video to avoid cache issues
+    const nextVideo = currentIndex < reels.length - 1 ? reels[currentIndex + 1] : null;
+
+    // Preload only the next video
+    if (nextVideo && !loadedVideos.has(nextVideo.id)) {
+      const videoElement = document.createElement('video');
+      videoElement.src = nextVideo.video_url;
+      videoElement.preload = 'metadata';
+      videoElement.crossOrigin = 'anonymous';
+      videoElement.onloadeddata = () => {
+        setLoadedVideos(prev => new Set([...prev, nextVideo.id]));
+      };
+      videoElement.onerror = () => {
+        console.warn('Failed to preload video:', nextVideo.id);
+      };
+    }
+  }, [currentIndex, reels, loadedVideos]);
+
+  // Handle wheel events and touch for horizontal scrolling
+  useEffect(() => {
+    let touchStartY = 0;
+    let touchEndY = 0;
+
+    const handleWheel = (e: WheelEvent) => {
+      // Prevent default scroll behavior
+      e.preventDefault();
+      
+      // If already scrolling, ignore
+      if (isScrolling.current) return;
+      
+      isScrolling.current = true;
+      
+      // Scroll right to left (negative deltaY means scroll up/left)
+      if (e.deltaY < 0 && currentIndex > 0) {
+        // Scroll left (previous video)
+        setCurrentIndex(prev => prev - 1);
+      } else if (e.deltaY > 0 && currentIndex < reels.length - 1) {
+        // Scroll right (next video)
+        setCurrentIndex(prev => prev + 1);
+      }
+      
+      // Reset scrolling flag after a short delay
+      setTimeout(() => {
+        isScrolling.current = false;
+      }, 100);
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStartY = e.touches[0].clientY;
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      touchEndY = e.changedTouches[0].clientY;
+      handleSwipe();
+    };
+
+    const handleSwipe = () => {
+      const swipeThreshold = 50;
+      const diff = touchStartY - touchEndY;
+
+      if (Math.abs(diff) > swipeThreshold) {
+        if (diff > 0 && currentIndex > 0) {
+          // Swipe up (previous video)
+          setCurrentIndex(prev => prev - 1);
+        } else if (diff < 0 && currentIndex < reels.length - 1) {
+          // Swipe down (next video)
+          setCurrentIndex(prev => prev + 1);
+        }
+      }
+    };
+
+    // Add event listeners
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+    
+    return () => {
+      window.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [currentIndex, reels.length]);
 
   const fetchReels = async () => {
     try {
@@ -221,14 +321,14 @@ const Tukio = () => {
     // Add animation immediately for instant feedback
     setAnimatingLikes(prev => new Set(prev).add(videoId));
     
-    // Remove animation after 300ms
+    // Remove animation after 1 second
     setTimeout(() => {
       setAnimatingLikes(prev => {
         const newSet = new Set(prev);
         newSet.delete(videoId);
         return newSet;
       });
-    }, 300);
+    }, 1000);
 
     try {
       const isLiked = likedVideos.has(videoId);
@@ -332,6 +432,39 @@ const Tukio = () => {
     }
   };
 
+  const handleCommentLongPress = (commentId: string) => {
+    if (!user) return;
+
+    // Clear any existing timer
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+    }
+
+    // Set new timer for long press
+    const timer = setTimeout(() => {
+      // Check if user can delete this comment
+      const currentReel = reels[currentIndex];
+      const comment = currentReel?.video_comments.find(c => c.id === commentId);
+      
+      if (comment && (user.id === comment.user_id || user.id === currentReel?.user_id)) {
+        handleDeleteComment(commentId);
+        toast({
+          title: "Comment deleted",
+          description: "The comment has been deleted.",
+        });
+      }
+    }, 1000); // 1 second long press
+
+    setLongPressTimer(timer);
+  };
+
+  const handleCommentPressEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+  };
+
   const handleDeleteVideo = async (videoId: string) => {
     if (!user) return;
 
@@ -429,22 +562,24 @@ const Tukio = () => {
       onTouchStart={handleTouchStart}
     >
       {/* Back Button */}
-      <div className="absolute top-4 left-4 z-50">
+      <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-50">
         <Button
           onClick={() => navigate('/dashboard')}
           variant="ghost"
           size="sm"
-          className="bg-black/50 text-white hover:bg-black/70"
+          className="bg-black/50 text-white hover:bg-black/70 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
         >
-          <ChevronLeft className="h-4 w-4 mr-2" />
-          Back
+          <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+          <span className="hidden sm:inline">Back</span>
+          <span className="sm:hidden">←</span>
         </Button>
       </div>
 
       {/* Progress Indicator */}
-      <div className="absolute top-4 right-4 z-50">
-        <div className="bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-          {currentIndex + 1} / {reels.length}
+      <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-50">
+        <div className="bg-black/50 text-white px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs sm:text-sm">
+          <span className="hidden sm:inline">{currentIndex + 1} / {reels.length}</span>
+          <span className="sm:hidden">{currentIndex + 1}/{reels.length}</span>
         </div>
       </div>
 
@@ -461,6 +596,11 @@ const Tukio = () => {
             {/* Video */}
             {reel.video_url && (
               <div className="absolute inset-0 flex items-center justify-center bg-black">
+                {!loadedVideos.has(reel.id) && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+                  </div>
+                )}
                 <video
                   ref={el => videoRefs.current[index] = el}
                   src={reel.video_url}
@@ -470,8 +610,23 @@ const Tukio = () => {
                   loop
                   playsInline
                   autoPlay={index === currentIndex}
+                  preload="none"
+                  crossOrigin="anonymous"
                   onPlay={() => setIsPlaying(true)}
                   onPause={() => setIsPlaying(false)}
+                  onLoadedData={() => {
+                    setLoadedVideos(prev => new Set([...prev, reel.id]));
+                  }}
+                  onError={(e) => {
+                    console.error('Video loading error:', e);
+                    // Retry loading after a short delay
+                    setTimeout(() => {
+                      const video = e.target as HTMLVideoElement;
+                      if (video) {
+                        video.load();
+                      }
+                    }, 1000);
+                  }}
                   poster={reel.thumbnail_url}
                 />
               </div>
@@ -481,11 +636,11 @@ const Tukio = () => {
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
             {/* Content Overlay */}
-            <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+            <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-6 text-white">
               {/* Profile Info */}
-              <div className="mb-4 flex items-center gap-3">
+              <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
                 <div 
-                  className="w-12 h-12 rounded-full overflow-hidden border-2 border-white cursor-pointer hover:scale-105 transition-transform"
+                  className="w-8 h-8 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 border-white cursor-pointer hover:scale-105 transition-transform flex-shrink-0"
                   onClick={() => navigate(`/profile/${reel.user_id}`)}
                 >
                   <img
@@ -494,48 +649,48 @@ const Tukio = () => {
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <div 
-                    className="flex items-center gap-2 cursor-pointer"
+                    className="flex items-center gap-1 sm:gap-2 cursor-pointer"
                     onClick={() => navigate(`/profile/${reel.user_id}`)}
                   >
-                    <h4 className="font-bold text-lg fredoka-bold hover:underline">
+                    <h4 className="font-bold text-sm sm:text-lg fredoka-bold hover:underline truncate">
                       {reel.profiles?.full_name}
                     </h4>
-                    <span className="text-xs text-gray-300">
+                    <span className="text-xs text-gray-300 flex-shrink-0">
                       {format(new Date(reel.created_at), 'MMM dd')}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-300">
+                  <p className="text-xs text-gray-300 truncate">
                     {reel.profiles?.follower_count} followers
                   </p>
                 </div>
               </div>
 
               {/* Title and Description */}
-              <h3 className="text-xl font-bold mb-2 fredoka-bold">
+              <h3 className="text-base sm:text-xl font-bold mb-1 sm:mb-2 fredoka-bold line-clamp-2">
                 {reel.title}
               </h3>
-              <div className="text-sm text-gray-200 mb-4 fredoka-medium">
+              <div className="text-xs sm:text-sm text-gray-200 mb-2 sm:mb-4 fredoka-medium">
                 {reel.description && (
                   <div>
-                    {expandedDescriptions.has(reel.id) || reel.description.length <= 100 ? (
-                      <p>{reel.description}</p>
+                    {expandedDescriptions.has(reel.id) || reel.description.length <= (window.innerWidth < 640 ? 80 : 100) ? (
+                      <p className="line-clamp-3">{reel.description}</p>
                     ) : (
                       <div>
-                        <p>{reel.description.substring(0, 100)}...</p>
+                        <p className="line-clamp-2">{reel.description.substring(0, window.innerWidth < 640 ? 80 : 100)}...</p>
                         <button
                           onClick={() => toggleDescription(reel.id)}
-                          className="text-blue-400 hover:text-blue-300 underline mt-1"
+                          className="text-blue-400 hover:text-blue-300 underline mt-1 text-xs"
                         >
                           ...more
                         </button>
                       </div>
                     )}
-                    {expandedDescriptions.has(reel.id) && reel.description.length > 100 && (
+                    {expandedDescriptions.has(reel.id) && reel.description.length > (window.innerWidth < 640 ? 80 : 100) && (
                       <button
                         onClick={() => toggleDescription(reel.id)}
-                        className="text-blue-400 hover:text-blue-300 underline mt-1"
+                        className="text-blue-400 hover:text-blue-300 underline mt-1 text-xs"
                       >
                         ...less
                       </button>
@@ -546,17 +701,37 @@ const Tukio = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="absolute right-4 bottom-20 flex flex-col gap-4">
+            <div className="absolute right-2 sm:right-4 bottom-16 sm:bottom-20 flex flex-col gap-2 sm:gap-4">
               {/* Delete Button (for video creator) */}
               {user?.id === reel.user_id && (
-                <Button
-                  onClick={() => handleDeleteVideo(reel.id)}
-                  variant="ghost"
-                  size="sm"
-                  className="w-12 h-12 rounded-full bg-red-500/50 text-white hover:bg-red-500/70 flex flex-col items-center gap-1"
-                >
-                  <Trash2 className="h-6 w-6" />
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-red-500/50 text-white hover:bg-red-500/70 flex flex-col items-center gap-1"
+                    >
+                      <Trash2 className="h-4 w-4 sm:h-6 sm:w-6" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Video</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete this video? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDeleteVideo(reel.id)}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               )}
 
               {/* Like Button */}
@@ -564,24 +739,20 @@ const Tukio = () => {
                 onClick={() => handleLike(reel.id)}
                 variant="ghost"
                 size="sm"
-                className={`w-12 h-12 rounded-full flex flex-col items-center gap-1 transition-all duration-300 ${
-                  likedVideos.has(reel.id) 
-                    ? 'bg-red-500/50 text-red-400 hover:bg-red-500/70' 
-                    : 'bg-black/50 text-white hover:bg-black/70'
-                } ${
+                className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex flex-col items-center gap-1 transition-all duration-1000 bg-black/50 text-white hover:bg-black/70 ${
                   animatingLikes.has(reel.id) 
-                    ? 'scale-125 bg-red-500/80 shadow-lg shadow-red-500/50' 
+                    ? 'scale-125 shadow-lg shadow-red-500/50' 
                     : ''
                 }`}
               >
                 <Heart 
-                  className={`h-6 w-6 transition-all duration-300 ${
-                    likedVideos.has(reel.id) ? 'fill-current' : ''
+                  className={`h-4 w-4 sm:h-6 sm:w-6 transition-all duration-1000 ${
+                    likedVideos.has(reel.id) ? 'fill-current text-red-500' : 'text-white'
                   } ${
-                    animatingLikes.has(reel.id) ? 'scale-110 fill-current text-red-400' : ''
+                    animatingLikes.has(reel.id) ? 'scale-110 fill-current text-red-500' : ''
                   }`} 
                 />
-                <span className="text-xs">{reel.video_likes.length}</span>
+                <span className="text-[10px] sm:text-xs">{reel.video_likes.length}</span>
               </Button>
 
               {/* Comment Button */}
@@ -589,10 +760,10 @@ const Tukio = () => {
                 onClick={() => setShowComments(true)}
                 variant="ghost"
                 size="sm"
-                className="w-12 h-12 rounded-full bg-black/50 text-white hover:bg-black/70 flex flex-col items-center gap-1"
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white hover:bg-black/70 flex flex-col items-center gap-1"
               >
-                <MessageCircle className="h-6 w-6" />
-                <span className="text-xs">{reel.video_comments.length}</span>
+                <MessageCircle className="h-4 w-4 sm:h-6 sm:w-6" />
+                <span className="text-[10px] sm:text-xs">{reel.video_comments.length}</span>
               </Button>
 
               {/* Share Button */}
@@ -600,9 +771,9 @@ const Tukio = () => {
                 onClick={handleShare}
                 variant="ghost"
                 size="sm"
-                className="w-12 h-12 rounded-full bg-black/50 text-white hover:bg-black/70 flex flex-col items-center gap-1"
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white hover:bg-black/70 flex flex-col items-center gap-1"
               >
-                <Share className="h-6 w-6" />
+                <Share className="h-4 w-4 sm:h-6 sm:w-6" />
               </Button>
             </div>
 
@@ -612,21 +783,21 @@ const Tukio = () => {
                 onClick={togglePlayPause}
                 variant="ghost"
                 size="lg"
-                className="w-16 h-16 rounded-full bg-black/50 text-white hover:bg-black/70"
+                className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-black/50 text-white hover:bg-black/70"
               >
-                {isPlaying ? <Pause className="h-8 w-8" /> : <Play className="h-8 w-8" />}
+                {isPlaying ? <Pause className="h-6 w-6 sm:h-8 sm:w-8" /> : <Play className="h-6 w-6 sm:h-8 sm:w-8" />}
               </Button>
             </div>
 
             {/* Mute Button */}
-            <div className="absolute top-4 right-16">
+            <div className="absolute top-2 right-12 sm:top-4 sm:right-16">
               <Button
                 onClick={toggleMute}
                 variant="ghost"
                 size="sm"
-                className="w-10 h-10 rounded-full bg-black/50 text-white hover:bg-black/70"
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-black/70"
               >
-                {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+                {isMuted ? <VolumeX className="h-4 w-4 sm:h-5 sm:w-5" /> : <Volume2 className="h-4 w-4 sm:h-5 sm:w-5" />}
               </Button>
             </div>
           </div>
@@ -635,70 +806,86 @@ const Tukio = () => {
 
       {/* Instagram-style Comments Dialog */}
       <Dialog open={showComments} onOpenChange={setShowComments}>
-        <DialogContent className="max-w-md mx-auto h-[80vh] flex flex-col p-0">
-          <DialogHeader className="p-4 border-b">
+        <DialogContent className="max-w-md mx-auto h-[85vh] sm:h-[80vh] flex flex-col p-0">
+          <DialogHeader className="p-3 sm:p-4 border-b">
             <div className="flex items-center justify-between">
-              <DialogTitle className="fredoka-bold">Comments</DialogTitle>
+              <DialogTitle className="fredoka-bold text-sm sm:text-base">Comments</DialogTitle>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowComments(false)}
-                className="h-8 w-8 p-0"
+                className="h-6 w-6 sm:h-8 sm:w-8 p-0"
               >
-                <X className="h-4 w-4" />
+                <X className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
             </div>
           </DialogHeader>
           
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
             {reels[currentIndex]?.video_comments.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <MessageCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p>No comments yet</p>
-                <p className="text-sm">Be the first to comment!</p>
+              <div className="text-center py-6 sm:py-8 text-gray-500">
+                <MessageCircle className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-2 opacity-50" />
+                <p className="text-sm sm:text-base">No comments yet</p>
+                <p className="text-xs sm:text-sm">Be the first to comment!</p>
               </div>
             ) : (
               reels[currentIndex]?.video_comments.map((comment) => (
-                <div key={comment.id} className="flex gap-3">
-                  <Avatar className="h-8 w-8 flex-shrink-0">
+                <div 
+                  key={comment.id} 
+                  className={`flex gap-2 sm:gap-3 p-2 rounded-lg transition-colors ${
+                    (user?.id === comment.user_id || user?.id === reels[currentIndex]?.user_id) 
+                      ? 'hover:bg-red-50 cursor-pointer' 
+                      : ''
+                  }`}
+                  onMouseDown={() => {
+                    if (user?.id === comment.user_id || user?.id === reels[currentIndex]?.user_id) {
+                      handleCommentLongPress(comment.id);
+                    }
+                  }}
+                  onMouseUp={handleCommentPressEnd}
+                  onMouseLeave={handleCommentPressEnd}
+                  onTouchStart={() => {
+                    if (user?.id === comment.user_id || user?.id === reels[currentIndex]?.user_id) {
+                      handleCommentLongPress(comment.id);
+                    }
+                  }}
+                  onTouchEnd={handleCommentPressEnd}
+                  title={(user?.id === comment.user_id || user?.id === reels[currentIndex]?.user_id) ? "Long press to delete" : ""}
+                >
+                  <Avatar className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0">
                     <AvatarImage src={comment.profiles?.profile_picture_url} />
                     <AvatarFallback className="text-xs">
                       {comment.profiles?.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-semibold text-sm fredoka-medium">
+                    <div className="flex items-center gap-1 sm:gap-2 mb-1">
+                      <span className="font-semibold text-xs sm:text-sm fredoka-medium">
                         {comment.profiles?.full_name}
                       </span>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-500 flex-shrink-0">
                         {format(new Date(comment.created_at), 'MMM d')}
                       </span>
                       {(user?.id === comment.user_id || user?.id === reels[currentIndex]?.user_id) && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteComment(comment.id)}
-                          className="h-6 w-6 p-0 ml-auto text-red-500 hover:text-red-700"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
+                        <span className="text-xs text-gray-400 ml-auto">
+                          Long press to delete
+                        </span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-800 fredoka-medium">{comment.content}</p>
+                    <p className="text-xs sm:text-sm text-gray-800 fredoka-medium leading-relaxed">{comment.content}</p>
                   </div>
                 </div>
               ))
             )}
           </div>
           
-          <div className="p-4 border-t">
+          <div className="p-3 sm:p-4 border-t">
             <div className="flex gap-2">
               <Input
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Add a comment..."
-                className="flex-1"
+                className="flex-1 text-sm"
                 onKeyPress={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -710,9 +897,9 @@ const Tukio = () => {
                 onClick={handleComment}
                 disabled={!newComment.trim() || isSubmittingComment}
                 size="sm"
-                className="px-3"
+                className="px-2 sm:px-3"
               >
-                <Send className="h-4 w-4" />
+                <Send className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
             </div>
           </div>
