@@ -56,9 +56,9 @@ const ForgotPassword = () => {
       }
 
       // Get user from auth
-      const { data: userData, error: userError } = await supabase.auth.admin.getUserByEmail(email);
+      const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
       
-      if (userError || !userData.user) {
+      if (userError || !userData.users || userData.users.length === 0) {
         toast({
           title: "Account Not Activated",
           description: "This email is registered but the account hasn't been activated yet. Please contact your administrator.",
@@ -71,7 +71,7 @@ const ForgotPassword = () => {
       const newPassword = generatePassword();
 
       // Update user password
-      const { error: updateError } = await supabase.auth.admin.updateUserById(userData.user.id, {
+      const { error: updateError } = await supabase.auth.admin.updateUserById(userData.users[0].id, {
         password: newPassword
       });
 
