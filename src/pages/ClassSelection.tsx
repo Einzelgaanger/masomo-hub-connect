@@ -139,7 +139,7 @@ const ClassSelection = () => {
     }
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!selectedCountry || !selectedUniversity || !selectedClass) {
       toast({
         title: "Error",
@@ -149,7 +149,44 @@ const ClassSelection = () => {
       return;
     }
 
-    // Navigate to application form with the selected class ID
+    // Check if user has an existing application
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError || !session?.user) {
+      toast({
+        title: "Error",
+        description: "Please sign in to continue.",
+        variant: "destructive",
+      });
+      navigate('/login');
+      return;
+    }
+
+    // Check for existing applications
+    const { data: existingApplications, error: checkError } = await supabase
+      .from('applications' as any)
+      .select('id, status, class_id')
+      .eq('user_id', session.user.id)
+      .order('created_at', { ascending: false });
+
+    if (checkError) {
+      console.error('Error checking existing applications:', checkError);
+      // Continue anyway - don't block for this check
+    }
+
+    if (existingApplications && existingApplications.length > 0) {
+      // User has existing applications, redirect to status page
+      const latestApplication = existingApplications[0];
+      toast({
+        title: "Application Found",
+        description: `You already have an application. Status: ${(latestApplication as any).status}`,
+        variant: "default",
+      });
+      navigate('/application-status');
+      return;
+    }
+
+    // No existing applications, proceed to application form
     navigate(`/application?classId=${selectedClass}`);
   };
 

@@ -136,7 +136,7 @@ const ApplicationForm = () => {
 
       // Check if user already has an application for this class
       const { data: existingApplications, error: checkError } = await supabase
-        .from('applications')
+        .from('applications' as any)
         .select('id, status')
         .eq('user_id', currentUser.id)
         .eq('class_id', classDetails.id);
@@ -150,7 +150,7 @@ const ApplicationForm = () => {
         const existingApplication = existingApplications[0];
         toast({
           title: "Application Already Submitted",
-          description: `You have already submitted an application for this class. Status: ${existingApplication.status}`,
+          description: `You have already submitted an application for this class. Status: ${(existingApplication as any).status}`,
           variant: "destructive",
         });
         setLoading(false);
@@ -159,7 +159,7 @@ const ApplicationForm = () => {
 
       // Submit the application
       const { error: insertError } = await supabase
-        .from('applications')
+        .from('applications' as any)
         .insert({
           user_id: currentUser.id,
           class_id: classDetails.id,
@@ -175,6 +175,16 @@ const ApplicationForm = () => {
         title: "Application Submitted!",
         description: "Your application has been submitted successfully. Please wait for admin approval.",
       });
+
+      // Store email for application status tracking
+      if (currentUser.email) {
+        localStorage.setItem('application_email', currentUser.email);
+      }
+
+      // Redirect to application status page after a short delay
+      setTimeout(() => {
+        navigate(`/application-status?email=${encodeURIComponent(currentUser.email || '')}`);
+      }, 2000);
 
     } catch (error: any) {
       console.error('Error submitting application:', error);
@@ -235,8 +245,8 @@ const ApplicationForm = () => {
                   <ul className="text-sm text-green-800 space-y-1">
                     <li>• Your application is now pending review</li>
                     <li>• An administrator will review your details</li>
-                    <li>• You'll receive an email once approved</li>
-                    <li>• Come back in about an hour to check your status</li>
+                    <li>• You'll be redirected to check your status</li>
+                    <li>• You can always return to this page to check updates</li>
                   </ul>
                 </div>
 
@@ -253,10 +263,10 @@ const ApplicationForm = () => {
 
               <div className="space-y-3">
                 <Button
-                  onClick={() => navigate('/login')}
+                  onClick={() => navigate(`/application-status?email=${encodeURIComponent(localStorage.getItem('application_email') || '')}`)}
                   className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-medium"
                 >
-                  Return to Login
+                  Check Application Status
                 </Button>
                 <Button
                   onClick={() => navigate('/class-selection')}

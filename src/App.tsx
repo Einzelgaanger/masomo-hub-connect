@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import ApplicationGuard from "@/components/ApplicationGuard";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -15,6 +16,7 @@ import AdminClasses from "./pages/admin/AdminClasses";
 import AdminContentManagement from "./pages/admin/AdminContentManagement";
 import ClassSelection from "./pages/ClassSelection";
 import ApplicationForm from "./pages/ApplicationForm";
+import ApplicationStatus from "./pages/ApplicationStatus";
 import UnitPage from "./pages/UnitPage";
 import Settings from "./pages/Settings";
 import Info from "./pages/Info";
@@ -58,17 +60,23 @@ const App = () => (
             <Route path="/create-password" element={<CreatePassword />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>
-                <Dashboard />
+                <ApplicationGuard>
+                  <Dashboard />
+                </ApplicationGuard>
               </ProtectedRoute>
             } />
             <Route path="/tukio" element={
               <ProtectedRoute>
-                <Tukio />
+                <ApplicationGuard>
+                  <Tukio />
+                </ApplicationGuard>
               </ProtectedRoute>
             } />
             <Route path="/profile/:userId" element={
               <ProtectedRoute>
-                <Profile />
+                <ApplicationGuard>
+                  <Profile />
+                </ApplicationGuard>
               </ProtectedRoute>
             } />
             <Route path="/admin/login" element={<AdminLogin />} />
@@ -77,19 +85,26 @@ const App = () => (
             <Route path="/admin/content" element={<AdminContentManagement />} />
             <Route path="/class-selection" element={<ClassSelection />} />
             <Route path="/application" element={<ApplicationForm />} />
+            <Route path="/application-status" element={<ApplicationStatus />} />
             <Route path="/unit/:unitId" element={
               <ProtectedRoute>
-                <UnitPage />
+                <ApplicationGuard>
+                  <UnitPage />
+                </ApplicationGuard>
               </ProtectedRoute>
             } />
             <Route path="/settings" element={
               <ProtectedRoute>
-                <Settings />
+                <ApplicationGuard>
+                  <Settings />
+                </ApplicationGuard>
               </ProtectedRoute>
             } />
             <Route path="/info" element={
               <ProtectedRoute>
-                <Info />
+                <ApplicationGuard>
+                  <Info />
+                </ApplicationGuard>
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

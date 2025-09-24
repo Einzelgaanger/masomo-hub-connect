@@ -16,10 +16,21 @@ const Login = () => {
   // Set initial mode based on URL parameter
   useEffect(() => {
     const urlMode = searchParams.get('mode');
+    const provider = searchParams.get('provider');
+    const emailParam = searchParams.get('email');
+    
     if (urlMode === 'signup') {
       setMode('signup');
     } else {
       setMode('signin');
+    }
+
+    // If provider is google and we have an email, auto-trigger Google OAuth
+    if (provider === 'google' && emailParam) {
+      setEmail(emailParam);
+      handleGoogleSignUp();
+    } else if (emailParam) {
+      setEmail(emailParam);
     }
   }, [searchParams]);
   
@@ -35,6 +46,29 @@ const Login = () => {
   
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const handleGoogleSignUp = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/class-selection`
+        }
+      });
+
+      if (error) throw error;
+    } catch (error: any) {
+      console.error('Google sign up error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to sign up with Google. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +110,7 @@ const Login = () => {
 
       // Check if user has any applications and their status
       const { data: applicationData, error: applicationError } = await supabase
-        .from('applications')
+        .from('applications' as any)
         .select('id, status')
         .eq('user_id', data.user.id)
         .order('created_at', { ascending: false })
@@ -94,20 +128,20 @@ const Login = () => {
           description: "You have been signed in successfully.",
         });
         navigate('/admin');
-      } else if (applicationData && applicationData.status === 'approved') {
+      } else if (applicationData && (applicationData as any).status === 'approved') {
         toast({
           title: "Welcome Back!",
           description: "You have been signed in successfully.",
         });
         navigate('/dashboard');
-      } else if (applicationData && applicationData.status === 'pending') {
+      } else if (applicationData && (applicationData as any).status === 'pending') {
         toast({
           title: "Application Pending",
           description: "Your application is being reviewed. Please check back later.",
         });
         // Stay on login page or redirect to a waiting page
         return;
-      } else if (applicationData && applicationData.status === 'rejected') {
+      } else if (applicationData && (applicationData as any).status === 'rejected') {
         toast({
           title: "Application Rejected",
           description: "Your application was rejected. Please try again with correct details.",
@@ -189,29 +223,6 @@ const Login = () => {
       toast({
         title: "Error",
         description: error.message || "Failed to create account. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleSignUp = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/class-selection`
-        }
-      });
-
-      if (error) throw error;
-    } catch (error: any) {
-      console.error('Google sign up error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to sign up with Google. Please try again.",
         variant: "destructive",
       });
     } finally {

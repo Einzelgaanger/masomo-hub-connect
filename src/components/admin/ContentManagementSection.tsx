@@ -100,13 +100,7 @@ export function ContentManagementSection() {
             classes!units_class_id_fkey (
               course_name,
               course_year,
-              semester,
-              universities!classes_university_id_fkey (
-                name,
-                countries!universities_country_id_fkey (
-                  name
-                )
-              )
+              semester
             )
           )
         `)
@@ -132,11 +126,11 @@ export function ContentManagementSection() {
     // Apply search filter
     if (searchFilter) {
       filtered = filtered.filter(upload =>
-        upload.title.toLowerCase().includes(searchFilter.toLowerCase()) ||
+        upload.title?.toLowerCase().includes(searchFilter.toLowerCase()) ||
         upload.description?.toLowerCase().includes(searchFilter.toLowerCase()) ||
-        upload.profiles.full_name.toLowerCase().includes(searchFilter.toLowerCase()) ||
-        upload.units.name.toLowerCase().includes(searchFilter.toLowerCase()) ||
-        upload.units.classes.course_name.toLowerCase().includes(searchFilter.toLowerCase())
+        upload.profiles?.full_name?.toLowerCase().includes(searchFilter.toLowerCase()) ||
+        upload.units?.name?.toLowerCase().includes(searchFilter.toLowerCase()) ||
+        upload.units?.classes?.course_name?.toLowerCase().includes(searchFilter.toLowerCase())
       );
     }
 
@@ -384,20 +378,20 @@ export function ContentManagementSection() {
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4" />
                         <div>
-                          <p className="font-medium">{upload.profiles.full_name}</p>
-                          <p className="text-sm text-muted-foreground">{upload.profiles.email}</p>
+                          <p className="font-medium">{upload.profiles?.full_name || 'Unknown'}</p>
+                          <p className="text-sm text-muted-foreground">{upload.profiles?.email || 'Unknown'}</p>
                         </div>
                       </div>
                     </TableCell>
                     
                     <TableCell>
                       <div className="space-y-1">
-                        <p className="font-medium">{upload.units.name}</p>
+                        <p className="font-medium">{upload.units?.name || 'Unknown Unit'}</p>
                         <p className="text-sm text-muted-foreground">
-                          {upload.units.classes.course_name} • Year {upload.units.classes.course_year}, Sem {upload.units.classes.semester}
+                          {upload.units?.classes?.course_name || 'Unknown Class'} • Year {upload.units?.classes?.course_year || 'N/A'}, Sem {upload.units?.classes?.semester || 'N/A'}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {upload.units.classes.universities.name}, {upload.units.classes.universities.countries.name}
+                          {upload.units?.classes?.universities?.name || 'Unknown University'}, {upload.units?.classes?.universities?.countries?.name || 'Unknown Country'}
                         </p>
                       </div>
                     </TableCell>

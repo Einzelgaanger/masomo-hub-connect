@@ -6,7 +6,7 @@ import { Heart, MessageCircle, Share, Volume2, VolumeX, Play, Pause, ChevronLeft
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -102,7 +102,12 @@ const Tukio = () => {
       // Play with a small delay to ensure loading
       setTimeout(() => {
         if (currentVideo) {
-          currentVideo.play().catch(console.error);
+          currentVideo.play().catch((error) => {
+            // Ignore play interruption errors
+            if (error.name !== 'AbortError') {
+              console.error('Video play error:', error);
+            }
+          });
           setIsPlaying(true);
         }
       }, 100);
@@ -188,8 +193,8 @@ const Tukio = () => {
 
     // Add event listeners
     window.addEventListener('wheel', handleWheel, { passive: false });
-    window.addEventListener('touchstart', handleTouchStart, { passive: true });
-    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+    window.addEventListener('touchstart', handleTouchStart, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd, { passive: false });
     
     return () => {
       window.removeEventListener('wheel', handleWheel);
@@ -199,6 +204,7 @@ const Tukio = () => {
   }, [currentIndex, reels.length]);
 
   const fetchReels = async () => {
+    setLoading(true);
     try {
       // Fetch videos first
       const { data: videos, error: videosError } = await supabase
@@ -211,6 +217,7 @@ const Tukio = () => {
         if (videosError.code === 'PGRST200' || videosError.message.includes('relation "videos" does not exist')) {
           console.log('Videos table not created yet - showing empty state');
           setReels([]);
+          setLoading(false);
           return;
         } else {
           throw videosError;
@@ -219,6 +226,7 @@ const Tukio = () => {
 
       if (!videos || videos.length === 0) {
         setReels([]);
+        setLoading(false);
         return;
       }
 
@@ -339,10 +347,16 @@ const Tukio = () => {
     if (video) {
       if (isPlaying) {
         video.pause();
+        setIsPlaying(false);
       } else {
-        video.play();
+        video.play().catch((error) => {
+          // Ignore play interruption errors
+          if (error.name !== 'AbortError') {
+            console.error('Video play error:', error);
+          }
+        });
+        setIsPlaying(true);
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
@@ -703,7 +717,12 @@ const Tukio = () => {
                     if (index === currentIndex) {
                       const video = videoRefs.current[index];
                       if (video && video.paused) {
-                        video.play().catch(console.error);
+                        video.play().catch((error) => {
+                          // Ignore play interruption errors
+                          if (error.name !== 'AbortError') {
+                            console.error('Video play error:', error);
+                          }
+                        });
                       }
                     }
                   }}
@@ -909,6 +928,9 @@ const Tukio = () => {
                 <X className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
             </div>
+            <DialogDescription className="sr-only">
+              View and add comments for this video
+            </DialogDescription>
           </DialogHeader>
           
           <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4">

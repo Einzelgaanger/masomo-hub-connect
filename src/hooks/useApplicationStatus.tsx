@@ -1,0 +1,112 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './useAuth';
+
+interface ApplicationStatus {
+  hasApplication: boolean;
+  status: 'pending' | 'approved' | 'rejected' | null;
+  applicationId: string | null;
+  loading: boolean;
+  error: string | null;
+}
+
+export const useApplicationStatus = () => {
+  const [status, setStatus] = useState<ApplicationStatus>({
+    hasApplication: false,
+    status: null,
+    applicationId: null,
+    loading: true,
+    error: null
+  });
+
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (!user) {
+      setStatus({
+        hasApplication: false,
+        status: null,
+        applicationId: null,
+        loading: false,
+        error: null
+      });
+      return;
+    }
+
+    checkApplicationStatus();
+  }, [user]);
+
+  const checkApplicationStatus = async () => {
+    if (!user) return;
+
+    setStatus(prev => ({ ...prev, loading: true, error: null }));
+
+    try {
+      // First check if user has a profile (they're approved)
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, role, class_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profile && !profileError) {
+        // User has a profile, they are approved
+        setStatus({
+          hasApplication: true,
+          status: 'approved',
+          applicationId: profile.id,
+          loading: false,
+          error: null
+        });
+        return;
+      }
+
+      // No profile found, check for pending applications
+      const { data: applications, error: applicationError } = await supabase
+        .from('applications' as any)
+        .select('id, status')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (applicationError) {
+        throw applicationError;
+      }
+
+      if (applications && applications.length > 0) {
+        const latestApplication = applications[0];
+        setStatus({
+          hasApplication: true,
+          status: (latestApplication as any).status as 'pending' | 'approved' | 'rejected',
+          applicationId: latestApplication.id,
+          loading: false,
+          error: null
+        });
+      } else {
+        setStatus({
+          hasApplication: false,
+          status: null,
+          applicationId: null,
+          loading: false,
+          error: null
+        });
+      }
+    } catch (error: any) {
+      console.error('Error checking application status:', error);
+      setStatus(prev => ({
+        ...prev,
+        loading: false,
+        error: error.message || 'Failed to check application status'
+      }));
+    }
+  };
+
+  const refreshStatus = () => {
+    checkApplicationStatus();
+  };
+
+  return {
+    ...status,
+    refreshStatus
+  };
+};
