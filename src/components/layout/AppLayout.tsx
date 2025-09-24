@@ -65,7 +65,7 @@ function MobileHeader({ profile }: { profile: any }) {
           variant="ghost"
           size="sm"
           onClick={toggleSidebar}
-          className="p-2"
+          className="p-2 hover:bg-gray-100 hover:text-gray-900"
         >
           {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </Button>
@@ -74,7 +74,7 @@ function MobileHeader({ profile }: { profile: any }) {
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={toggleSidebar}
         />
       )}

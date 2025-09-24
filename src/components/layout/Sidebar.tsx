@@ -109,7 +109,7 @@ export function Sidebar({ profile }: SidebarProps) {
       </SidebarHeader>
 
       <SidebarContent className="flex flex-col h-full">
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto">
           <SidebarGroup>
             <SidebarGroupLabel>Navigation</SidebarGroupLabel>
             <SidebarGroupContent>
@@ -137,9 +137,9 @@ export function Sidebar({ profile }: SidebarProps) {
           </SidebarGroup>
 
           {profile?.classes?.units && (
-            <SidebarGroup className="flex-1 min-h-0">
+            <SidebarGroup>
               <SidebarGroupLabel>Units</SidebarGroupLabel>
-              <SidebarGroupContent className="max-h-48 overflow-y-auto">
+              <SidebarGroupContent>
                 <SidebarMenu>
                 {profile.classes.units.map((unit: any) => (
                   <SidebarMenuItem key={unit.id}>
