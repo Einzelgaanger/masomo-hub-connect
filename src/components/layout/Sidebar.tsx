@@ -31,6 +31,9 @@ export function Sidebar({ profile }: SidebarProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Mobile responsiveness
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
+
   const getRankColor = (rank: string) => {
     switch (rank) {
       case 'bronze': return 'bg-amber-600';
@@ -71,10 +74,29 @@ export function Sidebar({ profile }: SidebarProps) {
   };
 
   return (
-    <SidebarComponent className={collapsed ? "w-16" : "w-64"}>
+    <>
+      {/* Mobile Overlay */}
+      {isMobile && !collapsed && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => {
+            // This will be handled by the mobile header
+          }}
+        />
+      )}
+      
+      <SidebarComponent 
+        className={`${
+          isMobile 
+            ? (collapsed ? "w-0 -translate-x-full" : "w-64 translate-x-0") 
+            : (collapsed ? "w-16" : "w-64")
+        } transition-all duration-300 ease-in-out ${
+          isMobile ? "fixed inset-y-0 left-0 z-50 bg-background border-r" : ""
+        }`}
+      >
       <SidebarHeader className="p-4">
         <div className="flex items-center justify-center">
-          <Logo size={collapsed ? "md" : "lg"} showText={!collapsed} />
+          <Logo size={collapsed && !isMobile ? "md" : "lg"} showText={!collapsed || isMobile} />
         </div>
       </SidebarHeader>
 
@@ -189,6 +211,7 @@ export function Sidebar({ profile }: SidebarProps) {
           </div>
         </SidebarFooter>
       )}
-    </SidebarComponent>
+      </SidebarComponent>
+    </>
   );
 }

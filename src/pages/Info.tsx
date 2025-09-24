@@ -153,7 +153,7 @@ const Info = () => {
       action: "Your content gets disliked",
       points: -1,
       icon: <ThumbsDown className="h-5 w-5" />,
-      description: "Each dislike on your uploads, assignments, or comments reduces your points"
+      description: "Each dislike on your notes, past papers, assignments, events, or comments reduces your points"
     }
   ];
 
@@ -180,8 +180,8 @@ const Info = () => {
              {/* Header */}
              <div className="flex items-center gap-4">
                <div>
-                 <h1 className="text-3xl font-bold">How to Earn Points</h1>
-                <p className="text-muted-foreground">
+                 <h1 className="text-2xl lg:text-3xl font-bold">How to Earn Points</h1>
+                <p className="text-muted-foreground text-sm lg:text-base">
                   Learn about our gamification system and how to level up your academic journey
                 </p>
               </div>
@@ -263,6 +263,55 @@ const Info = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Content Interaction System */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageCircle className="h-5 w-5" />
+                  Content Interaction System
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    All content types (Notes, Past Papers, Assignments, Events, and Comments) have interactive features:
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
+                    <div className="flex items-center gap-2 lg:gap-3 p-3 border rounded-lg bg-green-50">
+                      <ThumbsUp className="h-4 w-4 lg:h-5 lg:w-5 text-green-600 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <h4 className="font-medium text-green-800 text-sm lg:text-base">Like</h4>
+                        <p className="text-xs text-green-600">Show appreciation</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 lg:gap-3 p-3 border rounded-lg bg-red-50">
+                      <ThumbsDown className="h-4 w-4 lg:h-5 lg:w-5 text-red-600 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <h4 className="font-medium text-red-800 text-sm lg:text-base">Dislike</h4>
+                        <p className="text-xs text-red-600">Provide feedback</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 lg:gap-3 p-3 border rounded-lg bg-blue-50">
+                      <MessageCircle className="h-4 w-4 lg:h-5 lg:w-5 text-blue-600 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <h4 className="font-medium text-blue-800 text-sm lg:text-base">Comment</h4>
+                        <p className="text-xs text-blue-600">Start discussions</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <h4 className="font-medium text-yellow-800 mb-2">Important Notes:</h4>
+                    <ul className="text-sm text-yellow-700 space-y-1">
+                      <li>• <strong>Liking content:</strong> You get +2 points, content creator gets +1 point</li>
+                      <li>• <strong>Commenting on content:</strong> You get +3 points</li>
+                      <li>• <strong>Your content gets liked:</strong> You get +1 point per like</li>
+                      <li>• <strong>Your content gets disliked:</strong> You lose -1 point per dislike</li>
+                    </ul>
+                  </div>
                 </div>
               </CardContent>
             </Card>
