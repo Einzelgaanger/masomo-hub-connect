@@ -56,44 +56,56 @@ const Login = () => {
 
       if (error) throw error;
 
-      // Get user profile to check if they're activated
+      // Check if user has a profile (basic check for account activation)
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('user_id, role')
-        .eq('email', email)
+        .select('id, role, full_name')
+        .eq('user_id', data.user.id)
         .single();
 
       if (profileError) {
         console.error('Profile error:', profileError);
         toast({
-          title: "Error",
-          description: "Profile not found. Please contact your administrator.",
+          title: "Account Not Found",
+          description: "Your account profile was not found. Please sign up first.",
           variant: "destructive",
         });
         await supabase.auth.signOut();
         return;
       }
 
-      if (!profileData.user_id) {
-        toast({
-          title: "Account Not Activated",
-          description: "Your account is not yet activated. Please contact your administrator.",
-          variant: "destructive",
-        });
-        await supabase.auth.signOut();
-        return;
+      // Check if user has completed their application process
+      const { data: applicationData, error: applicationError } = await supabase
+        .from('applications')
+        .select('id, status')
+        .eq('user_id', data.user.id)
+        .eq('status', 'approved')
+        .single();
+
+      if (applicationError && applicationError.code !== 'PGRST116') {
+        console.error('Application check error:', applicationError);
       }
 
-      toast({
-        title: "Welcome Back!",
-        description: "You have been signed in successfully.",
-      });
-
-      // Redirect based on role
+      // Redirect based on user state
       if (profileData.role === 'admin' || profileData.role === 'super_admin') {
+        toast({
+          title: "Welcome Back, Admin!",
+          description: "You have been signed in successfully.",
+        });
         navigate('/admin');
-      } else {
+      } else if (applicationData && applicationData.status === 'approved') {
+        toast({
+          title: "Welcome Back!",
+          description: "You have been signed in successfully.",
+        });
         navigate('/dashboard');
+      } else {
+        // User has signed up but hasn't completed application or been approved
+        toast({
+          title: "Complete Your Registration",
+          description: "Please complete your class selection and application.",
+        });
+        navigate('/class-selection');
       }
     } catch (error: any) {
       console.error('Sign in error:', error);

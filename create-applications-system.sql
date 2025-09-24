@@ -28,6 +28,9 @@ CREATE INDEX IF NOT EXISTS idx_applications_created_at ON public.applications(cr
 -- 3. Enable RLS on applications table
 ALTER TABLE public.applications ENABLE ROW LEVEL SECURITY;
 
+-- Enable RLS on profiles table
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
 -- 4. Create RLS policies for applications
 -- Applications are viewable by the applicant and admins of the class
 CREATE POLICY "Users can view their own applications" ON public.applications
@@ -72,7 +75,50 @@ CREATE POLICY "Admins can delete applications" ON public.applications
     )
   );
 
--- 5. Create function to automatically create profile when application is approved
+-- 5. Create RLS policies for profiles table
+-- Users can view their own profile
+CREATE POLICY "Users can view their own profile" ON public.profiles
+  FOR SELECT TO authenticated USING (auth.uid() = user_id);
+
+-- Users can update their own profile
+CREATE POLICY "Users can update their own profile" ON public.profiles
+  FOR UPDATE TO authenticated USING (auth.uid() = user_id);
+
+-- Allow system to insert profiles (for triggers)
+CREATE POLICY "System can insert profiles" ON public.profiles
+  FOR INSERT TO authenticated WITH CHECK (true);
+
+-- Admins can view all profiles in their classes
+CREATE POLICY "Admins can view profiles in their classes" ON public.profiles
+  FOR SELECT TO authenticated USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.user_id = auth.uid() 
+      AND p.role IN ('admin', 'super_admin')
+    )
+  );
+
+-- Admins can update profiles in their classes
+CREATE POLICY "Admins can update profiles in their classes" ON public.profiles
+  FOR UPDATE TO authenticated USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.user_id = auth.uid() 
+      AND p.role IN ('admin', 'super_admin')
+    )
+  );
+
+-- Admins can delete profiles in their classes
+CREATE POLICY "Admins can delete profiles in their classes" ON public.profiles
+  FOR DELETE TO authenticated USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.user_id = auth.uid() 
+      AND p.role IN ('admin', 'super_admin')
+    )
+  );
+
+-- 6. Create function to automatically create profile when application is approved
 CREATE OR REPLACE FUNCTION public.handle_approved_application()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -233,3 +279,37 @@ GRANT SELECT ON public.admin_applications_view TO authenticated;
 
 -- Note: Views inherit RLS policies from their underlying tables
 -- The applications table policies will automatically apply to this view
+
+-- 12. Create trigger to automatically create profile when user signs up
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Create a basic profile for new users (they'll update it later through applications)
+  INSERT INTO public.profiles (
+    user_id,
+    full_name,
+    email,
+    admission_number,
+    role,
+    points,
+    rank,
+    created_from_application
+  ) VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
+    NEW.email,
+    '',
+    'student',
+    0,
+    'bronze',
+    false
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create the trigger
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();

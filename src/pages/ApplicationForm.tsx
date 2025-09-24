@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -35,6 +35,21 @@ const ApplicationForm = () => {
   const location = useLocation();
 
   useEffect(() => {
+    // Check authentication first
+    const checkAuth = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error || !session?.user) {
+        console.log('No valid session found, redirecting to login');
+        navigate('/login?mode=signin');
+        return;
+      }
+      
+      console.log('User authenticated:', session.user.email);
+    };
+
+    checkAuth();
+
     const classId = new URLSearchParams(location.search).get('classId');
     if (classId) {
       fetchClassDetails(classId);
@@ -102,24 +117,28 @@ const ApplicationForm = () => {
 
     setLoading(true);
     try {
-      // Get the current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      // Get current session first
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (userError || !user) {
+      if (sessionError || !session?.user) {
+        console.error('No valid session found:', sessionError);
         toast({
-          title: "Error",
-          description: "Please sign in first.",
+          title: "Session Expired",
+          description: "Please sign in again to submit your application.",
           variant: "destructive",
         });
-        navigate('/login');
+        navigate('/login?mode=signin');
         return;
       }
+
+      const currentUser = session.user;
+      console.log('Submitting application for authenticated user:', currentUser.email);
 
       // Check if user already has an application for this class
       const { data: existingApplication, error: checkError } = await supabase
         .from('applications')
         .select('id, status')
-        .eq('user_id', user.id)
+        .eq('user_id', currentUser.id)
         .eq('class_id', classDetails.id)
         .single();
 
@@ -140,7 +159,7 @@ const ApplicationForm = () => {
       const { error: insertError } = await supabase
         .from('applications')
         .insert({
-          user_id: user.id,
+          user_id: currentUser.id,
           class_id: classDetails.id,
           full_name: fullName.trim(),
           admission_number: admissionNumber.trim(),

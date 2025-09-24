@@ -42,8 +42,22 @@ const ClassSelection = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Check authentication first
+    const checkAuth = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error || !session?.user) {
+        console.log('No valid session found, redirecting to login');
+        navigate('/login?mode=signin');
+        return;
+      }
+      
+      console.log('User authenticated:', session.user.email);
+    };
+
+    checkAuth();
     fetchCountries();
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     if (selectedCountry) {
