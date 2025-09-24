@@ -1,12 +1,76 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { TrendingUp, Award, Calendar, BookOpen, Crown, Star } from "lucide-react";
+import { Crown, Star, Flame } from "lucide-react";
 import { useProfile } from "@/components/layout/AppLayout";
 import { getCharacterByPoints } from "@/types/characters";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 
 export function WelcomeSection() {
   const profile = useProfile();
+  const [streak, setStreak] = useState(0);
+  const [loadingStreak, setLoadingStreak] = useState(true);
+
+  useEffect(() => {
+    if (profile?.user_id) {
+      fetchStreak();
+    }
+  }, [profile?.user_id]);
+
+  const fetchStreak = async () => {
+    try {
+      setLoadingStreak(true);
+      
+      // Get today's date
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Check if user visited today
+      const { data: todayVisit } = await supabase
+        .from('daily_visits')
+        .select('id')
+        .eq('user_id', profile.user_id)
+        .eq('visit_date', today)
+        .single();
+
+      // If no visit today, streak is 0
+      if (!todayVisit) {
+        setStreak(0);
+        return;
+      }
+
+      // Calculate consecutive days streak
+      let currentStreak = 1;
+      let currentDate = new Date();
+      currentDate.setDate(currentDate.getDate() - 1); // Start from yesterday
+
+      while (true) {
+        const checkDate = currentDate.toISOString().split('T')[0];
+        
+        const { data: visit } = await supabase
+          .from('daily_visits')
+          .select('id')
+          .eq('user_id', profile.user_id)
+          .eq('visit_date', checkDate)
+          .single();
+
+        if (!visit) {
+          break; // No visit on this date, streak ends
+        }
+
+        currentStreak++;
+        currentDate.setDate(currentDate.getDate() - 1);
+      }
+
+      setStreak(currentStreak);
+    } catch (error) {
+      console.error('Error fetching streak:', error);
+      setStreak(0);
+    } finally {
+      setLoadingStreak(false);
+    }
+  };
+
   const getRankColor = (rank: string) => {
     switch (rank) {
       case 'bronze': return 'bg-amber-600';
@@ -18,32 +82,6 @@ export function WelcomeSection() {
     }
   };
 
-  const stats = [
-    {
-      icon: TrendingUp,
-      label: "Points",
-      value: profile?.points || 0,
-      color: "text-green-600"
-    },
-    {
-      icon: Award,
-      label: "Rank",
-      value: profile?.rank || 'bronze',
-      color: "text-amber-600"
-    },
-    {
-      icon: BookOpen,
-      label: "Units",
-      value: profile?.classes?.units?.length || 0,
-      color: "text-blue-600"
-    },
-    {
-      icon: Calendar,
-      label: "Daily Streak",
-      value: "1", // This would be calculated from daily_visits
-      color: "text-purple-600"
-    }
-  ];
 
   return (
     <div className="space-y-4 lg:space-y-6">
@@ -57,46 +95,27 @@ export function WelcomeSection() {
           </p>
         </div>
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 lg:gap-4">
           <div className="text-right">
-            <p className="text-sm font-medium">{profile?.full_name}</p>
-            <p className="text-xs text-muted-foreground">{profile?.email}</p>
+            <div className="flex items-center gap-1.5 lg:gap-2 justify-end mb-1">
+              <Flame className="h-3.5 w-3.5 lg:h-4 lg:w-4 text-orange-500 flex-shrink-0" />
+              <span className="text-xs lg:text-sm font-medium text-orange-600">
+                {loadingStreak ? "..." : streak}
+              </span>
+            </div>
+            <p className="text-xs lg:text-sm font-medium truncate max-w-32 lg:max-w-none">{profile?.full_name}</p>
+            <p className="text-xs text-muted-foreground truncate max-w-32 lg:max-w-none">{profile?.email}</p>
           </div>
           
-          <Avatar className="h-10 w-10 lg:h-12 lg:w-12">
+          <Avatar className="h-8 w-8 lg:h-10 xl:h-12 lg:w-10 xl:w-12 flex-shrink-0">
             <AvatarImage src={profile?.profile_picture_url} />
-            <AvatarFallback>
+            <AvatarFallback className="text-xs lg:text-sm">
               {profile?.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
             </AvatarFallback>
           </Avatar>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => (
-          <Card key={stat.label} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg bg-muted ${stat.color}`}>
-                  <stat.icon className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">{stat.label}</p>
-                  <p className="text-2xl font-bold">
-                    {stat.label === 'Rank' ? (
-                      <Badge className={`${getRankColor(stat.value.toString())} text-white`}>
-                        {stat.value}
-                      </Badge>
-                    ) : (
-                      stat.value
-                    )}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
 
       {/* Character & Rank Showcase */}
       <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
