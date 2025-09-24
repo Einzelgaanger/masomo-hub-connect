@@ -1,15 +1,12 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, BookOpen, Calendar, ClipboardList, ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { FileText, BookOpen, Calendar, ClipboardList } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { NotesTab } from "@/components/unit/NotesTab";
 import { PastPapersTab } from "@/components/unit/PastPapersTab";
@@ -124,24 +121,11 @@ const UnitPage = () => {
   }
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
-        <Sidebar profile={profile} />
-        <main className="flex-1 flex flex-col">
-          <DashboardHeader profile={profile} />
-          <div className="flex-1 p-6 space-y-6 overflow-auto">
-            {/* Unit Header */}
-            <div className="flex items-center justify-between">
-              <div>
-                <Button
-                  variant="ghost"
-                  onClick={() => navigate("/dashboard")}
-                  className="mb-2"
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Dashboard
-                </Button>
-                <h1 className="text-3xl font-bold">{unit.name}</h1>
+    <AppLayout>
+             {/* Unit Header */}
+             <div className="flex items-center justify-between">
+               <div>
+                 <h1 className="text-3xl font-bold">{unit.name}</h1>
                 <p className="text-muted-foreground">
                   {unit.classes.course_name} - {unit.classes.universities.name}
                 </p>
@@ -183,25 +167,22 @@ const UnitPage = () => {
               </TabsList>
 
               <TabsContent value="notes" className="space-y-6">
-                <NotesTab unitId={unitId!} profile={profile} />
+                <NotesTab unitId={unitId!} />
               </TabsContent>
 
               <TabsContent value="past-papers" className="space-y-6">
-                <PastPapersTab unitId={unitId!} profile={profile} />
+                <PastPapersTab unitId={unitId!} />
               </TabsContent>
 
               <TabsContent value="assignments" className="space-y-6">
-                <AssignmentsTab unitId={unitId!} profile={profile} />
+                <AssignmentsTab unitId={unitId!} />
               </TabsContent>
 
               <TabsContent value="events" className="space-y-6">
-                <EventsTab unitId={unitId!} profile={profile} />
+                <EventsTab unitId={unitId!} />
               </TabsContent>
             </Tabs>
-          </div>
-        </main>
-      </div>
-    </SidebarProvider>
+    </AppLayout>
   );
 };
 

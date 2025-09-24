@@ -97,7 +97,7 @@ export const CHARACTERS: Character[] = [
   },
   {
     id: 'angel',
-    name: 'Guardian Angel',
+    name: 'Angel',
     image: '/characters/angel.png',
     description: 'A divine being who guides lost students and spreads wisdom throughout the academic realm.',
     pointsRequired: 1500,

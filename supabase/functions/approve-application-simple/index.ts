@@ -71,34 +71,23 @@ serve(async (req) => {
       .eq('id', applicationId)
 
     if (updateError) {
+      console.error('Update error:', updateError)
       throw new Error(`Failed to update application: ${updateError.message}`)
     }
 
-    // If approved, create a profile for the student
+    console.log('Application updated successfully')
+
+    // Simple profile creation for approved applications
     if (action === 'approve') {
-      // Get user email from auth.users table
-      const { data: authUser, error: authError } = await supabaseClient.auth.admin.getUserById(application.user_id)
-      
-      let userEmail = ''
-      if (!authError && authUser.user) {
-        userEmail = authUser.user.email || ''
-      }
+      try {
+        // Get user email from auth.users table
+        const { data: authUser } = await supabaseClient.auth.admin.getUserById(application.user_id)
+        const userEmail = authUser?.user?.email || ''
 
-      // Check if profile already exists
-      const { data: existingProfile, error: profileCheckError } = await supabaseClient
-        .from('profiles')
-        .select('id')
-        .eq('user_id', application.user_id)
-
-      if (profileCheckError) {
-        console.error('Error checking existing profile:', profileCheckError)
-      }
-
-      if (!existingProfile || existingProfile.length === 0) {
-        // Create profile for the approved student
+        // Insert or update profile
         const { error: profileError } = await supabaseClient
           .from('profiles')
-          .insert({
+          .upsert({
             user_id: application.user_id,
             full_name: application.full_name,
             email: userEmail,
@@ -111,22 +100,12 @@ serve(async (req) => {
           })
 
         if (profileError) {
-          console.error('Error creating profile:', profileError)
-          // Don't throw error here - application is still approved
+          console.error('Profile error (non-blocking):', profileError)
+        } else {
+          console.log('Profile created/updated successfully')
         }
-      } else {
-        // Update existing profile with class_id
-        const { error: updateProfileError } = await supabaseClient
-          .from('profiles')
-          .update({
-            class_id: application.class_id,
-            created_from_application: true
-          })
-          .eq('user_id', application.user_id)
-
-        if (updateProfileError) {
-          console.error('Error updating profile:', updateProfileError)
-        }
+      } catch (profileError) {
+        console.error('Profile creation failed (non-blocking):', profileError)
       }
     }
 
@@ -141,9 +120,9 @@ serve(async (req) => {
         status: 200,
       }
     )
-
+  
   } catch (error) {
-    console.error('Error in approve-application function:', error)
+    console.error('Error in approve-application-simple function:', error)
     
     return new Response(
       JSON.stringify({ 

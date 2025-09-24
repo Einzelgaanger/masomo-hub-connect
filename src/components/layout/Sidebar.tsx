@@ -1,5 +1,5 @@
-import { BookOpen, Settings, Info, User, GraduationCap, Shield } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { BookOpen, Settings, Info, User, GraduationCap, Shield, LogOut } from "lucide-react";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   Sidebar as SidebarComponent,
   SidebarContent,
@@ -15,8 +15,11 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import Logo from "@/components/ui/Logo";
 import { getCharacterByPoints } from "@/types/characters";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface SidebarProps {
   profile: any;
@@ -25,6 +28,8 @@ interface SidebarProps {
 export function Sidebar({ profile }: SidebarProps) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   const getRankColor = (rank: string) => {
     switch (rank) {
@@ -44,83 +49,126 @@ export function Sidebar({ profile }: SidebarProps) {
       ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" 
       : "hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground";
 
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out.",
+      });
+      
+      navigate('/login');
+    } catch (error) {
+      console.error('Error logging out:', error);
+      toast({
+        title: "Error",
+        description: "Failed to log out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <SidebarComponent className={collapsed ? "w-16" : "w-64"}>
       <SidebarHeader className="p-4">
         <div className="flex items-center justify-center">
-          <Logo size={collapsed ? "sm" : "md"} showText={!collapsed} />
+          <Logo size={collapsed ? "md" : "lg"} showText={!collapsed} />
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink to="/dashboard" className={getNavLinkClass}>
-                    <User className="h-4 w-4" />
-                    {!collapsed && <span>Dashboard</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              {profile && ['admin', 'super_admin'].includes(profile.role) && (
+      <SidebarContent className="flex flex-col h-full">
+        <div className="flex-1 overflow-hidden">
+          <SidebarGroup>
+            <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <NavLink to="/admin" className={getNavLinkClass}>
-                      <Shield className="h-4 w-4" />
-                      {!collapsed && <span>Admin Panel</span>}
+                    <NavLink to="/dashboard" className={getNavLinkClass}>
+                      <User className="h-4 w-4" />
+                      {!collapsed && <span>Dashboard</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              )}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {profile?.classes?.units && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Units</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {profile.classes.units.map((unit: any) => (
-                  <SidebarMenuItem key={unit.id}>
+                {profile && ['admin', 'super_admin'].includes(profile.role) && (
+                  <SidebarMenuItem>
                     <SidebarMenuButton asChild>
-                      <NavLink to={`/unit/${unit.id}`} className={getNavLinkClass}>
-                        <BookOpen className="h-4 w-4" />
-                        {!collapsed && <span>{unit.name}</span>}
+                      <NavLink to="/admin" className={getNavLinkClass}>
+                        <Shield className="h-4 w-4" />
+                        {!collapsed && <span>Admin Panel</span>}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                ))}
+                )}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-        )}
 
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink to="/settings" className={getNavLinkClass}>
-                    <Settings className="h-4 w-4" />
-                    {!collapsed && <span>Settings</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink to="/info" className={getNavLinkClass}>
-                    <Info className="h-4 w-4" />
-                    {!collapsed && <span>Info</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+          {profile?.classes?.units && (
+            <SidebarGroup className="flex-1 min-h-0">
+              <SidebarGroupLabel>Units</SidebarGroupLabel>
+              <SidebarGroupContent className="max-h-48 overflow-y-auto">
+                <SidebarMenu>
+                  {profile.classes.units.map((unit: any) => (
+                    <SidebarMenuItem key={unit.id}>
+                      <SidebarMenuButton asChild>
+                        <NavLink to={`/unit/${unit.id}`} className={getNavLinkClass}>
+                          <BookOpen className="h-4 w-4" />
+                          {!collapsed && <span className="truncate">{unit.name}</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
+
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink to="/settings" className={getNavLinkClass}>
+                      <Settings className="h-4 w-4" />
+                      {!collapsed && <span>Settings</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink to="/info" className={getNavLinkClass}>
+                      <Info className="h-4 w-4" />
+                      {!collapsed && <span>Info</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </div>
+
+        {/* Logout Section - Always visible at bottom */}
+        <div className="border-t border-sidebar-border">
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    {!collapsed && <span>Logout</span>}
+                  </Button>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </div>
       </SidebarContent>
 
       {profile && (
@@ -136,20 +184,6 @@ export function Sidebar({ profile }: SidebarProps) {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{profile.full_name}</p>
                 <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge className={`text-xs ${getRankColor(profile.rank)} text-white`}>
-                    {profile.rank}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">{profile.points} pts</span>
-                </div>
-                <div className="flex items-center gap-1 mt-1">
-                  <img 
-                    src={currentCharacter.image} 
-                    alt={currentCharacter.name}
-                    className="w-3 h-3 object-contain"
-                  />
-                  <span className="text-xs text-muted-foreground truncate">{currentCharacter.name}</span>
-                </div>
               </div>
             )}
           </div>

@@ -74,13 +74,14 @@ const Login = () => {
         return;
       }
 
-      // Check if user has completed their application process
+      // Check if user has any applications and their status
       const { data: applicationData, error: applicationError } = await supabase
         .from('applications')
         .select('id, status')
         .eq('user_id', data.user.id)
-        .eq('status', 'approved')
-        .single();
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       if (applicationError && applicationError.code !== 'PGRST116') {
         console.error('Application check error:', applicationError);
@@ -99,8 +100,22 @@ const Login = () => {
           description: "You have been signed in successfully.",
         });
         navigate('/dashboard');
+      } else if (applicationData && applicationData.status === 'pending') {
+        toast({
+          title: "Application Pending",
+          description: "Your application is being reviewed. Please check back later.",
+        });
+        // Stay on login page or redirect to a waiting page
+        return;
+      } else if (applicationData && applicationData.status === 'rejected') {
+        toast({
+          title: "Application Rejected",
+          description: "Your application was rejected. Please try again with correct details.",
+          variant: "destructive",
+        });
+        navigate('/class-selection');
       } else {
-        // User has signed up but hasn't completed application or been approved
+        // User has signed up but hasn't submitted an application yet
         toast({
           title: "Complete Your Registration",
           description: "Please complete your class selection and application.",
@@ -132,6 +147,7 @@ const Login = () => {
 
     setLoading(true);
     try {
+      // Create user with Supabase's built-in email confirmation
       const { data, error } = await supabase.auth.signUp({
         email: signupEmail,
         password: signupPassword,
@@ -143,16 +159,29 @@ const Login = () => {
       if (error) throw error;
 
       if (data.user && !data.user.email_confirmed_at) {
+        // Send custom branded email after Supabase creates the user
+        const { error: emailError } = await supabase.functions.invoke('send-email', {
+          body: {
+            email: signupEmail,
+            type: 'email_confirmation',
+            name: signupEmail.split('@')[0]
+          }
+        });
+
+        if (emailError) {
+          console.error('Custom email sending failed:', emailError);
+          // Don't fail signup if custom email fails - Supabase email will still be sent
+        }
+
         toast({
           title: "Check Your Email!",
           description: "Please check your email and click the confirmation link to continue. Make sure to use your school email address.",
         });
-        // Don't navigate immediately - wait for email confirmation
+        
+        // Don't navigate - wait for email confirmation
+        setMode('signin'); // Switch to sign-in mode
       } else if (data.user && data.user.email_confirmed_at) {
-        toast({
-          title: "Account Created!",
-          description: "Your account has been created successfully.",
-        });
+        // Email already confirmed (shouldn't happen in normal flow)
         navigate('/class-selection');
       }
     } catch (error: any) {

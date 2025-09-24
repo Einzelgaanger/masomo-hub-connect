@@ -60,14 +60,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ profile }) => {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink to="/admin/applications" className={getNavLinkClass}>
-                    <Users className="h-5 w-5" />
-                    <span>Applications</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
               
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>

@@ -8,24 +8,24 @@ interface LogoProps {
 
 const Logo: React.FC<LogoProps> = ({ size = 'md', showText = false, className = '' }) => {
   const sizeClasses = {
-    sm: 'h-6 w-6',
-    md: 'h-8 w-8',
-    lg: 'h-12 w-12',
-    xl: 'h-16 w-16'
+    sm: 'h-8 w-8',
+    md: 'h-12 w-12',
+    lg: 'h-16 w-16',
+    xl: 'h-20 w-20'
   };
 
   const textSizes = {
-    sm: 'text-lg',
-    md: 'text-xl',
-    lg: 'text-2xl',
-    xl: 'text-3xl'
+    sm: 'text-sm',
+    md: 'text-base',
+    lg: 'text-lg',
+    xl: 'text-xl'
   };
 
   const subtitleSizes = {
     sm: 'text-xs',
-    md: 'text-sm',
-    lg: 'text-base',
-    xl: 'text-lg'
+    md: 'text-xs',
+    lg: 'text-sm',
+    xl: 'text-sm'
   };
 
   if (showText) {

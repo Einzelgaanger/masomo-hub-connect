@@ -174,9 +174,28 @@ export function ClassManagementSection() {
   const fetchApplications = async (classId: string) => {
     setLoadingApplications(true);
     try {
-      // Temporarily disable until types are updated
-      console.log('Applications feature coming soon...');
-      setApplications([]);
+      const { data, error } = await supabase
+        .from('applications')
+        .select(`
+          id,
+          user_id,
+          full_name,
+          admission_number,
+          status,
+          created_at,
+          updated_at,
+          approved_at,
+          rejected_at,
+          rejection_reason
+        `)
+        .eq('class_id', classId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      setApplications(data || []);
+      console.log('Fetched applications:', data);
     } catch (error) {
       console.error('Error fetching applications:', error);
       toast({
@@ -184,6 +203,7 @@ export function ClassManagementSection() {
         description: "Failed to fetch applications.",
         variant: "destructive",
       });
+      setApplications([]);
     } finally {
       setLoadingApplications(false);
     }
@@ -191,34 +211,116 @@ export function ClassManagementSection() {
 
   const handleApplicationAction = async (applicationId: string, action: 'approve' | 'reject') => {
     try {
-      // Get the current admin user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
+      // Check if admin is logged in (using sessionStorage)
+      const adminSession = sessionStorage.getItem('admin_session');
+      if (!adminSession) {
         toast({
           title: "Error",
-          description: "Authentication required.",
+          description: "Admin authentication required.",
           variant: "destructive",
         });
         return;
       }
 
-      // Call the approve-application Edge Function
-      const { data, error } = await supabase.functions.invoke('approve-application', {
-        body: {
-          applicationId,
-          action,
-          adminUserId: user.id
-        }
-      });
+      // Admin authentication verified via sessionStorage
 
-      if (error) {
-        console.error('Edge function error:', error);
-        throw error;
+      // Get the application details first
+      const { data: application, error: appError } = await supabase
+        .from('applications')
+        .select('*')
+        .eq('id', applicationId)
+        .single();
+
+      if (appError || !application) {
+        toast({
+          title: "Error",
+          description: "Application not found.",
+          variant: "destructive",
+        });
+        return;
       }
 
-      if (data.error) {
-        console.error('Application action error:', data.error);
-        throw new Error(data.error);
+      // Map action to correct status values
+      const status = action === 'approve' ? 'approved' : 'rejected';
+      
+      // Update the application status
+      const updateData: any = {
+        status: status,
+        updated_at: new Date().toISOString()
+      };
+
+      if (action === 'approve') {
+        updateData.approved_at = new Date().toISOString();
+        // Don't set approved_by since we don't have a real admin user in auth system
+      } else {
+        updateData.rejected_at = new Date().toISOString();
+        // Don't set rejected_by since we don't have a real admin user in auth system
+        updateData.rejection_reason = 'Application rejected by admin';
+      }
+
+      const { error: updateError } = await supabase
+        .from('applications')
+        .update(updateData)
+        .eq('id', applicationId);
+
+      if (updateError) {
+        console.error('Update error:', updateError);
+        toast({
+          title: "Error",
+          description: `Failed to update application: ${updateError.message}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // If approved, create or update the student profile
+      if (action === 'approve') {
+        try {
+          // Check if profile already exists
+          const { data: existingProfile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('user_id', application.user_id)
+            .single();
+
+          if (!existingProfile) {
+            // Create new profile
+            const { error: profileError } = await supabase
+              .from('profiles')
+              .insert({
+                user_id: application.user_id,
+                full_name: application.full_name,
+                email: application.email || '',
+                admission_number: application.admission_number,
+                class_id: application.class_id,
+                role: 'student',
+                points: 0,
+                rank: 'bronze',
+                created_from_application: true
+              });
+
+            if (profileError) {
+              console.error('Profile creation error:', profileError);
+              // Don't fail the approval if profile creation fails
+            }
+          } else {
+            // Update existing profile with class_id
+            const { error: updateProfileError } = await supabase
+              .from('profiles')
+              .update({
+                class_id: application.class_id,
+                created_from_application: true
+              })
+              .eq('user_id', application.user_id);
+
+            if (updateProfileError) {
+              console.error('Profile update error:', updateProfileError);
+            }
+          }
+        } catch (profileError) {
+          console.error('Profile handling error:', profileError);
+          // Don't fail the approval if profile handling fails
+        }
       }
 
       toast({

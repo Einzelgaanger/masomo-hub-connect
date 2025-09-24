@@ -1,14 +1,11 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Trophy, Star, Target, Zap, Users, MessageCircle, Upload, Calendar, ThumbsUp, ThumbsDown, Award, Crown } from "lucide-react";
+import { Trophy, Star, Target, Zap, Users, MessageCircle, Upload, Calendar, ThumbsUp, ThumbsDown, Award, Crown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { CharacterSelector } from "@/components/ui/CharacterSelector";
 
@@ -67,7 +64,7 @@ const Info = () => {
           color: 'bg-amber-100 text-amber-800',
           name: 'Bronze Scholar',
           description: 'Starting your academic journey',
-          points: '0-499 points'
+          points: '0-49 points'
         };
       case 'silver':
         return {
@@ -75,7 +72,7 @@ const Info = () => {
           color: 'bg-gray-100 text-gray-800',
           name: 'Silver Scholar',
           description: 'Building your knowledge base',
-          points: '500-1,999 points'
+          points: '50-99 points'
         };
       case 'gold':
         return {
@@ -83,7 +80,7 @@ const Info = () => {
           color: 'bg-yellow-100 text-yellow-800',
           name: 'Gold Scholar',
           description: 'Excelling in your studies',
-          points: '2,000-4,999 points'
+          points: '100-199 points'
         };
       case 'platinum':
         return {
@@ -91,7 +88,7 @@ const Info = () => {
           color: 'bg-blue-100 text-blue-800',
           name: 'Platinum Scholar',
           description: 'Mastering your field',
-          points: '5,000-9,999 points'
+          points: '200-349 points'
         };
       case 'diamond':
         return {
@@ -99,7 +96,7 @@ const Info = () => {
           color: 'bg-purple-100 text-purple-800',
           name: 'Diamond Scholar',
           description: 'Academic excellence achieved',
-          points: '10,000+ points'
+          points: '350+ points'
         };
       default:
         return {
@@ -107,7 +104,7 @@ const Info = () => {
           color: 'bg-gray-100 text-gray-800',
           name: 'Bronze Scholar',
           description: 'Starting your academic journey',
-          points: '0-499 points'
+          points: '0-49 points'
         };
     }
   };
@@ -151,6 +148,15 @@ const Info = () => {
     }
   ];
 
+  const pointLossActions = [
+    {
+      action: "Your content gets disliked",
+      points: -1,
+      icon: <ThumbsDown className="h-5 w-5" />,
+      description: "Each dislike on your uploads, assignments, or comments reduces your points"
+    }
+  ];
+
   const ranks = [
     { rank: 'bronze', ...getRankInfo('bronze') },
     { rank: 'silver', ...getRankInfo('silver') },
@@ -170,23 +176,11 @@ const Info = () => {
   const currentRankInfo = getRankInfo(profile?.rank || 'bronze');
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
-        <Sidebar profile={profile} />
-        <main className="flex-1 flex flex-col">
-          <DashboardHeader profile={profile} />
-          <div className="flex-1 p-6 space-y-6 overflow-auto">
-            {/* Header */}
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                onClick={() => navigate("/dashboard")}
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
-              </Button>
-              <div>
-                <h1 className="text-3xl font-bold">How to Earn Points</h1>
+    <AppLayout>
+             {/* Header */}
+             <div className="flex items-center gap-4">
+               <div>
+                 <h1 className="text-3xl font-bold">How to Earn Points</h1>
                 <p className="text-muted-foreground">
                   Learn about our gamification system and how to level up your academic journey
                 </p>
@@ -235,7 +229,35 @@ const Info = () => {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h4 className="font-medium">{action.action}</h4>
-                          <Badge variant="secondary">+{action.points} pts</Badge>
+                          <Badge variant="secondary" className="bg-green-100 text-green-800">+{action.points} pts</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{action.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* How to Lose Points */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ThumbsDown className="h-5 w-5 text-red-500" />
+                  How to Lose Points
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {pointLossActions.map((action, index) => (
+                    <div key={index} className="flex items-start gap-3 p-4 border rounded-lg border-red-200 bg-red-50/50">
+                      <div className="p-2 bg-red-100 rounded-full">
+                        {action.icon}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-medium">{action.action}</h4>
+                          <Badge variant="secondary" className="bg-red-100 text-red-800">{action.points} pts</Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">{action.description}</p>
                       </div>
@@ -288,19 +310,23 @@ const Info = () => {
                     <ul className="space-y-2 text-sm">
                       <li className="flex items-start gap-2">
                         <span className="text-primary">•</span>
-                        <span>Visit daily to earn your daily bonus points</span>
+                        <span>Visit daily to earn your daily bonus points (+5 pts)</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-primary">•</span>
-                        <span>Share high-quality notes and past papers regularly</span>
+                        <span>Share high-quality notes (+10 pts) and past papers (+15 pts)</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-primary">•</span>
-                        <span>Engage with content by liking and commenting</span>
+                        <span>Complete assignments on time (+20 pts)</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-primary">•</span>
-                        <span>Complete assignments on time</span>
+                        <span>Engage with content by liking (+2 pts) and commenting (+3 pts)</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-red-500">⚠</span>
+                        <span>Avoid posting low-quality content (-1 pt per dislike received)</span>
                       </li>
                     </ul>
                   </div>
@@ -378,10 +404,7 @@ const Info = () => {
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </main>
-      </div>
-    </SidebarProvider>
+    </AppLayout>
   );
 };
 

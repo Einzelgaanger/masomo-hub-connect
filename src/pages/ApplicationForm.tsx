@@ -135,23 +135,25 @@ const ApplicationForm = () => {
       console.log('Submitting application for authenticated user:', currentUser.email);
 
       // Check if user already has an application for this class
-      const { data: existingApplication, error: checkError } = await supabase
+      const { data: existingApplications, error: checkError } = await supabase
         .from('applications')
         .select('id, status')
         .eq('user_id', currentUser.id)
-        .eq('class_id', classDetails.id)
-        .single();
+        .eq('class_id', classDetails.id);
 
-      if (checkError && checkError.code !== 'PGRST116') {
-        throw checkError;
+      if (checkError) {
+        console.error('Error checking existing applications:', checkError);
+        // Continue anyway - don't block submission for this check
       }
 
-      if (existingApplication) {
+      if (existingApplications && existingApplications.length > 0) {
+        const existingApplication = existingApplications[0];
         toast({
           title: "Application Already Submitted",
           description: `You have already submitted an application for this class. Status: ${existingApplication.status}`,
           variant: "destructive",
         });
+        setLoading(false);
         return;
       }
 

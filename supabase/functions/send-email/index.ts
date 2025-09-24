@@ -25,6 +25,10 @@ serve(async (req) => {
     let htmlContent = ''
 
     if (type === 'email_confirmation') {
+      // Generate the confirmation URL
+      const siteUrl = Deno.env.get('SITE_URL') || 'https://bunifu.onrender.com'
+      const confirmationUrl = `${siteUrl}/class-selection`
+      
       subject = 'Welcome to Bunifu - Confirm Your Email'
       htmlContent = `
         <div style="font-family: 'Fredoka', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);">
@@ -43,20 +47,22 @@ serve(async (req) => {
               Thank you for signing up to Bunifu! We're excited to have you join our community of learners and creators.
             </p>
             <p style="color: #4b5563; line-height: 1.6; font-size: 16px; margin-bottom: 25px;">
-              To complete your registration and start your learning adventure, please confirm your email address by clicking the button below:
+              Please check your inbox for the official confirmation email from Supabase. Click the confirmation link in that email to verify your account, then return here to continue.
             </p>
 
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${email}" 
+              <a href="${siteUrl}/login" 
                  style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; display: inline-block; font-weight: 600; font-size: 18px; font-family: 'Fredoka', sans-serif; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3); transition: all 0.3s ease;">
-                ✨ Confirm My Email
+                ✨ Back to Login
               </a>
             </div>
 
             <div style="background: #eff6ff; border-left: 4px solid #2563eb; padding: 20px; margin: 25px 0; border-radius: 8px;">
               <h4 style="color: #1e40af; margin-bottom: 12px; font-size: 18px; font-weight: 600; font-family: 'Fredoka', sans-serif;">🚀 What's Next?</h4>
               <ol style="color: #1e40af; padding-left: 20px; line-height: 1.8;">
-                <li>Click the confirmation button above</li>
+                <li>Check your inbox for the Supabase confirmation email</li>
+                <li>Click the confirmation link in that email</li>
+                <li>Return here and log in with your credentials</li>
                 <li>Choose your university and class</li>
                 <li>Submit your application for approval</li>
                 <li>Start learning and earning points!</li>

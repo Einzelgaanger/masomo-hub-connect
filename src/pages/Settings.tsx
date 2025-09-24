@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,8 +10,14 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { User, Lock, Image, Shield, ArrowLeft } from "lucide-react";
+import { User, Lock, Image, Edit3, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Settings = () => {
   const { user } = useAuth();
@@ -21,14 +25,7 @@ const Settings = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [isUpdating, setIsUpdating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-
-  // Form states
-  const [profileData, setProfileData] = useState({
-    full_name: "",
-    profile_picture_url: ""
-  });
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
@@ -64,10 +61,6 @@ const Settings = () => {
 
       if (error) throw error;
       setProfile(data);
-      setProfileData({
-        full_name: data.full_name || "",
-        profile_picture_url: data.profile_picture_url || ""
-      });
     } catch (error) {
       console.error('Error fetching profile:', error);
       toast({
@@ -80,37 +73,6 @@ const Settings = () => {
     }
   };
 
-  const handleProfileUpdate = async () => {
-    try {
-      setIsUpdating(true);
-
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          full_name: profileData.full_name,
-          profile_picture_url: profileData.profile_picture_url
-        })
-        .eq('user_id', user?.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Profile updated successfully.",
-      });
-
-      fetchProfile();
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update profile.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUpdating(false);
-    }
-  };
 
   const handlePasswordChange = async () => {
     try {
@@ -131,8 +93,6 @@ const Settings = () => {
         });
         return;
       }
-
-      setIsUpdating(true);
 
       const { error } = await supabase.auth.updateUser({
         password: passwordData.newPassword
@@ -157,8 +117,6 @@ const Settings = () => {
         description: "Failed to update password.",
         variant: "destructive",
       });
-    } finally {
-      setIsUpdating(false);
     }
   };
 
@@ -206,13 +164,41 @@ const Settings = () => {
         description: "Profile picture updated successfully.",
       });
 
-      setProfileData({ ...profileData, profile_picture_url: urlData.publicUrl });
       fetchProfile();
     } catch (error) {
       console.error('Error uploading profile picture:', error);
       toast({
         title: "Error",
         description: "Failed to upload profile picture.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemoveProfilePicture = async () => {
+    try {
+      setIsUploading(true);
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ profile_picture_url: null })
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Profile picture removed successfully.",
+      });
+
+      fetchProfile();
+    } catch (error) {
+      console.error('Error removing profile picture:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove profile picture.",
         variant: "destructive",
       });
     } finally {
@@ -240,23 +226,11 @@ const Settings = () => {
   }
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
-        <Sidebar profile={profile} />
-        <main className="flex-1 flex flex-col">
-          <DashboardHeader profile={profile} />
-          <div className="flex-1 p-6 space-y-6 overflow-auto">
-            {/* Header */}
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                onClick={() => navigate("/dashboard")}
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
-              </Button>
-              <div>
-                <h1 className="text-3xl font-bold">Settings</h1>
+    <AppLayout>
+             {/* Header */}
+             <div className="flex items-center gap-4">
+               <div>
+                 <h1 className="text-3xl font-bold">Settings</h1>
                 <p className="text-muted-foreground">
                   Manage your profile and account settings
                 </p>
@@ -275,12 +249,49 @@ const Settings = () => {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex flex-col items-center text-center">
-                      <Avatar className="h-20 w-20 mb-4">
-                        <AvatarImage src={profile?.profile_picture_url} />
-                        <AvatarFallback className="text-lg">
-                          {profile?.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="relative mb-4">
+                        <Avatar className="h-20 w-20">
+                          <AvatarImage src={profile?.profile_picture_url} />
+                          <AvatarFallback className="text-lg">
+                            {profile?.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="absolute -top-1 -right-1 h-8 w-8 rounded-full p-0 bg-primary hover:bg-primary/80 text-white"
+                              disabled={isUploading}
+                            >
+                              <Edit3 className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem onClick={() => document.getElementById('profile-picture-input')?.click()}>
+                              <Image className="h-4 w-4 mr-2" />
+                              Update Photo
+                            </DropdownMenuItem>
+                            {profile?.profile_picture_url && (
+                              <DropdownMenuItem 
+                                onClick={handleRemoveProfilePicture}
+                                className="text-red-600 focus:text-red-600"
+                              >
+                                <X className="h-4 w-4 mr-2" />
+                                Remove Photo
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                        <Input
+                          id="profile-picture-input"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleProfilePictureUpload}
+                          className="hidden"
+                          disabled={isUploading}
+                        />
+                      </div>
                       <h3 className="font-semibold">{profile?.full_name}</h3>
                       <p className="text-sm text-muted-foreground">{profile?.email}</p>
                       <Badge className={getRankColor(profile?.rank)}>
@@ -302,84 +313,55 @@ const Settings = () => {
                         <span className="text-muted-foreground">Role:</span>
                         <span className="font-medium capitalize">{profile?.role}</span>
                       </div>
-                      {profile?.classes && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Class:</span>
-                          <span className="font-medium">{profile.classes.course_name}</span>
-                        </div>
-                      )}
-                      {profile?.classes?.universities && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">University:</span>
-                          <span className="font-medium">{profile.classes.universities.name}</span>
-                        </div>
-                      )}
                     </div>
+                    
+                    {/* Class Details Section */}
+                    {profile?.classes && (
+                      <>
+                        <Separator />
+                        <div className="space-y-3">
+                          <h4 className="font-semibold text-sm text-center text-primary">Class Information</h4>
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Course:</span>
+                              <span className="font-medium">{profile.classes.course_name}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Year:</span>
+                              <span className="font-medium">{profile.classes.course_year}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Semester:</span>
+                              <span className="font-medium">{profile.classes.semester}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Group:</span>
+                              <span className="font-medium">{profile.classes.course_group}</span>
+                            </div>
+                            {profile?.classes?.universities && (
+                              <>
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-muted-foreground">University:</span>
+                                  <span className="font-medium">{profile.classes.universities.name}</span>
+                                </div>
+                                {profile?.classes?.universities?.countries && (
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-muted-foreground">Country:</span>
+                                    <span className="font-medium">{profile.classes.universities.countries.name}</span>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               </div>
 
               {/* Settings Forms */}
               <div className="lg:col-span-2 space-y-6">
-                {/* Profile Settings */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <User className="h-5 w-5" />
-                      Profile Settings
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <Label htmlFor="full_name">Full Name</Label>
-                      <Input
-                        id="full_name"
-                        value={profileData.full_name}
-                        onChange={(e) => setProfileData({ ...profileData, full_name: e.target.value })}
-                        placeholder="Enter your full name"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="profile_picture">Profile Picture</Label>
-                      <div className="flex items-center gap-4">
-                        <Avatar className="h-16 w-16">
-                          <AvatarImage src={profileData.profile_picture_url} />
-                          <AvatarFallback>
-                            {profileData.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'U'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <Input
-                            id="profile_picture"
-                            type="file"
-                            accept="image/*"
-                            onChange={handleProfilePictureUpload}
-                            disabled={isUploading}
-                          />
-                          <p className="text-xs text-muted-foreground mt-1">
-                            JPG, PNG up to 5MB
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="profile_picture_url">Profile Picture URL</Label>
-                      <Input
-                        id="profile_picture_url"
-                        value={profileData.profile_picture_url}
-                        onChange={(e) => setProfileData({ ...profileData, profile_picture_url: e.target.value })}
-                        placeholder="Or enter a URL"
-                      />
-                    </div>
-                    
-                    <Button onClick={handleProfileUpdate} disabled={isUpdating}>
-                      {isUpdating ? "Updating..." : "Update Profile"}
-                    </Button>
-                  </CardContent>
-                </Card>
-
                 {/* Password Settings */}
                 <Card>
                   <CardHeader>
@@ -422,56 +404,15 @@ const Settings = () => {
                       />
                     </div>
                     
-                    <Button onClick={handlePasswordChange} disabled={isUpdating}>
-                      {isUpdating ? "Updating..." : "Update Password"}
+                    <Button onClick={handlePasswordChange}>
+                      Update Password
                     </Button>
                   </CardContent>
                 </Card>
 
-                {/* Account Information */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Shield className="h-5 w-5" />
-                      Account Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="text-sm space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Email:</span>
-                        <span className="font-medium">{profile?.email}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Account Created:</span>
-                        <span className="font-medium">
-                          {new Date(profile?.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Last Login:</span>
-                        <span className="font-medium">
-                          {profile?.last_login 
-                            ? new Date(profile.last_login).toLocaleDateString()
-                            : 'Never'
-                          }
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="pt-4 border-t">
-                      <p className="text-xs text-muted-foreground">
-                        Note: Email and admission number cannot be changed. Contact your administrator if you need to update these.
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
               </div>
             </div>
-          </div>
-        </main>
-      </div>
-    </SidebarProvider>
+    </AppLayout>
   );
 };
 
