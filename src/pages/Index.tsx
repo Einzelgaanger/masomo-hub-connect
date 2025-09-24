@@ -294,139 +294,50 @@ const Index = () => {
             </p>
           </div>
 
-          {/* Mobile: Square Cards with Infinite Loop */}
+          {/* Mobile: Simple 4 Cards */}
           <div className="block lg:hidden">
-            <div className="relative">
-              <div 
-                className="overflow-x-auto scrollbar-hide pb-4" 
-                style={{
-                  scrollbarWidth: 'none', 
-                  msOverflowStyle: 'none',
-                  scrollBehavior: 'smooth'
-                }}
-                onScroll={(e) => {
-                  const container = e.target as HTMLElement;
-                  const scrollLeft = container.scrollLeft;
-                  const scrollWidth = container.scrollWidth;
-                  const clientWidth = container.clientWidth;
-                  
-                  // If scrolled to the end (near the duplicate), smoothly scroll back to start
-                  if (scrollLeft >= scrollWidth - clientWidth - 100) {
-                    container.scrollTo({ left: 0, behavior: 'smooth' });
-                  }
-                }}
-              >
-                <div className="flex gap-6 px-8" style={{width: 'calc(300% + 8rem)'}}>
-                  {/* Step 1 */}
-                  <div className="flex-shrink-0 w-64">
-                    <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-blue-200 transform transition-all duration-500 ease-out hover:shadow-2xl">
-                      <div className="text-center">
-                        <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold">
-                          1
-                        </div>
-                        <h3 className="text-lg font-semibold mb-2 fredoka-bold">Register</h3>
-                        <p className="text-gray-600 fredoka-medium text-xs">Enter your university details and admission number to get started</p>
-                      </div>
-                    </div>
+            <div className="grid grid-cols-2 gap-4 px-4">
+              {/* Step 1 */}
+              <div className="bg-white rounded-2xl p-4 shadow-lg border-2 border-blue-200">
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3 text-white text-lg font-bold fredoka-bold">
+                    1
                   </div>
-                  
-                  <div className="flex-shrink-0 w-64">
-                    <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-orange-200 transform transition-all duration-500 ease-out hover:shadow-2xl">
-                      <div className="text-center">
-                        <div className="w-14 h-14 bg-orange-500 rounded-xl flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold">
-                          2
-                        </div>
-                        <h3 className="text-lg font-semibold mb-2 fredoka-bold">Share</h3>
-                        <p className="text-gray-600 fredoka-medium text-xs">Upload notes, past papers, and help your classmates learn</p>
-                      </div>
-                    </div>
+                  <h3 className="text-base font-semibold mb-2 fredoka-bold">Register</h3>
+                  <p className="text-gray-600 fredoka-medium text-xs">Enter your university details and admission number to get started</p>
+                </div>
+              </div>
+              
+              {/* Step 2 */}
+              <div className="bg-white rounded-2xl p-4 shadow-lg border-2 border-orange-200">
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center mx-auto mb-3 text-white text-lg font-bold fredoka-bold">
+                    2
                   </div>
-                  
-                  <div className="flex-shrink-0 w-64">
-                    <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-green-200 transform transition-all duration-500 ease-out hover:shadow-2xl">
-                      <div className="text-center">
-                        <div className="w-14 h-14 bg-green-500 rounded-xl flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold">
-                          3
-                        </div>
-                        <h3 className="text-lg font-semibold mb-2 fredoka-bold">Earn Points</h3>
-                        <p className="text-gray-600 fredoka-medium text-xs">Get points for sharing content, helping others, and staying active</p>
-                      </div>
-                    </div>
+                  <h3 className="text-base font-semibold mb-2 fredoka-bold">Share</h3>
+                  <p className="text-gray-600 fredoka-medium text-xs">Upload notes, past papers, and help your classmates learn</p>
+                </div>
+              </div>
+              
+              {/* Step 3 */}
+              <div className="bg-white rounded-2xl p-4 shadow-lg border-2 border-green-200">
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center mx-auto mb-3 text-white text-lg font-bold fredoka-bold">
+                    3
                   </div>
-                  
-                  <div className="flex-shrink-0 w-64">
-                    <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-purple-200 transform transition-all duration-500 ease-out hover:shadow-2xl">
-                      <div className="text-center">
-                        <div className="w-14 h-14 bg-purple-500 rounded-xl flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold">
-                          4
-                        </div>
-                        <h3 className="text-lg font-semibold mb-2 fredoka-bold">Level Up</h3>
-                        <p className="text-gray-600 fredoka-medium text-xs">Unlock new characters and climb the leaderboards</p>
-                      </div>
-                    </div>
+                  <h3 className="text-base font-semibold mb-2 fredoka-bold">Earn Points</h3>
+                  <p className="text-gray-600 fredoka-medium text-xs">Get points for sharing content, helping others, and staying active</p>
+                </div>
+              </div>
+              
+              {/* Step 4 */}
+              <div className="bg-white rounded-2xl p-4 shadow-lg border-2 border-purple-200">
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center mx-auto mb-3 text-white text-lg font-bold fredoka-bold">
+                    4
                   </div>
-                  
-                  {/* Duplicate set for infinite loop */}
-                  <div className="flex-shrink-0 w-64">
-                    <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-blue-200 transform transition-all duration-500 ease-out hover:shadow-2xl">
-                      <div className="text-center">
-                        <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold">
-                          1
-                        </div>
-                        <h3 className="text-lg font-semibold mb-2 fredoka-bold">Register</h3>
-                        <p className="text-gray-600 fredoka-medium text-xs">Enter your university details and admission number to get started</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex-shrink-0 w-64">
-                    <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-orange-200 transform transition-all duration-500 ease-out hover:shadow-2xl">
-                      <div className="text-center">
-                        <div className="w-14 h-14 bg-orange-500 rounded-xl flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold">
-                          2
-                        </div>
-                        <h3 className="text-lg font-semibold mb-2 fredoka-bold">Share</h3>
-                        <p className="text-gray-600 fredoka-medium text-xs">Upload notes, past papers, and help your classmates learn</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex-shrink-0 w-64">
-                    <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-green-200 transform transition-all duration-500 ease-out hover:shadow-2xl">
-                      <div className="text-center">
-                        <div className="w-14 h-14 bg-green-500 rounded-xl flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold">
-                          3
-                        </div>
-                        <h3 className="text-lg font-semibold mb-2 fredoka-bold">Earn Points</h3>
-                        <p className="text-gray-600 fredoka-medium text-xs">Get points for sharing content, helping others, and staying active</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex-shrink-0 w-64">
-                    <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-purple-200 transform transition-all duration-500 ease-out hover:shadow-2xl">
-                      <div className="text-center">
-                        <div className="w-14 h-14 bg-purple-500 rounded-xl flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold">
-                          4
-                        </div>
-                        <h3 className="text-lg font-semibold mb-2 fredoka-bold">Level Up</h3>
-                        <p className="text-gray-600 fredoka-medium text-xs">Unlock new characters and climb the leaderboards</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Another duplicate for smoother loop */}
-                  <div className="flex-shrink-0 w-64">
-                    <div className="bg-white rounded-2xl p-6 shadow-xl border-2 border-blue-200 transform transition-all duration-500 ease-out hover:shadow-2xl">
-                      <div className="text-center">
-                        <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 text-white text-xl font-bold fredoka-bold">
-                          1
-                        </div>
-                        <h3 className="text-lg font-semibold mb-2 fredoka-bold">Register</h3>
-                        <p className="text-gray-600 fredoka-medium text-xs">Enter your university details and admission number to get started</p>
-                      </div>
-                    </div>
-                  </div>
+                  <h3 className="text-base font-semibold mb-2 fredoka-bold">Level Up</h3>
+                  <p className="text-gray-600 fredoka-medium text-xs">Unlock new characters and climb the leaderboards</p>
                 </div>
               </div>
             </div>
