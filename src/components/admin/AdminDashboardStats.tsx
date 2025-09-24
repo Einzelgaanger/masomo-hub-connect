@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, BookOpen, GraduationCap, FileText, TrendingUp, Award } from "lucide-react";
+import { Users, BookOpen, GraduationCap, FileText, TrendingUp, Award, RefreshCw } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface DashboardStats {
   totalStudents: number;
@@ -14,6 +16,7 @@ interface DashboardStats {
 }
 
 const AdminDashboardStats = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats>({
     totalStudents: 0,
     totalClasses: 0,
@@ -136,11 +139,23 @@ const AdminDashboardStats = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold mb-2">System Overview</h2>
-        <p className="text-muted-foreground">
-          Key metrics and statistics for your Bunifu platform
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold mb-2">System Overview</h2>
+          <p className="text-muted-foreground">
+            Key metrics and statistics for your Bunifu platform
+          </p>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={fetchDashboardStats}
+          disabled={loading}
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -174,7 +189,10 @@ const AdminDashboardStats = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+            <div 
+              className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+              onClick={() => navigate('/admin/classes')}
+            >
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-50 rounded-lg">
                   <BookOpen className="h-5 w-5 text-blue-600" />
@@ -186,7 +204,10 @@ const AdminDashboardStats = () => {
               </div>
             </div>
             
-            <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+            <div 
+              className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+              onClick={() => navigate('/admin/classes')}
+            >
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-green-50 rounded-lg">
                   <Users className="h-5 w-5 text-green-600" />
@@ -198,7 +219,10 @@ const AdminDashboardStats = () => {
               </div>
             </div>
             
-            <div className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+            <div 
+              className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+              onClick={() => navigate('/admin/content')}
+            >
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-purple-50 rounded-lg">
                   <FileText className="h-5 w-5 text-purple-600" />

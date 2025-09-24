@@ -45,7 +45,7 @@ const Index = () => {
           <div className="text-center mb-8 sm:mb-16">
             {/* Mobile: Custom Layout, Desktop: Logo Component */}
         <div className="block sm:hidden mb-6 animate-fade-in">
-          <div className="flex items-start gap-3 mb-4">
+          <div className="flex items-start gap-2 mb-4">
             {/* Large Owl Icon filling top-left */}
             <div className="flex-shrink-0 -mt-4">
               <img src="/logo.svg" alt="Bunifu Logo" className="h-40 w-40" />
@@ -53,8 +53,8 @@ const Index = () => {
             
             {/* Name and Tagline to the right */}
             <div className="flex-1 min-w-0 text-left">
-              <h1 className="text-4xl font-bold fredoka-bold text-gray-900 leading-tight mb-1 text-left">Bunifu</h1>
-              <p className="text-lg fredoka-medium text-gray-600 leading-tight text-left">Where learning meets creativity</p>
+              <h1 className="text-5xl font-bold fredoka-bold text-gray-900 leading-tight mb-1 text-left">Bunifu</h1>
+              <p className="text-xl fredoka-medium text-gray-600 leading-tight text-left">Where learning meets creativity</p>
             </div>
           </div>
         </div>
