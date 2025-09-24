@@ -33,7 +33,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ profile }) => {
     <SidebarComponent className={collapsed ? "w-16" : "w-64"}>
       <SidebarHeader className="p-4">
         <div className="flex items-center justify-center">
-          <Logo size={collapsed ? "sm" : "md"} showText={!collapsed} />
+          <Logo size={collapsed ? "md" : "lg"} showText={!collapsed} />
         </div>
       </SidebarHeader>
 
