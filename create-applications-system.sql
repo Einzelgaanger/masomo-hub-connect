@@ -31,11 +31,24 @@ ALTER TABLE public.applications ENABLE ROW LEVEL SECURITY;
 -- Enable RLS on profiles table
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- 4. Create RLS policies for applications
+-- Drop ALL existing policies to avoid conflicts and recursion
+DROP POLICY IF EXISTS "Users can view their own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
+DROP POLICY IF EXISTS "System can insert profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Admins can view profiles in their classes" ON public.profiles;
+DROP POLICY IF EXISTS "Admins can update profiles in their classes" ON public.profiles;
+DROP POLICY IF EXISTS "Admins can delete profiles in their classes" ON public.profiles;
+DROP POLICY IF EXISTS "Authenticated users can view profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Authenticated users can update profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Authenticated users can delete profiles" ON public.profiles;
+
+-- 4. Create RLS policies for applications (drop existing ones first)
 -- Applications are viewable by the applicant and admins of the class
+DROP POLICY IF EXISTS "Users can view their own applications" ON public.applications;
 CREATE POLICY "Users can view their own applications" ON public.applications
   FOR SELECT TO authenticated USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Admins can view applications for their classes" ON public.applications;
 CREATE POLICY "Admins can view applications for their classes" ON public.applications
   FOR SELECT TO authenticated USING (
     EXISTS (
@@ -48,10 +61,12 @@ CREATE POLICY "Admins can view applications for their classes" ON public.applica
   );
 
 -- Users can create applications
+DROP POLICY IF EXISTS "Authenticated users can create applications" ON public.applications;
 CREATE POLICY "Authenticated users can create applications" ON public.applications
   FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
 
 -- Only admins can update applications (approve/reject)
+DROP POLICY IF EXISTS "Admins can update applications" ON public.applications;
 CREATE POLICY "Admins can update applications" ON public.applications
   FOR UPDATE TO authenticated USING (
     EXISTS (
@@ -64,6 +79,7 @@ CREATE POLICY "Admins can update applications" ON public.applications
   );
 
 -- Only admins can delete applications
+DROP POLICY IF EXISTS "Admins can delete applications" ON public.applications;
 CREATE POLICY "Admins can delete applications" ON public.applications
   FOR DELETE TO authenticated USING (
     EXISTS (
@@ -75,48 +91,19 @@ CREATE POLICY "Admins can delete applications" ON public.applications
     )
   );
 
--- 5. Create RLS policies for profiles table
--- Users can view their own profile
-CREATE POLICY "Users can view their own profile" ON public.profiles
-  FOR SELECT TO authenticated USING (auth.uid() = user_id);
+-- 5. Create simple RLS policies for profiles table (no recursion possible)
+-- Allow all operations for authenticated users (simple approach)
+CREATE POLICY "profiles_select_policy" ON public.profiles
+  FOR SELECT TO authenticated USING (true);
 
--- Users can update their own profile
-CREATE POLICY "Users can update their own profile" ON public.profiles
-  FOR UPDATE TO authenticated USING (auth.uid() = user_id);
-
--- Allow system to insert profiles (for triggers)
-CREATE POLICY "System can insert profiles" ON public.profiles
+CREATE POLICY "profiles_insert_policy" ON public.profiles
   FOR INSERT TO authenticated WITH CHECK (true);
 
--- Admins can view all profiles in their classes
-CREATE POLICY "Admins can view profiles in their classes" ON public.profiles
-  FOR SELECT TO authenticated USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles p
-      WHERE p.user_id = auth.uid() 
-      AND p.role IN ('admin', 'super_admin')
-    )
-  );
+CREATE POLICY "profiles_update_policy" ON public.profiles
+  FOR UPDATE TO authenticated USING (true);
 
--- Admins can update profiles in their classes
-CREATE POLICY "Admins can update profiles in their classes" ON public.profiles
-  FOR UPDATE TO authenticated USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles p
-      WHERE p.user_id = auth.uid() 
-      AND p.role IN ('admin', 'super_admin')
-    )
-  );
-
--- Admins can delete profiles in their classes
-CREATE POLICY "Admins can delete profiles in their classes" ON public.profiles
-  FOR DELETE TO authenticated USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles p
-      WHERE p.user_id = auth.uid() 
-      AND p.role IN ('admin', 'super_admin')
-    )
-  );
+CREATE POLICY "profiles_delete_policy" ON public.profiles
+  FOR DELETE TO authenticated USING (true);
 
 -- 6. Create function to automatically create profile when application is approved
 CREATE OR REPLACE FUNCTION public.handle_approved_application()

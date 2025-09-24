@@ -135,6 +135,9 @@ const Login = () => {
       const { data, error } = await supabase.auth.signUp({
         email: signupEmail,
         password: signupPassword,
+        options: {
+          emailRedirectTo: `${window.location.origin}/class-selection`
+        }
       });
 
       if (error) throw error;
@@ -142,10 +145,10 @@ const Login = () => {
       if (data.user && !data.user.email_confirmed_at) {
         toast({
           title: "Check Your Email!",
-          description: "Please check your email and click the confirmation link to continue.",
+          description: "Please check your email and click the confirmation link to continue. Make sure to use your school email address.",
         });
-        // The email confirmation will redirect to class selection
-      } else {
+        // Don't navigate immediately - wait for email confirmation
+      } else if (data.user && data.user.email_confirmed_at) {
         toast({
           title: "Account Created!",
           description: "Your account has been created successfully.",
