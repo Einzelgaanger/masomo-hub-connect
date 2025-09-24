@@ -154,8 +154,8 @@ export function Sidebar({ profile }: SidebarProps) {
         </div>
       </SidebarContent>
 
-      {profile && (
-        <SidebarFooter className="p-4">
+      <SidebarFooter className="p-4">
+        {profile ? (
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10">
               <AvatarImage src={profile.profile_picture_url} />
@@ -168,8 +168,16 @@ export function Sidebar({ profile }: SidebarProps) {
               <p className="text-xs text-muted-foreground truncate">{profile.email}</p>
             </div>
           </div>
-        </SidebarFooter>
-      )}
+        ) : (
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 bg-muted rounded-full animate-pulse"></div>
+            <div className="flex-1 min-w-0">
+              <div className="h-4 bg-muted rounded animate-pulse mb-1"></div>
+              <div className="h-3 bg-muted rounded animate-pulse w-3/4"></div>
+            </div>
+          </div>
+        )}
+      </SidebarFooter>
       </SidebarComponent>
   );
 }
