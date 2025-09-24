@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -9,9 +9,20 @@ import { ArrowLeft, Mail, Eye, EyeOff } from "lucide-react";
 import Logo from "@/components/ui/Logo";
 
 const Login = () => {
+  const [searchParams] = useSearchParams();
   const [mode, setMode] = useState<'lookup' | 'confirm' | 'signin'>('lookup');
   const [loading, setLoading] = useState(false);
   const [studentData, setStudentData] = useState<any>(null);
+
+  // Set initial mode based on URL parameter
+  useEffect(() => {
+    const urlMode = searchParams.get('mode');
+    if (urlMode === 'signin') {
+      setMode('signin');
+    } else if (urlMode === 'lookup') {
+      setMode('lookup');
+    }
+  }, [searchParams]);
   
   // Lookup form
   const [country, setCountry] = useState('');
@@ -109,17 +120,47 @@ const Login = () => {
         return;
       }
 
-      // For now, just show a message that the user needs to contact admin
+      // Call the register-student Edge Function to create auth user and send email
+      const { data, error } = await supabase.functions.invoke('register-student', {
+        body: {
+          email: studentData.email,
+          fullName: studentData.full_name,
+          admissionNumber: studentData.admission_number,
+          profileId: studentData.id
+        }
+      });
+
+      if (error) {
+        console.error('Registration error:', error);
+        toast({
+          title: "Error",
+          description: "Failed to create account. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data.error) {
+        console.error('Registration error:', data.error);
+        toast({
+          title: "Error",
+          description: data.error || "Failed to create account. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Success - show message about email
       toast({
-        title: "Account Confirmation Required",
-        description: "Please contact your administrator to confirm your account. Your account is ready but needs manual activation.",
-        variant: "destructive",
+        title: "Account Created Successfully!",
+        description: data.emailSent 
+          ? "Your account has been created and login credentials have been sent to your email."
+          : `Your account has been created! Your password is: ${data.password}. Please save this password.`,
       });
       
       // Move to sign-in mode
       setMode('signin');
       setEmail(studentData.email);
-      return;
 
     } catch (error) {
       console.error('Confirmation error:', error);

@@ -77,42 +77,36 @@ const ForgotPassword = () => {
 
       if (updateError) throw updateError;
 
-      // Send password reset email
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        },
-        body: JSON.stringify({
-          to: email,
-          subject: 'Bunifu - Password Reset',
-          template: 'password_reset',
-          context: {
-            fullName: profileData.full_name,
-            password: newPassword,
-            loginUrl: window.location.origin + '/login',
-            admissionNumber: profileData.admission_number
-          }
-        })
+      // Send password reset email via Edge Function
+      const { data: emailData, error: emailError } = await supabase.functions.invoke('send-email', {
+        body: {
+          email: email,
+          type: 'password_reset',
+          name: profileData.full_name,
+          password: newPassword,
+          admissionNumber: profileData.admission_number
+        }
       });
 
-      const result = await response.json();
-      
-      if (result.success) {
-        setEmailSent(true);
+      if (emailError) {
+        console.error('Email sending error:', emailError);
+        toast({
+          title: "Password Reset!",
+          description: `Your new password is: ${newPassword}. Please save this and login. (Email service error)`,
+        });
+      } else if (emailData && emailData.error) {
+        console.error('Email service error:', emailData.error);
+        toast({
+          title: "Password Reset!",
+          description: `Your new password is: ${newPassword}. Please save this and login. (Email service error)`,
+        });
+      } else {
         toast({
           title: "Password Reset Sent!",
           description: `A new password has been sent to ${email}. Please check your email and login with the new password.`,
         });
-      } else {
-        // Fallback: show password directly if email service fails
-        setEmailSent(true);
-        toast({
-          title: "Password Reset Complete!",
-          description: `Your new password is: ${newPassword}. Please save this and login.`,
-        });
       }
+      setEmailSent(true);
     } catch (error) {
       console.error('Forgot password error:', error);
       toast({

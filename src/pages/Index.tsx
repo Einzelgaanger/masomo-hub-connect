@@ -69,18 +69,18 @@ const Index = () => {
               Share, learn, and grow together with your classmates.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-8 sm:mb-12 animate-slide-up animation-delay-400 px-4">
-              <Link to="/login">
+              <Link to="/login?mode=lookup">
                 <Button size="lg" className="w-full sm:w-auto gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg fredoka-semibold">
                   Start Learning <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </Link>
-          <Link to="/login">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto gap-2 border-2 border-gray-300 hover:border-blue-500 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg fredoka-medium">
+          <Link to="/login?mode=signin">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto gap-2 border-2 border-gray-300 hover:border-gray-400 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg fredoka-medium">
                   <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
                   Sign In
-            </Button>
-          </Link>
-        </div>
+                </Button>
+              </Link>
+            </div>
 
             {/* Stats - Mobile Optimized */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-xs sm:max-w-2xl md:max-w-4xl mx-auto animate-slide-up animation-delay-600 px-4">

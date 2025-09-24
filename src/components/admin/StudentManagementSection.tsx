@@ -155,34 +155,53 @@ export function StudentManagementSection() {
         return;
       }
 
-      // Create user account
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: formData.email,
-        password: generatePassword(),
-        email_confirm: true,
-        user_metadata: {
-          full_name: formData.full_name
-        }
-      });
-
-      if (authError) throw authError;
-
-      // Create profile
-      const { error: profileError } = await supabase
+      // First create a profile without user_id
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .update({
+        .insert({
           full_name: formData.full_name,
+          email: formData.email,
           admission_number: formData.admission_number,
           role: formData.role as any,
-          class_id: formData.class_id
+          class_id: formData.class_id,
+          points: 0,
+          rank: 'bronze',
+          character_id: 1 // Default character
         })
-        .eq('user_id', authData.user.id);
+        .select()
+        .single();
 
       if (profileError) throw profileError;
 
+      // Call the register-student Edge Function to create auth user and send email
+      const { data, error } = await supabase.functions.invoke('register-student', {
+        body: {
+          email: formData.email,
+          fullName: formData.full_name,
+          admissionNumber: formData.admission_number,
+          profileId: profileData.id
+        }
+      });
+
+      if (error) {
+        console.error('Registration error:', error);
+        // Clean up the profile if auth creation failed
+        await supabase.from('profiles').delete().eq('id', profileData.id);
+        throw error;
+      }
+
+      if (data.error) {
+        console.error('Registration error:', data.error);
+        // Clean up the profile if auth creation failed
+        await supabase.from('profiles').delete().eq('id', profileData.id);
+        throw new Error(data.error);
+      }
+
       toast({
         title: "Success",
-        description: "Student created successfully. Password has been sent to their email.",
+        description: data.emailSent 
+          ? "Student created successfully. Login credentials have been sent to their email."
+          : `Student created successfully! Password: ${data.password}`,
       });
 
       setIsCreateDialogOpen(false);
