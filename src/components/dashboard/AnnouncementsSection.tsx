@@ -21,10 +21,7 @@ export function AnnouncementsSection() {
     try {
       const { data, error } = await supabase
         .from('announcements')
-        .select(`
-          *,
-          profiles!created_by(full_name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(5);
 
@@ -32,6 +29,8 @@ export function AnnouncementsSection() {
       setAnnouncements(data || []);
     } catch (error) {
       console.error('Error fetching announcements:', error);
+      // Set empty array on error to prevent UI issues
+      setAnnouncements([]);
     } finally {
       setLoading(false);
     }
@@ -106,7 +105,7 @@ export function AnnouncementsSection() {
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <User className="h-3 w-3" />
-                        {announcement.profiles?.full_name || 'Anonymous'}
+                        Admin
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />

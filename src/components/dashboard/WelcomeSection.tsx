@@ -26,12 +26,12 @@ export function WelcomeSection() {
       const today = new Date().toISOString().split('T')[0];
       
       // Check if user visited today
-      const { data: todayVisit } = await supabase
+      const { data: todayVisit, error: todayError } = await supabase
         .from('daily_visits')
         .select('id')
         .eq('user_id', profile.user_id)
         .eq('visit_date', today)
-        .single();
+        .maybeSingle();
 
       // If no visit today, streak is 0
       if (!todayVisit) {
@@ -52,7 +52,7 @@ export function WelcomeSection() {
           .select('id')
           .eq('user_id', profile.user_id)
           .eq('visit_date', checkDate)
-          .single();
+          .maybeSingle();
 
         if (!visit) {
           break; // No visit on this date, streak ends

@@ -13,8 +13,12 @@ interface AppLayoutProps {
   HeaderComponent?: React.ComponentType<{ profile: any }>;
 }
 
-// Create a context for profile data
+// Create contexts for profile data and mobile sidebar state
 const ProfileContext = createContext<any>(null);
+const MobileSidebarContext = createContext<{
+  sidebarOpen: boolean;
+  setSidebarOpen: (open: boolean) => void;
+} | null>(null);
 
 export const useProfile = () => {
   const context = useContext(ProfileContext);
@@ -24,14 +28,22 @@ export const useProfile = () => {
   return context;
 };
 
-// Mobile Header Component
+export const useMobileSidebar = () => {
+  const context = useContext(MobileSidebarContext);
+  if (!context) {
+    throw new Error('useMobileSidebar must be used within AppLayout');
+  }
+  return context;
+};
+
+// Mobile Header Component - Simple hamburger menu
 function MobileHeader({ profile }: { profile: any }) {
-  const { state, setState } = useSidebar();
   const [isMobile, setIsMobile] = useState(false);
+  const { sidebarOpen, setSidebarOpen } = useMobileSidebar();
 
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+      setIsMobile(window.innerWidth < 1024); // Use same breakpoint as Tailwind lg:
     };
     
     checkMobile();
@@ -39,37 +51,34 @@ function MobileHeader({ profile }: { profile: any }) {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
   if (!isMobile) return null;
 
   return (
-    <div className="lg:hidden flex items-center justify-between p-4 border-b bg-background sticky top-0 z-30">
-      <div className="flex items-center gap-3">
+    <>
+      {/* Mobile Header - Just hamburger menu */}
+      <div className="lg:hidden flex items-center p-4 border-b bg-background sticky top-0 z-40">
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setState(state === "collapsed" ? "expanded" : "collapsed")}
+          onClick={toggleSidebar}
           className="p-2"
         >
-          {state === "collapsed" ? <Menu className="h-5 w-5" /> : <X className="h-5 w-5" />}
+          {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </Button>
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-            <span className="text-white font-bold text-sm">B</span>
-          </div>
-          <span className="font-semibold text-lg">Bunifu</span>
-        </div>
       </div>
-      {profile && (
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium hidden sm:block">{profile.full_name?.split(' ')[0]}</span>
-          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-            <span className="text-primary font-bold text-sm">
-              {profile.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'U'}
-            </span>
-          </div>
-        </div>
+
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          onClick={toggleSidebar}
+        />
       )}
-    </div>
+    </>
   );
 }
 
@@ -78,6 +87,7 @@ export function AppLayout({ children, showHeader = false, HeaderComponent }: App
   const { toast } = useToast();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -129,37 +139,39 @@ export function AppLayout({ children, showHeader = false, HeaderComponent }: App
 
   return (
     <ProfileContext.Provider value={profile}>
-      <SidebarProvider>
-        <div className="min-h-screen flex w-full bg-background">
-          {/* Sidebar - Hidden on mobile by default */}
-          <div className="hidden lg:block">
-            <Sidebar profile={profile} />
-          </div>
-          
-          {/* Mobile Sidebar - Shows when expanded on mobile */}
-          <div className="lg:hidden">
-            <Sidebar profile={profile} />
-          </div>
-          
-          {/* Main Content */}
-          <main className="flex-1 flex flex-col min-w-0">
-            {/* Mobile Header - Always visible on mobile */}
-            <MobileHeader profile={profile} />
-            
-            {/* Desktop Header - Only when showHeader is true */}
-            {showHeader && HeaderComponent && (
-              <div className="hidden lg:block">
-                <HeaderComponent profile={profile} />
-              </div>
-            )}
-            
-            {/* Content Area */}
-            <div className="flex-1 p-4 lg:p-6 space-y-4 lg:space-y-6 overflow-auto">
-              {children}
+      <MobileSidebarContext.Provider value={{ sidebarOpen, setSidebarOpen }}>
+        <SidebarProvider>
+          <div className="min-h-screen flex w-full bg-background">
+            {/* Desktop Sidebar - Always visible on desktop */}
+            <div className="hidden lg:block">
+              <Sidebar profile={profile} />
             </div>
-          </main>
-        </div>
-      </SidebarProvider>
+            
+            {/* Mobile Sidebar - Shows when expanded on mobile */}
+            <div className="lg:hidden">
+              <Sidebar profile={profile} />
+            </div>
+            
+            {/* Main Content */}
+            <main className="flex-1 flex flex-col min-w-0">
+              {/* Mobile Header - Always visible on mobile */}
+              <MobileHeader profile={profile} />
+              
+              {/* Desktop Header - Only when showHeader is true */}
+              {showHeader && HeaderComponent && (
+                <div className="hidden lg:block">
+                  <HeaderComponent profile={profile} />
+                </div>
+              )}
+              
+              {/* Content Area */}
+              <div className="flex-1 p-4 lg:p-6 space-y-4 lg:space-y-6 overflow-auto">
+                {children}
+              </div>
+            </main>
+          </div>
+        </SidebarProvider>
+      </MobileSidebarContext.Provider>
     </ProfileContext.Provider>
   );
 }
