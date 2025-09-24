@@ -13,9 +13,8 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminClasses from "./pages/admin/AdminClasses";
 import AdminContent from "./pages/admin/AdminContent";
-// Temporarily disabled until types are updated
-// import ClassSelection from "./pages/ClassSelection";
-// import ApplicationForm from "./pages/ApplicationForm";
+import ClassSelection from "./pages/ClassSelection";
+import ApplicationForm from "./pages/ApplicationForm";
 import UnitPage from "./pages/UnitPage";
 import Settings from "./pages/Settings";
 import Info from "./pages/Info";
@@ -58,9 +57,8 @@ const App = () => (
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/classes" element={<AdminClasses />} />
             <Route path="/admin/content" element={<AdminContent />} />
-          <Route path="/class-selection" element={<div className="p-6 text-center"><h2 className="text-xl font-bold text-gray-900 mb-2">Class Selection Coming Soon</h2><p className="text-gray-600">The class selection feature will be available once the database is fully synchronized.</p></div>} />
-          <Route path="/application" element={<div className="p-6 text-center"><h2 className="text-xl font-bold text-gray-900 mb-2">Application Form Coming Soon</h2><p className="text-gray-600">The application form will be available once the database is fully synchronized.</p></div>} />
-          <Route path="/application-status" element={<div className="p-6 text-center"><h2 className="text-xl font-bold text-gray-900 mb-2">Application Status Coming Soon</h2><p className="text-gray-600">The application status page will be available once the database is fully synchronized.</p></div>} />
+            <Route path="/class-selection" element={<ClassSelection />} />
+            <Route path="/application" element={<ApplicationForm />} />
             <Route path="/unit/:unitId" element={
               <ProtectedRoute>
                 <UnitPage />
