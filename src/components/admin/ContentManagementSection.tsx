@@ -52,15 +52,15 @@ export function ContentManagementSection() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [deleteAnnouncementId, setDeleteAnnouncementId] = useState<string | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
     title: "",
     content: "",
-    media_url: "",
-    media_type: "",
-    university_id: ""
+    university_id: "",
+    file: null as File | null
   });
 
   useEffect(() => {
@@ -269,30 +269,35 @@ export function ContentManagementSection() {
                   </Select>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="media_url">Media URL</Label>
-                    <Input
-                      id="media_url"
-                      value={formData.media_url}
-                      onChange={(e) => setFormData({ ...formData, media_url: e.target.value })}
-                      placeholder="https://example.com/image.jpg"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="media_type">Media Type</Label>
-                    <Select value={formData.media_type} onValueChange={(value) => setFormData({ ...formData, media_type: value })}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="image">Image</SelectItem>
-                        <SelectItem value="video">Video</SelectItem>
-                        <SelectItem value="document">Document</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div>
+                  <Label htmlFor="media_url">Media URL (Optional)</Label>
+                  <Input
+                    id="media_url"
+                    value={formData.media_url}
+                    onChange={(e) => setFormData({ ...formData, media_url: e.target.value })}
+                    placeholder="https://example.com/image.jpg or https://example.com/video.mp4"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Add an image, video, or document URL to make your announcement more engaging
+                  </p>
+                </div>
+                
+                <div>
+                  <Label htmlFor="media_type">Media Type (Auto-detected if URL provided)</Label>
+                  <Select value={formData.media_type} onValueChange={(value) => setFormData({ ...formData, media_type: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select media type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="image/jpeg">📸 Image (JPEG)</SelectItem>
+                      <SelectItem value="image/png">🖼️ Image (PNG)</SelectItem>
+                      <SelectItem value="image/gif">🎞️ Image (GIF)</SelectItem>
+                      <SelectItem value="video/mp4">🎥 Video (MP4)</SelectItem>
+                      <SelectItem value="video/webm">🎬 Video (WebM)</SelectItem>
+                      <SelectItem value="application/pdf">📄 Document (PDF)</SelectItem>
+                      <SelectItem value="text/plain">📝 Text Document</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -308,67 +313,111 @@ export function ContentManagementSection() {
           </Dialog>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>University</TableHead>
-                <TableHead>Content</TableHead>
-                <TableHead>Media</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {announcements.map((announcement) => (
-                <TableRow key={announcement.id}>
-                  <TableCell className="font-medium">{announcement.title}</TableCell>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{announcement.universities.name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {announcement.universities.countries.name}
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {announcements.map((announcement) => (
+              <Card key={announcement.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                {/* Media Preview Section */}
+                {announcement.media_url && (
+                  <div className="relative aspect-video bg-gray-100">
+                    {announcement.media_type?.startsWith('image/') ? (
+                      <img
+                        src={announcement.media_url}
+                        alt={announcement.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : announcement.media_type?.startsWith('video/') ? (
+                      <video
+                        src={announcement.media_url}
+                        className="w-full h-full object-cover"
+                        controls
+                        preload="metadata"
+                        poster=""
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                        <FileText className="h-12 w-12 text-gray-400" />
+                        <div className="ml-3">
+                          <div className="font-medium text-gray-900">{announcement.title}</div>
+                          <div className="text-sm text-gray-500">Document File</div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Overlay with University Info */}
+                    <div className="absolute top-3 left-3">
+                      <Badge className="bg-black/70 text-white hover:bg-black/80">
+                        {announcement.universities.name}
+                      </Badge>
+                    </div>
+                    
+                    {/* Media Type Badge */}
+                    <div className="absolute top-3 right-3">
+                      <Badge variant="secondary" className="bg-white/90 text-black">
+                        {announcement.media_type?.split('/')[0] || 'Media'}
+                      </Badge>
+                    </div>
+                  </div>
+                )}
+
+                {/* Content Section */}
+                <CardContent className="p-4">
+                  <div className="space-y-3">
+                    {/* Title */}
+                    <h3 className="font-semibold text-lg leading-tight line-clamp-2">
+                      {announcement.title}
+                    </h3>
+                    
+                    {/* Content */}
+                    <p className="text-gray-600 text-sm line-clamp-3">
+                      {announcement.content}
+                    </p>
+                    
+                    {/* University & Date */}
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <div>
+                        <div className="font-medium">{announcement.universities.name}</div>
+                        <div>{announcement.universities.countries.name}</div>
+                      </div>
+                      <div className="text-right">
+                        {format(new Date(announcement.created_at), 'MMM dd')}
                       </div>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="max-w-xs truncate">
-                      {announcement.content}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {announcement.media_url ? (
-                      <Badge variant="secondary">
-                        {announcement.media_type || 'Media'}
-                      </Badge>
-                    ) : (
-                      <span className="text-muted-foreground">None</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {format(new Date(announcement.created_at), 'MMM dd, yyyy')}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm">
-                        <Eye className="h-4 w-4" />
+                    
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 pt-2 border-t">
+                      <Button variant="outline" size="sm" className="flex-1">
+                        <Eye className="h-4 w-4 mr-2" />
+                        View
                       </Button>
-                      <Button variant="outline" size="sm">
-                        <Edit className="h-4 w-4" />
+                      <Button variant="outline" size="sm" className="flex-1">
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setDeleteAnnouncementId(announcement.id)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            
+            {/* Empty State */}
+            {announcements.length === 0 && (
+              <div className="col-span-full flex flex-col items-center justify-center py-12">
+                <FileText className="h-12 w-12 text-gray-400 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No announcements yet</h3>
+                <p className="text-gray-500 text-center max-w-sm">
+                  Create your first announcement to start engaging with students across universities.
+                </p>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 

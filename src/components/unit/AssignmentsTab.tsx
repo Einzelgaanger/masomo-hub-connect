@@ -160,7 +160,7 @@ export function AssignmentsTab({ unitId, profile }: AssignmentsTabProps) {
 
       toast({
         title: "Success",
-        description: "Assignment created successfully.",
+        description: "Assignment shared successfully! You earned 10 points.",
       });
 
       setIsCreateDialogOpen(false);
@@ -170,7 +170,7 @@ export function AssignmentsTab({ unitId, profile }: AssignmentsTabProps) {
       console.error('Error creating assignment:', error);
       toast({
         title: "Error",
-        description: "Failed to create assignment.",
+        description: "Failed to share assignment.",
         variant: "destructive",
       });
     } finally {
@@ -248,8 +248,18 @@ export function AssignmentsTab({ unitId, profile }: AssignmentsTabProps) {
            ['lecturer', 'admin', 'super_admin'].includes(profile?.role);
   };
 
+  const canCreate = () => {
+    // Allow all authenticated users to create assignments
+    return user !== null;
+  };
+
   const isCompleted = (assignment: Assignment) => {
     return assignment.assignment_completions.some(c => c.user_id === user?.id);
+  };
+
+  const canDelete = (assignment: Assignment) => {
+    return assignment.created_by === user?.id || 
+           ['lecturer', 'admin', 'super_admin'].includes(profile?.role);
   };
 
   const getDeadlineStatus = (deadline: string) => {
@@ -285,46 +295,46 @@ export function AssignmentsTab({ unitId, profile }: AssignmentsTabProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Assignments</CardTitle>
-          {canManage({} as Assignment) && (
+          {canCreate() && (
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button onClick={resetForm}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Create Assignment
+                  Share Assignment
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle>Create New Assignment</DialogTitle>
+                  <DialogTitle>Share Assignment</DialogTitle>
                   <DialogDescription>
-                    Create an assignment for students to complete.
+                    Share an assignment with your classmates. This helps everyone keep track of what the teacher gave us.
                   </DialogDescription>
                 </DialogHeader>
                 
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="title">Title *</Label>
+                    <Label htmlFor="title">Assignment Title *</Label>
                     <Input
                       id="title"
                       value={formData.title}
                       onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      placeholder="Enter assignment title"
+                      placeholder="e.g., Math Homework Chapter 5"
                     />
                   </div>
                   
                   <div>
-                    <Label htmlFor="description">Description *</Label>
+                    <Label htmlFor="description">What did the teacher ask us to do? *</Label>
                     <Textarea
                       id="description"
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      placeholder="Describe the assignment requirements"
+                      placeholder="Describe what the teacher asked us to do..."
                       rows={4}
                     />
                   </div>
                   
                   <div>
-                    <Label htmlFor="deadline">Deadline *</Label>
+                    <Label htmlFor="deadline">When is it due? *</Label>
                     <Input
                       id="deadline"
                       type="datetime-local"
@@ -338,7 +348,7 @@ export function AssignmentsTab({ unitId, profile }: AssignmentsTabProps) {
                     <Input
                       id="file"
                       type="file"
-                      accept=".pdf,.doc,.docx,.txt"
+                      accept="*"
                       onChange={(e) => setFormData({ 
                         ...formData, 
                         file: e.target.files?.[0] || null 
@@ -352,7 +362,7 @@ export function AssignmentsTab({ unitId, profile }: AssignmentsTabProps) {
                     Cancel
                   </Button>
                   <Button onClick={handleCreateAssignment} disabled={isUploading}>
-                    {isUploading ? "Creating..." : "Create Assignment"}
+                    {isUploading ? "Sharing..." : "Share Assignment"}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -389,7 +399,7 @@ export function AssignmentsTab({ unitId, profile }: AssignmentsTabProps) {
                           <p className="text-sm mt-2">{assignment.description}</p>
                         </div>
                       </div>
-                      {canManage(assignment) && (
+                      {canDelete(assignment) && (
                         <Button
                           variant="ghost"
                           size="sm"

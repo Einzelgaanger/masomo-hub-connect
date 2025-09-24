@@ -108,7 +108,7 @@ serve(async (req) => {
         console.error('Profile creation failed (non-blocking):', profileError)
       }
     }
-
+    
     return new Response(
       JSON.stringify({ 
         success: true, 

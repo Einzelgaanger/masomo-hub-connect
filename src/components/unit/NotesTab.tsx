@@ -339,6 +339,14 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
     return note.upload_reactions.find(r => r.user_id === user?.id)?.reaction_type;
   };
 
+  const getLikesCount = (note: Note) => {
+    return note.upload_reactions.filter(r => r.reaction_type === 'like').length;
+  };
+
+  const getDislikesCount = (note: Note) => {
+    return note.upload_reactions.filter(r => r.reaction_type === 'dislike').length;
+  };
+
   if (loading) {
     return (
       <Card>
@@ -401,7 +409,7 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
                   <Input
                     id="file"
                     type="file"
-                    accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.jpg,.jpeg,.png"
+                    accept="*"
                     onChange={(e) => setFormData({ 
                       ...formData, 
                       file: e.target.files?.[0] || null 
@@ -476,7 +484,7 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
                         onClick={() => handleReaction(note.id, 'like')}
                       >
                         <ThumbsUp className="h-4 w-4 mr-1" />
-                        {note.likes_count}
+                        {getLikesCount(note)}
                       </Button>
                       <Button
                         variant={userReaction === 'dislike' ? 'default' : 'outline'}
@@ -484,7 +492,7 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
                         onClick={() => handleReaction(note.id, 'dislike')}
                       >
                         <ThumbsDown className="h-4 w-4 mr-1" />
-                        {note.dislikes_count}
+                        {getDislikesCount(note)}
                       </Button>
                       <Button
                         variant="outline"

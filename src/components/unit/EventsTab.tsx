@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Calendar, Trash2, Clock } from "lucide-react";
+import { Plus, Calendar, Trash2, Clock, ThumbsUp, ThumbsDown, MessageCircle } from "lucide-react";
 import { format, formatDistanceToNow, isAfter, isToday, isTomorrow, isYesterday } from "date-fns";
 
 interface Event {
@@ -24,6 +24,20 @@ interface Event {
     full_name: string;
     profile_picture_url: string;
   };
+  upload_reactions: Array<{
+    user_id: string;
+    reaction_type: string;
+  }>;
+  comments: Array<{
+    id: string;
+    content: string;
+    created_at: string;
+    commented_by: string;
+    profiles?: {
+      full_name: string;
+      profile_picture_url: string;
+    };
+  }>;
 }
 
 interface EventsTabProps {
@@ -38,6 +52,8 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
+  const [newComment, setNewComment] = useState("");
 
   // Form state
   const [formData, setFormData] = useState({
@@ -73,13 +89,42 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
         .select('user_id, full_name, profile_picture_url')
         .in('user_id', creatorIds);
 
+      // Fetch reactions for all events
+      const eventIds = eventsData.map(event => event.id);
+      const { data: reactionsData } = await supabase
+        .from('upload_reactions')
+        .select('upload_id, user_id, reaction_type')
+        .in('upload_id', eventIds);
+
+      // Fetch comments for all events
+      const { data: commentsData } = await supabase
+        .from('comments')
+        .select('id, upload_id, content, created_at, commented_by')
+        .in('upload_id', eventIds);
+
+      // Get commenter profiles
+      const commenterIds = commentsData ? [...new Set(commentsData.map(comment => comment.commented_by))] : [];
+      const { data: commenterProfiles } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, profile_picture_url')
+        .in('user_id', commenterIds);
+
       // Combine the data
       const eventsWithData = eventsData.map(event => {
         const profile = profilesData?.find(p => p.user_id === event.created_by);
+        const reactions = reactionsData?.filter(r => r.upload_id === event.id) || [];
+        const comments = commentsData?.filter(c => c.upload_id === event.id) || [];
+        
+        const commentsWithProfiles = comments.map(comment => ({
+          ...comment,
+          profiles: commenterProfiles?.find(p => p.user_id === comment.commented_by)
+        }));
 
         return {
           ...event,
-          profiles: profile
+          profiles: profile,
+          upload_reactions: reactions,
+          comments: commentsWithProfiles
         };
       });
 
@@ -193,6 +238,84 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
       return { status: 'tomorrow', color: 'bg-yellow-100 text-yellow-800', icon: 'Tomorrow' };
     } else {
       return { status: 'upcoming', color: 'bg-green-100 text-green-800', icon: 'Upcoming' };
+    }
+  };
+
+  const getUserReaction = (event: Event) => {
+    return event.upload_reactions.find(r => r.user_id === user?.id)?.reaction_type;
+  };
+
+  const getLikesCount = (event: Event) => {
+    return event.upload_reactions.filter(r => r.reaction_type === 'like').length;
+  };
+
+  const getDislikesCount = (event: Event) => {
+    return event.upload_reactions.filter(r => r.reaction_type === 'dislike').length;
+  };
+
+  const handleReaction = async (eventId: string, reactionType: 'like' | 'dislike') => {
+    try {
+      const existingReaction = await supabase
+        .from('upload_reactions')
+        .select('id')
+        .eq('upload_id', eventId)
+        .eq('user_id', user?.id)
+        .single();
+
+      if (existingReaction.data) {
+        // Update existing reaction
+        await supabase
+          .from('upload_reactions')
+          .update({ reaction_type: reactionType })
+          .eq('id', existingReaction.data.id);
+      } else {
+        // Create new reaction
+        await supabase
+          .from('upload_reactions')
+          .insert({
+            upload_id: eventId,
+            user_id: user?.id,
+            reaction_type: reactionType
+          });
+      }
+
+      // Update like/dislike counts
+      const pointsChange = reactionType === 'like' ? 2 : -1;
+      await supabase.rpc('update_user_points', {
+        user_uuid: user?.id,
+        points_change: pointsChange
+      });
+
+      fetchEvents();
+    } catch (error) {
+      console.error('Error handling reaction:', error);
+    }
+  };
+
+  const handleAddComment = async (eventId: string) => {
+    try {
+      if (!newComment.trim()) return;
+
+      const { error } = await supabase
+        .from('comments')
+        .insert({
+          upload_id: eventId,
+          content: newComment.trim(),
+          commented_by: user?.id
+        });
+
+      if (error) throw error;
+
+      // Award points for commenting
+      await supabase.rpc('update_user_points', {
+        user_uuid: user?.id,
+        points_change: 3
+      });
+
+      setNewComment("");
+      fetchEvents();
+    } catch (error) {
+      console.error('Error adding comment:', error);
     }
   };
 
@@ -316,23 +439,89 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">
-                          {format(new Date(event.event_date), 'EEEE, MMM dd, yyyy')}
+                    <div className="mb-4">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">
+                            {format(new Date(event.event_date), 'EEEE, MMM dd, yyyy')}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">
+                            {format(new Date(event.event_date), 'HH:mm')}
+                          </span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          ({formatDistanceToNow(new Date(event.event_date), { addSuffix: true })})
                         </span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">
-                          {format(new Date(event.event_date), 'HH:mm')}
-                        </span>
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        ({formatDistanceToNow(new Date(event.event_date), { addSuffix: true })})
-                      </span>
                     </div>
+                    
+                    <div className="flex items-center gap-4 mb-4">
+                      <Button
+                        variant={getUserReaction(event) === 'like' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => handleReaction(event.id, 'like')}
+                      >
+                        <ThumbsUp className="h-4 w-4 mr-1" />
+                        {getLikesCount(event)}
+                      </Button>
+                      <Button
+                        variant={getUserReaction(event) === 'dislike' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => handleReaction(event.id, 'dislike')}
+                      >
+                        <ThumbsDown className="h-4 w-4 mr-1" />
+                        {getDislikesCount(event)}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setExpandedEvent(expandedEvent === event.id ? null : event.id)}
+                      >
+                        <MessageCircle className="h-4 w-4 mr-1" />
+                        {event.comments.length} Comments
+                      </Button>
+                    </div>
+
+                    {expandedEvent === event.id && (
+                      <div className="border-t pt-4">
+                        <div className="space-y-3 mb-4">
+                          {event.comments.map((comment) => (
+                            <div key={comment.id} className="flex gap-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={comment.profiles?.profile_picture_url} />
+                                <AvatarFallback>
+                                  {comment.profiles?.full_name?.split(' ').map((n: string) => n[0]).join('')}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1">
+                                <div className="bg-muted p-3 rounded-lg">
+                                  <p className="text-sm">{comment.content}</p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {comment.profiles?.full_name} • {format(new Date(comment.created_at), 'MMM dd, yyyy')}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Add a comment..."
+                            value={newComment}
+                            onChange={(e) => setNewComment(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && handleAddComment(event.id)}
+                          />
+                          <Button onClick={() => handleAddComment(event.id)}>
+                            Comment
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               );
