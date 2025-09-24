@@ -18,6 +18,7 @@ import ApplicationForm from "./pages/ApplicationForm";
 import UnitPage from "./pages/UnitPage";
 import Settings from "./pages/Settings";
 import Info from "./pages/Info";
+import Tukio from "./pages/Tukio";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -57,6 +58,11 @@ const App = () => (
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/tukio" element={
+              <ProtectedRoute>
+                <Tukio />
               </ProtectedRoute>
             } />
             <Route path="/admin/login" element={<AdminLogin />} />

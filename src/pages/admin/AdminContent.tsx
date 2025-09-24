@@ -70,7 +70,19 @@ const AdminContent = () => {
               </p>
             </div>
 
-            <ContentManagementSection />
+            <div className="flex flex-col items-center justify-center py-16">
+              <div className="w-20 h-20 bg-gradient-to-br from-green-100 to-blue-100 rounded-full flex items-center justify-center mb-4">
+                <Upload className="h-10 w-10 text-green-500" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2 fredoka-bold">Content Management</h3>
+              <p className="text-gray-500 text-center max-w-md mb-6 fredoka-medium">
+                Content management has been moved to the Tukio reels page for a better user experience.
+              </p>
+              <Button onClick={() => window.location.href = '/tukio'} className="gap-2">
+                <Eye className="h-4 w-4" />
+                Go to Tukio
+              </Button>
+            </div>
           </div>
         </main>
       </div>

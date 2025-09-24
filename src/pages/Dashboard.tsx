@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { WelcomeSection } from "@/components/dashboard/WelcomeSection";
-import { AnnouncementsSection } from "@/components/dashboard/AnnouncementsSection";
 import { WallOfFameSection } from "@/components/dashboard/WallOfFameSection";
 import { UpcomingSection } from "@/components/dashboard/UpcomingSection";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,7 +41,6 @@ const Dashboard = () => {
   return (
     <AppLayout>
       <WelcomeSection />
-      <AnnouncementsSection />
       <WallOfFameSection />
       <UpcomingSection />
     </AppLayout>
