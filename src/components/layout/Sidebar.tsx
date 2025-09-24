@@ -1,4 +1,4 @@
-import { BookOpen, Settings, Info, User, GraduationCap, Shield, LogOut, Video } from "lucide-react";
+import { BookOpen, Settings, Info, User, GraduationCap, Shield, LogOut, Video, UserCircle } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   Sidebar as SidebarComponent,
@@ -81,6 +81,14 @@ export function Sidebar({ profile }: SidebarProps) {
                   <NavLink to="/tukio" className={getNavLinkClass}>
                     <Video className="h-4 w-4" />
                     <span>Tukio</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to={`/profile/${profile?.user_id}`} className={getNavLinkClass}>
+                    <UserCircle className="h-4 w-4" />
+                    <span>My Profile</span>
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
