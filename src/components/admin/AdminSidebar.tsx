@@ -22,7 +22,7 @@ interface AdminSidebarProps {
 }
 
 const AdminSidebar: React.FC<AdminSidebarProps> = ({ profile }) => {
-  const { collapsed } = useSidebar();
+  // Remove the collapsed usage since it's not needed
 
   const getNavLinkClass = ({ isActive }: { isActive: boolean }) =>
     isActive
@@ -30,10 +30,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ profile }) => {
       : "hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground";
 
   return (
-    <SidebarComponent className={collapsed ? "w-16" : "w-64"}>
+    <SidebarComponent className="w-64">
       <SidebarHeader className="p-4">
         <div className="flex items-center justify-center">
-          <Logo size={collapsed ? "md" : "lg"} showText={!collapsed} />
+          <Logo size="lg" showText={true} />
         </div>
       </SidebarHeader>
 
@@ -46,7 +46,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ profile }) => {
                 <SidebarMenuButton asChild>
                   <NavLink to="/admin" className={getNavLinkClass}>
                     <BarChart3 className="h-5 w-5" />
-                    {!collapsed && <span>Dashboard</span>}
+                    <span>Dashboard</span>
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -55,7 +55,16 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ profile }) => {
                 <SidebarMenuButton asChild>
                   <NavLink to="/admin/classes" className={getNavLinkClass}>
                     <BookOpen className="h-5 w-5" />
-                    {!collapsed && <span>Classes</span>}
+                    <span>Classes</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to="/admin/applications" className={getNavLinkClass}>
+                    <Users className="h-5 w-5" />
+                    <span>Applications</span>
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -64,7 +73,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ profile }) => {
                 <SidebarMenuButton asChild>
                   <NavLink to="/admin/content" className={getNavLinkClass}>
                     <Upload className="h-5 w-5" />
-                    {!collapsed && <span>Content Management</span>}
+                    <span>Content Management</span>
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -81,15 +90,13 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ profile }) => {
               {profile?.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'A'}
             </AvatarFallback>
           </Avatar>
-          {!collapsed && (
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{profile?.full_name}</p>
-              <p className="text-xs text-muted-foreground truncate">{profile?.email}</p>
-              <Badge variant="secondary" className="text-xs">
-                {profile?.role}
-              </Badge>
-            </div>
-          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{profile?.full_name}</p>
+            <p className="text-xs text-muted-foreground truncate">{profile?.email}</p>
+            <Badge variant="secondary" className="text-xs">
+              {profile?.role}
+            </Badge>
+          </div>
         </div>
       </SidebarFooter>
     </SidebarComponent>

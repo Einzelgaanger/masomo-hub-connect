@@ -82,9 +82,9 @@ const CreatePassword = () => {
         if (error) throw error;
       } else if (email) {
         // Admin-based password reset
-        const { data: userData, error: userError } = await supabase.auth.admin.getUserByEmail(email);
+        const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
         
-        if (userError || !userData.user) {
+        if (userError || !userData.users || userData.users.length === 0) {
           toast({
             title: "Error",
             description: "User not found with this email address.",
@@ -93,7 +93,7 @@ const CreatePassword = () => {
           return;
         }
 
-        const { error: updateError } = await supabase.auth.admin.updateUserById(userData.user.id, {
+        const { error: updateError } = await supabase.auth.admin.updateUserById(userData.users[0].id, {
           password: password
         });
 
