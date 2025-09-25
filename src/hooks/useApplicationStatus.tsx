@@ -42,15 +42,15 @@ export const useApplicationStatus = () => {
     setStatus(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      // First check if user has a profile (they're approved)
+      // First check if user has a profile with a class assigned (they're approved)
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('id, role, class_id')
         .eq('user_id', user.id)
         .single();
 
-      if (profile && !profileError) {
-        // User has a profile, they are approved - NO NEED TO CHECK APPLICATIONS
+      if (profile && !profileError && profile.class_id) {
+        // User has a profile with a class assigned, they are approved
         setStatus({
           hasApplication: true,
           status: 'approved',

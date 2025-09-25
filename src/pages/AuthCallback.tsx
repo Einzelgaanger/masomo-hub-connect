@@ -22,21 +22,24 @@ const AuthCallback = () => {
           return;
         }
 
-        // Check if user already has a profile (they're already approved)
+        // Check if user already has a profile with a class assigned (they're already approved)
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('id, role, class_id, full_name')
           .eq('user_id', user.id)
           .single();
 
-        if (profile && !profileError) {
-          // User already has a profile, redirect to dashboard
+        if (profile && !profileError && profile.class_id) {
+          // User already has a profile with a class assigned, redirect to dashboard
           toast({
             title: "Welcome back!",
             description: `Hi ${profile.full_name}, you're already registered.`,
           });
           navigate('/dashboard');
           return;
+        } else if (profile && !profileError && !profile.class_id) {
+          // User has a profile but no class assigned, check applications
+          console.log('User has profile but no class assigned, checking applications...');
         }
 
         // Check if user has pending applications

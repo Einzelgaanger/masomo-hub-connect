@@ -28,15 +28,15 @@ const ApplicationStatus = () => {
     
     setLoading(true);
     try {
-      // Check if user has a profile (approved)
+      // Check if user has a profile with a class assigned (approved)
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('id, role, class_id')
         .eq('user_id', user.id)
         .single();
 
-      if (profile && !profileError) {
-        // User has a profile, they are approved
+      if (profile && !profileError && profile.class_id) {
+        // User has a profile with a class assigned, they are approved
         setApplicationStatus('approved');
         return;
       }
