@@ -6,6 +6,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Resend API configuration
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
+const RESEND_API_URL = 'https://api.resend.com/emails'
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {

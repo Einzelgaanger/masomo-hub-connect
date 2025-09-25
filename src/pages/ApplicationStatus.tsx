@@ -24,12 +24,42 @@ const ApplicationStatus = () => {
   }, [user, navigate]);
 
   const checkApplicationStatus = async () => {
+    if (!user) return;
+    
     setLoading(true);
     try {
-      // For now, simulate pending status
-      // This will be replaced with actual application checking once types are updated
-      setApplicationStatus('pending');
-    } catch (error) {
+      // Check if user has a profile (approved)
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, role, class_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profile && !profileError) {
+        // User has a profile, they are approved
+        setApplicationStatus('approved');
+        return;
+      }
+
+      // Check for pending applications
+      const { data: applications, error: applicationError } = await supabase
+        .from('applications' as any)
+        .select('id, status')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (applicationError) {
+        throw applicationError;
+      }
+
+      if (applications && applications.length > 0) {
+        const latestApplication = applications[0];
+        setApplicationStatus((latestApplication as any).status as 'pending' | 'approved' | 'rejected');
+      } else {
+        setApplicationStatus('none');
+      }
+    } catch (error: any) {
       console.error('Error checking application status:', error);
       toast({
         title: "Error",

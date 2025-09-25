@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import ApplicationGuard from "@/components/ApplicationGuard";
+import AdminGuard from "@/components/AdminGuard";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -80,9 +81,21 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/classes" element={<AdminClasses />} />
-            <Route path="/admin/content" element={<AdminContentManagement />} />
+            <Route path="/admin" element={
+              <AdminGuard>
+                <AdminDashboard />
+              </AdminGuard>
+            } />
+            <Route path="/admin/classes" element={
+              <AdminGuard>
+                <AdminClasses />
+              </AdminGuard>
+            } />
+            <Route path="/admin/content" element={
+              <AdminGuard>
+                <AdminContentManagement />
+              </AdminGuard>
+            } />
             <Route path="/class-selection" element={<ClassSelection />} />
             <Route path="/application" element={<ApplicationForm />} />
             <Route path="/application-status" element={<ApplicationStatus />} />

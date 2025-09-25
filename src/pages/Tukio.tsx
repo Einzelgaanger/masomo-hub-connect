@@ -82,7 +82,7 @@ const Tukio = () => {
     };
   }, [longPressTimer]);
 
-  // Simple video management - just handle current video
+  // Optimized video management for smooth playback
   useEffect(() => {
     if (reels.length === 0) return;
 
@@ -91,18 +91,38 @@ const Tukio = () => {
       if (video && index !== currentIndex) {
         video.pause();
         video.muted = true;
+        video.currentTime = 0; // Reset to start for better performance
       }
     });
 
-    // Play current video
+    // Play current video with optimization
     const currentVideo = videoRefs.current[currentIndex];
     if (currentVideo) {
+      // Set audio settings
       currentVideo.muted = isMuted;
-      currentVideo.play().catch((error) => {
-        if (error.name !== 'AbortError') {
-          console.error('Video play error:', error);
-        }
-      });
+      currentVideo.volume = isMuted ? 0 : 1;
+      
+      // Ensure video is loaded before playing
+      if (currentVideo.readyState >= 3) { // HAVE_FUTURE_DATA
+        currentVideo.play().catch((error) => {
+          if (error.name !== 'AbortError') {
+            console.error('Video play error:', error);
+          }
+        });
+      } else {
+        // Wait for video to be ready
+        const handleCanPlay = () => {
+          currentVideo.play().catch((error) => {
+            if (error.name !== 'AbortError') {
+              console.error('Video play error:', error);
+            }
+          });
+          currentVideo.removeEventListener('canplay', handleCanPlay);
+        };
+        currentVideo.addEventListener('canplay', handleCanPlay);
+      }
+      
+      setIsPlaying(true);
     }
 
   }, [currentIndex, isMuted]);
@@ -681,7 +701,7 @@ const Tukio = () => {
                   loop
                   playsInline
                   autoPlay={index === currentIndex} // Auto-play current video
-                  preload="metadata" // Compatible with Supabase Storage
+                  preload={index === currentIndex ? "auto" : "metadata"} // More aggressive preloading for current video
                   crossOrigin="anonymous"
                   onPlay={() => {
                     if (index === currentIndex) {
@@ -711,8 +731,20 @@ const Tukio = () => {
                     }
                   }}
                   onWaiting={() => {
-                    // Video is buffering
-                    console.log(`Video ${reel.id} is buffering...`);
+                    // Video is buffering - show loading indicator
+                    if (index === currentIndex) {
+                      setBufferedVideos(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete(reel.id);
+                        return newSet;
+                      });
+                    }
+                  }}
+                  onCanPlayThrough={() => {
+                    // Video can play through without buffering
+                    if (index === currentIndex) {
+                      setBufferedVideos(prev => new Set([...prev, reel.id]));
+                    }
                   }}
                   onError={(e) => {
                     console.error('Video loading error:', e);
