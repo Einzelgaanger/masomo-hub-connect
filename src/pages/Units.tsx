@@ -294,7 +294,7 @@ export default function Units() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {filteredUnits.map((unit) => (
               <Card 
                 key={unit.id} 
@@ -362,7 +362,7 @@ export default function Units() {
         {filteredUnits.length > 0 && (
           <Card>
             <CardContent className="pt-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-center">
                 <div>
                   <div className="text-2xl font-bold text-primary">
                     {filteredUnits.length}

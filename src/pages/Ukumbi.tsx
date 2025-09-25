@@ -410,11 +410,11 @@ export default function Ukumbi() {
                 messages.map((message) => (
                   <div
                     key={message.id}
-                    className={`flex gap-3 ${
+                    className={`flex gap-2 sm:gap-3 ${
                       message.user_id === user?.id ? 'flex-row-reverse' : 'flex-row'
                     }`}
                   >
-                    <Avatar className="h-8 w-8 flex-shrink-0">
+                    <Avatar className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0">
                       <AvatarImage src={message.profiles.profile_picture_url} />
                       <AvatarFallback>
                         {message.profiles.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
@@ -422,7 +422,7 @@ export default function Ukumbi() {
                     </Avatar>
 
                     <div
-                      className={`max-w-[70%] space-y-1 ${
+                      className={`max-w-[75%] sm:max-w-[70%] space-y-1 ${
                         message.user_id === user?.id ? 'items-end' : 'items-start'
                       } flex flex-col`}
                     >
@@ -540,32 +540,33 @@ export default function Ukumbi() {
             </div>
 
             {/* Message Input */}
-            <form onSubmit={sendMessage} className="flex gap-2">
+            <form onSubmit={sendMessage} className="flex gap-1 sm:gap-2">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
+                className="h-9 w-9 sm:h-10 sm:w-10 p-0"
               >
                 {uploading ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                  <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-primary"></div>
                 ) : (
-                  <Paperclip className="h-4 w-4" />
+                  <Paperclip className="h-3 w-3 sm:h-4 sm:w-4" />
                 )}
               </Button>
               <Input
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder="Type a message..."
-                className="flex-1"
+                className="flex-1 text-sm sm:text-base h-9 sm:h-10"
                 disabled={sending || !userProfile}
               />
-              <Button type="submit" size="sm" disabled={sending || !newMessage.trim() || !userProfile}>
+              <Button type="submit" size="sm" disabled={sending || !newMessage.trim() || !userProfile} className="h-9 sm:h-10 px-3 sm:px-4">
                 {sending ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-white"></div>
                 ) : (
-                  <Send className="h-4 w-4" />
+                  <Send className="h-3 w-3 sm:h-4 sm:w-4" />
                 )}
               </Button>
             </form>

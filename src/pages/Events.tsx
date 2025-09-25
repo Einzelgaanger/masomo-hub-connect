@@ -7,10 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Calendar, MapPin, Clock, User, Image as ImageIcon, Upload, X } from "lucide-react";
+import { Plus, Calendar, MapPin, Clock, User, Image as ImageIcon, Upload, X, Globe, Building, Users } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { AppLayout } from "@/components/layout/AppLayout";
 
@@ -23,33 +24,55 @@ interface PublicEvent {
   image_url?: string;
   created_at: string;
   created_by: string;
+  visibility: 'university' | 'country' | 'global';
+  target_countries?: string[];
   profiles?: {
     full_name: string;
     profile_picture_url: string;
   };
+  universities?: {
+    name: string;
+    countries?: {
+      name: string;
+    };
+  };
+  classes?: {
+    course_name: string;
+  };
+}
+
+interface Country {
+  country_id: string;
+  country_name: string;
 }
 
 export default function Events() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [events, setEvents] = useState<PublicEvent[]>([]);
+  const [myUniversityEvents, setMyUniversityEvents] = useState<PublicEvent[]>([]);
+  const [allEvents, setAllEvents] = useState<PublicEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [availableCountries, setAvailableCountries] = useState<Country[]>([]);
 
   // Form state
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     event_date: "",
-    location: ""
+    location: "",
+    visibility: "university" as 'university' | 'country' | 'global',
+    target_countries: [] as string[]
   });
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
     fetchEvents();
+    fetchAvailableCountries();
   }, []);
 
   const fetchEvents = async () => {
@@ -70,8 +93,8 @@ export default function Events() {
         return;
       }
 
-      // Then get events from users in the same university
-      const { data, error } = await supabase
+      // Fetch events from my university only
+      const { data: myUniEvents, error: myUniError } = await supabase
         .from('public_events')
         .select(`
           *,
@@ -79,15 +102,44 @@ export default function Events() {
             full_name,
             profile_picture_url,
             classes!inner(
-              university_id
+              course_name,
+              university_id,
+              universities!inner(
+                name,
+                countries!inner(name)
+              )
             )
           )
         `)
         .eq('profiles.classes.university_id', userProfile.classes.university_id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setEvents(data || []);
+      // Fetch all events (global, country, and university)
+      const { data: allEventsData, error: allEventsError } = await supabase
+        .from('public_events')
+        .select(`
+          *,
+          profiles(
+            full_name,
+            profile_picture_url,
+            classes!inner(
+              course_name,
+              university_id,
+              universities!inner(
+                name,
+                countries!inner(name)
+              )
+            )
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (myUniError) throw myUniError;
+      if (allEventsError) throw allEventsError;
+
+      setMyUniversityEvents(myUniEvents || []);
+      setAllEvents(allEventsData || []);
+      setEvents(myUniEvents || []); // Default to university events
     } catch (error) {
       console.error('Error fetching events:', error);
       toast({
@@ -97,6 +149,16 @@ export default function Events() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAvailableCountries = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_available_countries');
+      if (error) throw error;
+      setAvailableCountries(data || []);
+    } catch (error) {
+      console.error('Error fetching countries:', error);
     }
   };
 
@@ -189,7 +251,9 @@ export default function Events() {
           event_date: formData.event_date || null,
           location: formData.location || null,
           image_url: imageUrl,
-          created_by: user?.id
+          created_by: user?.id,
+          visibility: formData.visibility,
+          target_countries: formData.visibility === 'country' ? formData.target_countries : null
         });
 
       if (error) throw error;
@@ -219,7 +283,9 @@ export default function Events() {
       title: "",
       description: "",
       event_date: "",
-      location: ""
+      location: "",
+      visibility: "university",
+      target_countries: []
     });
     setSelectedImage(null);
     setImagePreview(null);
@@ -306,6 +372,56 @@ export default function Events() {
                 </div>
 
                 <div>
+                  <Label htmlFor="visibility">Who can see this event?</Label>
+                  <select
+                    id="visibility"
+                    value={formData.visibility}
+                    onChange={(e) => setFormData({ 
+                      ...formData, 
+                      visibility: e.target.value as 'university' | 'country' | 'global',
+                      target_countries: e.target.value === 'country' ? formData.target_countries : []
+                    })}
+                    className="w-full px-3 py-2 border border-input bg-background rounded-md"
+                    title="Select visibility level for your event"
+                    aria-label="Select visibility level for your event"
+                  >
+                    <option value="university">My University Only</option>
+                    <option value="country">Specific Countries</option>
+                    <option value="global">All Countries</option>
+                  </select>
+                </div>
+
+                {formData.visibility === 'country' && (
+                  <div>
+                    <Label htmlFor="countries">Select Countries</Label>
+                    <div className="max-h-32 overflow-y-auto border border-input rounded-md p-2">
+                      {availableCountries.map((country) => (
+                        <label key={country.country_id} className="flex items-center space-x-2 p-1">
+                          <input
+                            type="checkbox"
+                            checked={formData.target_countries.includes(country.country_id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setFormData({
+                                  ...formData,
+                                  target_countries: [...formData.target_countries, country.country_id]
+                                });
+                              } else {
+                                setFormData({
+                                  ...formData,
+                                  target_countries: formData.target_countries.filter(id => id !== country.country_id)
+                                });
+                              }
+                            }}
+                          />
+                          <span className="text-sm">{country.country_name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div>
                   <Label htmlFor="image">Event Image (Optional)</Label>
                   <div className="space-y-2">
                     {!imagePreview ? (
@@ -359,26 +475,64 @@ export default function Events() {
           </Dialog>
         </div>
 
-        {/* Events Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {events.map((event) => (
-            <EventCard key={event.id} event={event} />
-          ))}
-        </div>
+        {/* Events Tabs */}
+        <Tabs defaultValue="my-campus" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="my-campus" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+              <Building className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">My Campus</span>
+              <span className="xs:hidden">Campus</span>
+            </TabsTrigger>
+            <TabsTrigger value="all" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+              <Globe className="h-3 w-3 sm:h-4 sm:w-4" />
+              All
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="my-campus" className="mt-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+              {myUniversityEvents.map((event) => (
+                <EventCard key={event.id} event={event} />
+              ))}
+            </div>
 
-        {events.length === 0 && (
-          <div className="text-center py-12">
-            <Calendar className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No tukio yet</h3>
-            <p className="text-muted-foreground mb-4">
-              Be the first to create a tukio and bring the student community together!
-            </p>
-            <Button onClick={() => setIsCreateDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create First Tukio
-            </Button>
-          </div>
-        )}
+            {myUniversityEvents.length === 0 && (
+              <div className="text-center py-12">
+                <Building className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-xl font-semibold mb-2">No campus events yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Be the first to create a tukio for your campus!
+                </p>
+                <Button onClick={() => setIsCreateDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create First Campus Tukio
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="all" className="mt-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+              {allEvents.map((event) => (
+                <EventCard key={event.id} event={event} />
+              ))}
+            </div>
+
+            {allEvents.length === 0 && (
+              <div className="text-center py-12">
+                <Globe className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-xl font-semibold mb-2">No global events yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Be the first to create a global tukio!
+                </p>
+                <Button onClick={() => setIsCreateDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create First Global Tukio
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </AppLayout>
   );
@@ -388,6 +542,24 @@ function EventCard({ event }: { event: PublicEvent }) {
   const hasImage = !!event.image_url;
   const hasDate = !!event.event_date;
   const hasLocation = !!event.location;
+
+  const getVisibilityIcon = () => {
+    switch (event.visibility) {
+      case 'university': return <Building className="h-3 w-3" />;
+      case 'country': return <Users className="h-3 w-3" />;
+      case 'global': return <Globe className="h-3 w-3" />;
+      default: return <Building className="h-3 w-3" />;
+    }
+  };
+
+  const getVisibilityText = () => {
+    switch (event.visibility) {
+      case 'university': return 'My University';
+      case 'country': return 'Selected Countries';
+      case 'global': return 'All Countries';
+      default: return 'My University';
+    }
+  };
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-200">
@@ -450,10 +622,32 @@ function EventCard({ event }: { event: PublicEvent }) {
             </div>
           )}
 
-          <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
-            <span>{formatDistanceToNow(new Date(event.created_at), { addSuffix: true })}</span>
+          <div className="space-y-2 pt-2 border-t">
+            {/* University and Course Info */}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Building className="h-3 w-3" />
+              <span>{event.universities?.name}</span>
+              <span>•</span>
+              <span>{event.classes?.course_name}</span>
+              {event.universities?.countries && (
+                <>
+                  <span>•</span>
+                  <span>{event.universities.countries.name}</span>
+                </>
+              )}
+            </div>
+
+            {/* Visibility and Time */}
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                {getVisibilityIcon()}
+                <span>{getVisibilityText()}</span>
+              </div>
+              <span>{formatDistanceToNow(new Date(event.created_at), { addSuffix: true })}</span>
+            </div>
+
             {hasImage && (
-              <Badge variant="secondary" className="text-xs">
+              <Badge variant="secondary" className="text-xs w-fit">
                 <ImageIcon className="h-3 w-3 mr-1" />
                 With Image
               </Badge>

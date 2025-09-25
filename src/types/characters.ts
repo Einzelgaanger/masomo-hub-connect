@@ -13,7 +13,7 @@ export const CHARACTERS: Character[] = [
   // Starter characters (least cool)
   {
     id: 'people',
-    name: 'Regular Person',
+    name: 'Regular',
     image: '/characters/people.png',
     description: 'A regular student starting their academic journey. Everyone begins here!',
     pointsRequired: 0,
@@ -33,7 +33,7 @@ export const CHARACTERS: Character[] = [
   },
   {
     id: 'guard',
-    name: 'Guardian Angel',
+    name: 'Guardian',
     image: '/characters/guard.png',
     description: 'A vigilant protector of knowledge. Students who help others and maintain academic integrity.',
     pointsRequired: 100,

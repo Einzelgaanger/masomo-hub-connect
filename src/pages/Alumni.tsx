@@ -460,21 +460,23 @@ export default function Alumni() {
         </div>
 
         <Tabs defaultValue="alumni" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="alumni" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Alumni Directory
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+            <TabsTrigger value="alumni" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+              <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Alumni Directory</span>
+              <span className="sm:hidden">Alumni</span>
             </TabsTrigger>
-            <TabsTrigger value="events" className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
+            <TabsTrigger value="events" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+              <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
               Events
             </TabsTrigger>
-            <TabsTrigger value="stories" className="flex items-center gap-2">
-              <Star className="h-4 w-4" />
-              Success Stories
+            <TabsTrigger value="stories" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+              <Star className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Success Stories</span>
+              <span className="sm:hidden">Stories</span>
             </TabsTrigger>
-            <TabsTrigger value="mentorship" className="flex items-center gap-2">
-              <MessageCircle className="h-4 w-4" />
+            <TabsTrigger value="mentorship" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+              <MessageCircle className="h-3 w-3 sm:h-4 sm:w-4" />
               Mentorship
             </TabsTrigger>
           </TabsList>
