@@ -213,10 +213,19 @@ export default function Alumni() {
         .eq('graduation_class.university_id', userUniversityId)
         .order('graduation_year', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        // If table doesn't exist yet, just set empty array
+        if (error.code === '42P01') {
+          console.log('Alumni profiles table not created yet, showing empty list');
+          setAlumni([]);
+          return;
+        }
+        throw error;
+      }
       setAlumni(data || []);
     } catch (error) {
       console.error('Error fetching alumni:', error);
+      setAlumni([]);
     }
   };
 
@@ -237,10 +246,19 @@ export default function Alumni() {
         .order('event_date', { ascending: true })
         .limit(10);
 
-      if (error) throw error;
+      if (error) {
+        // If table doesn't exist yet, just set empty array
+        if (error.code === '42P01') {
+          console.log('Alumni events table not created yet, showing empty list');
+          setEvents([]);
+          return;
+        }
+        throw error;
+      }
       setEvents(data || []);
     } catch (error) {
       console.error('Error fetching events:', error);
+      setEvents([]);
     }
   };
 
@@ -261,10 +279,19 @@ export default function Alumni() {
         .order('created_at', { ascending: false })
         .limit(10);
 
-      if (error) throw error;
+      if (error) {
+        // If table doesn't exist yet, just set empty array
+        if (error.code === '42P01') {
+          console.log('Alumni success stories table not created yet, showing empty list');
+          setSuccessStories([]);
+          return;
+        }
+        throw error;
+      }
       setSuccessStories(data || []);
     } catch (error) {
       console.error('Error fetching success stories:', error);
+      setSuccessStories([]);
     }
   };
 
@@ -279,7 +306,17 @@ export default function Alumni() {
           university_id: userProfile?.classes?.universities?.id
         });
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === '42P01') {
+          toast({
+            title: "Error",
+            description: "Alumni system not set up yet. Please contact admin.",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw error;
+      }
 
       toast({
         title: "Success",
@@ -604,13 +641,13 @@ export default function Alumni() {
                       Create Event
                     </Button>
                   </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Create Alumni Event</DialogTitle>
-                    <DialogDescription>
-                      Organize networking events, workshops, or reunions for alumni.
-                    </DialogDescription>
-                  </DialogHeader>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Create Alumni Event</DialogTitle>
+                      <DialogDescription>
+                        Organize networking events, workshops, or reunions for alumni.
+                      </DialogDescription>
+                    </DialogHeader>
                   
                   <div className="space-y-4">
                     <div>
@@ -709,6 +746,7 @@ export default function Alumni() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -719,7 +757,7 @@ export default function Alumni() {
                       <div>
                         <CardTitle className="text-lg">{event.title}</CardTitle>
                         <div className="flex items-center gap-2 mt-2">
-                          <Badge variant="outline">{event.event_type.replace('_', ' ')}</Badge>
+                          <Badge variant="outline">{event.event_type.replace(/_/g, ' ')}</Badge>
                           <span className="text-sm text-muted-foreground">
                             {format(new Date(event.event_date), 'MMM dd, yyyy • h:mm a')}
                           </span>
@@ -766,13 +804,13 @@ export default function Alumni() {
                       Share Story
                     </Button>
                   </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Share Your Success Story</DialogTitle>
-                    <DialogDescription>
-                      Inspire others by sharing your achievements and career milestones.
-                    </DialogDescription>
-                  </DialogHeader>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Share Your Success Story</DialogTitle>
+                      <DialogDescription>
+                        Inspire others by sharing your achievements and career milestones.
+                      </DialogDescription>
+                    </DialogHeader>
                   
                   <div className="space-y-4">
                     <div>
@@ -826,6 +864,7 @@ export default function Alumni() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+              )}
             </div>
 
             <div className="space-y-6">
@@ -845,7 +884,7 @@ export default function Alumni() {
                           <div className="flex items-center gap-1">
                             {getAchievementIcon(story.achievement_type)}
                             <Badge variant="outline" className="text-xs">
-                              {story.achievement_type.replace('_', ' ')}
+                              {story.achievement_type.replace(/_/g, ' ')}
                             </Badge>
                           </div>
                         </div>
@@ -876,7 +915,7 @@ export default function Alumni() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className={`grid gap-6 ${isGraduate() ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
                   <div className="text-center p-6 border-2 border-dashed border-muted rounded-lg">
                     <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="font-semibold mb-2">Find a Mentor</h3>
@@ -888,16 +927,18 @@ export default function Alumni() {
                     </Button>
                   </div>
                   
-                  <div className="text-center p-6 border-2 border-dashed border-muted rounded-lg">
-                    <UserPlus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="font-semibold mb-2">Become a Mentor</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Share your experience and help current students succeed
-                    </p>
-                    <Button variant="outline">
-                      Start Mentoring
-                    </Button>
-                  </div>
+                  {isGraduate() && (
+                    <div className="text-center p-6 border-2 border-dashed border-muted rounded-lg">
+                      <UserPlus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="font-semibold mb-2">Become a Mentor</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Share your experience and help current students succeed
+                      </p>
+                      <Button variant="outline">
+                        Start Mentoring
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

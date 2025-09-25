@@ -1,6 +1,7 @@
 -- Comprehensive Alumni Network System - FIXED VERSION
 -- This creates a powerful alumni network that universities will love
 
+
 -- 1. Add graduation tracking to classes table
 ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS is_graduated BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE public.classes ADD COLUMN IF NOT EXISTS graduation_date TIMESTAMP WITH TIME ZONE;
