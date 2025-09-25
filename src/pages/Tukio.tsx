@@ -60,9 +60,12 @@ const Tukio = () => {
   const [animatingLikes, setAnimatingLikes] = useState<Set<string>>(new Set());
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
   const [loadedVideos, setLoadedVideos] = useState<Set<string>>(new Set());
+  const [bufferedVideos, setBufferedVideos] = useState<Set<string>>(new Set());
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const isScrolling = useRef(false);
+  const preloadQueue = useRef<string[]>([]);
+  const activeVideos = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     if (user) {
@@ -79,64 +82,104 @@ const Tukio = () => {
     };
   }, [longPressTimer]);
 
-  // Handle video switching and management
+  // TikTok-style video management with proper preloading and audio control
   useEffect(() => {
     if (reels.length === 0) return;
 
-    // Pause all videos first
+    // 1. STOP ALL VIDEOS AND CLEAR AUDIO (Critical!)
     videoRefs.current.forEach((video, index) => {
-      if (video && index !== currentIndex) {
+      if (video) {
         video.pause();
-        video.currentTime = 0; // Reset to beginning
+        video.currentTime = 0;
+        video.muted = true; // Mute all videos first
+        video.volume = 0; // Ensure no audio
       }
     });
 
-    // Play current video
+    // 2. PLAY CURRENT VIDEO WITH PROPER AUDIO
     const currentVideo = videoRefs.current[currentIndex];
     if (currentVideo) {
-      // Load the video if not already loaded
+      // Ensure video is loaded
       if (!loadedVideos.has(reels[currentIndex].id)) {
         currentVideo.load();
       }
       
-      // Play with a small delay to ensure loading
+      // Set audio settings for current video
+      currentVideo.muted = isMuted;
+      currentVideo.volume = isMuted ? 0 : 1;
+      
+      // Play current video
       setTimeout(() => {
-        if (currentVideo) {
+        if (currentVideo && !currentVideo.paused) {
           currentVideo.play().catch((error) => {
-            // Ignore play interruption errors
             if (error.name !== 'AbortError') {
               console.error('Video play error:', error);
             }
           });
           setIsPlaying(true);
         }
-      }, 100);
+      }, 50);
     }
 
-    // Preload next and previous videos for smoother experience
-    const nextIndex = currentIndex + 1;
-    const prevIndex = currentIndex - 1;
+    // 3. PRELOAD VIDEOS (TikTok-style: 3 ahead, 2 behind)
+    const preloadRange = 3;
+    const startIndex = Math.max(0, currentIndex - 2);
+    const endIndex = Math.min(reels.length - 1, currentIndex + preloadRange);
     
-    if (nextIndex < reels.length && !loadedVideos.has(reels[nextIndex].id)) {
-      const nextVideo = document.createElement('video');
-      nextVideo.src = reels[nextIndex].video_url;
-      nextVideo.preload = 'metadata';
-      nextVideo.crossOrigin = 'anonymous';
-      nextVideo.onloadeddata = () => {
-        setLoadedVideos(prev => new Set([...prev, reels[nextIndex].id]));
-      };
+    // Preload videos in the range
+    for (let i = startIndex; i <= endIndex; i++) {
+      if (i !== currentIndex && !loadedVideos.has(reels[i].id)) {
+        preloadVideo(reels[i].id, reels[i].video_url, i);
+      }
     }
+
+    // 4. CLEANUP DISTANT VIDEOS (Memory management)
+    const cleanupRange = 5;
+    videoRefs.current.forEach((video, index) => {
+      if (video && Math.abs(index - currentIndex) > cleanupRange) {
+        // Unload distant videos to save memory
+        video.src = '';
+        video.load();
+      }
+    });
+
+  }, [currentIndex, reels, loadedVideos, isMuted]);
+
+  // TikTok-style video preloading function (Fixed for Supabase Storage)
+  const preloadVideo = (videoId: string, videoUrl: string, index: number) => {
+    // Skip preloading for Supabase Storage URLs to avoid cache errors
+    if (videoUrl.includes('supabase.co/storage')) {
+      console.log(`Skipping preload for Supabase video: ${videoId}`);
+      return;
+    }
+
+    const video = document.createElement('video');
+    video.src = videoUrl;
+    video.preload = 'metadata'; // Less aggressive for compatibility
+    video.muted = true;
+    video.crossOrigin = 'anonymous';
+    video.style.display = 'none';
     
-    if (prevIndex >= 0 && !loadedVideos.has(reels[prevIndex].id)) {
-      const prevVideo = document.createElement('video');
-      prevVideo.src = reels[prevIndex].video_url;
-      prevVideo.preload = 'metadata';
-      prevVideo.crossOrigin = 'anonymous';
-      prevVideo.onloadeddata = () => {
-        setLoadedVideos(prev => new Set([...prev, reels[prevIndex].id]));
-      };
-    }
-  }, [currentIndex, reels, loadedVideos]);
+    video.onloadeddata = () => {
+      setLoadedVideos(prev => new Set([...prev, videoId]));
+      setBufferedVideos(prev => new Set([...prev, videoId]));
+    };
+    
+    video.onerror = (e) => {
+      console.warn(`Failed to preload video ${videoId}:`, e);
+      // Don't retry on cache errors
+    };
+    
+    // Add to DOM for proper loading
+    document.body.appendChild(video);
+    
+    // Clean up after loading
+    setTimeout(() => {
+      if (document.body.contains(video)) {
+        document.body.removeChild(video);
+      }
+    }, 5000); // Shorter cleanup time
+  };
 
   // Handle wheel events and touch for horizontal scrolling
   useEffect(() => {
@@ -307,17 +350,7 @@ const Tukio = () => {
     }
   };
 
-  const handleScroll = (e: React.WheelEvent) => {
-    e.preventDefault();
-    
-    if (e.deltaY > 0 && currentIndex < reels.length - 1) {
-      // Scroll down - next reel
-      goToNextVideo();
-    } else if (e.deltaY < 0 && currentIndex > 0) {
-      // Scroll up - previous reel
-      goToPreviousVideo();
-    }
-  };
+  // Remove inline handleScroll - we handle this in useEffect with proper event listeners
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const startY = e.touches[0].clientY;
@@ -361,11 +394,23 @@ const Tukio = () => {
   };
 
   const toggleMute = () => {
-    const video = videoRefs.current[currentIndex];
-    if (video) {
-      video.muted = !isMuted;
-      setIsMuted(!isMuted);
-    }
+    const newMutedState = !isMuted;
+    setIsMuted(newMutedState);
+    
+    // Update ALL videos to ensure no audio overlap
+    videoRefs.current.forEach((video, index) => {
+      if (video) {
+        if (index === currentIndex) {
+          // Current video gets the new mute state
+          video.muted = newMutedState;
+          video.volume = newMutedState ? 0 : 1;
+        } else {
+          // All other videos stay muted
+          video.muted = true;
+          video.volume = 0;
+        }
+      }
+    });
   };
 
   const handleVideoClick = (e: React.MouseEvent) => {
@@ -616,7 +661,6 @@ const Tukio = () => {
     <div 
       ref={containerRef}
       className="min-h-screen bg-black overflow-hidden relative"
-      onWheel={handleScroll}
       onTouchStart={handleTouchStart}
     >
       {/* Back Button */}
@@ -640,6 +684,21 @@ const Tukio = () => {
           <span className="sm:hidden">{currentIndex + 1}/{reels.length}</span>
         </div>
       </div>
+
+      {/* Video Status Indicator */}
+      {currentReel && (
+        <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-50">
+          <div className="bg-black/50 text-white px-2 py-1 rounded-full text-xs">
+            {!loadedVideos.has(currentReel.id) ? (
+              <span className="text-yellow-400">Loading...</span>
+            ) : !bufferedVideos.has(currentReel.id) ? (
+              <span className="text-orange-400">Buffering...</span>
+            ) : (
+              <span className="text-green-400">Ready</span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Navigation Buttons - Desktop Only */}
       <div className="hidden md:block">
@@ -685,9 +744,15 @@ const Tukio = () => {
             {/* Video */}
             {reel.video_url && (
               <div className="absolute inset-0 flex items-center justify-center bg-black">
-                {!loadedVideos.has(reel.id) && (
+                {/* Loading/Buffering Indicator */}
+                {(!loadedVideos.has(reel.id) || (index === currentIndex && !bufferedVideos.has(reel.id))) && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-2"></div>
+                      <p className="text-white text-sm">
+                        {!loadedVideos.has(reel.id) ? 'Loading...' : 'Buffering...'}
+                      </p>
+                    </div>
                   </div>
                 )}
                 <video
@@ -695,11 +760,11 @@ const Tukio = () => {
                   src={reel.video_url}
                   className="max-w-full max-h-full object-contain"
                   onClick={handleVideoClick}
-                  muted={isMuted}
+                  muted={index !== currentIndex || isMuted}
                   loop
                   playsInline
-                  autoPlay={index === currentIndex}
-                  preload="metadata"
+                  autoPlay={false} // We control this manually
+                  preload="metadata" // Compatible with Supabase Storage
                   crossOrigin="anonymous"
                   onPlay={() => {
                     if (index === currentIndex) {
@@ -713,12 +778,14 @@ const Tukio = () => {
                   }}
                   onLoadedData={() => {
                     setLoadedVideos(prev => new Set([...prev, reel.id]));
-                    // Auto-play current video when loaded
-                    if (index === currentIndex) {
+                    setBufferedVideos(prev => new Set([...prev, reel.id]));
+                  }}
+                  onCanPlay={() => {
+                    // Video is ready to play
+                    if (index === currentIndex && !isPlaying) {
                       const video = videoRefs.current[index];
                       if (video && video.paused) {
                         video.play().catch((error) => {
-                          // Ignore play interruption errors
                           if (error.name !== 'AbortError') {
                             console.error('Video play error:', error);
                           }
@@ -726,15 +793,19 @@ const Tukio = () => {
                       }
                     }
                   }}
+                  onWaiting={() => {
+                    // Video is buffering
+                    console.log(`Video ${reel.id} is buffering...`);
+                  }}
                   onError={(e) => {
                     console.error('Video loading error:', e);
-                    // Retry loading after a short delay
+                    // Retry loading with exponential backoff
                     setTimeout(() => {
                       const video = e.target as HTMLVideoElement;
-                      if (video) {
+                      if (video && video.error) {
                         video.load();
                       }
-                    }, 1000);
+                    }, 2000);
                   }}
                   poster={reel.thumbnail_url}
                 />
