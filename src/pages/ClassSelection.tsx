@@ -340,6 +340,18 @@ const ClassSelection = () => {
             </CardHeader>
             
             <CardContent className="px-5 pb-5 space-y-6">
+              {/* Debug Information - Remove this in production */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="p-2 bg-gray-100 rounded text-xs text-gray-600">
+                  <div>Selected Country: {selectedCountry} ({countries.find(c => c.id === selectedCountry)?.name})</div>
+                  <div>Selected University: {selectedUniversity} ({universities.find(u => u.id === selectedUniversity)?.name})</div>
+                  <div>Selected Class: {selectedClass}</div>
+                  <div>Countries loaded: {countries.length}</div>
+                  <div>Universities loaded: {universities.length}</div>
+                  <div>Classes loaded: {classes.length}</div>
+                </div>
+              )}
+
               {/* Cascading Dropdowns */}
               <div className="space-y-4">
                 {/* Country Selection */}
@@ -351,14 +363,30 @@ const ClassSelection = () => {
                     <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
                       type="text"
-                      placeholder="Search countries..."
+                      placeholder={selectedCountry ? countries.find(c => c.id === selectedCountry)?.name : "Search countries..."}
                       value={countrySearch}
                       onChange={(e) => setCountrySearch(e.target.value)}
                       className="pl-10 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                     />
-                    <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    {selectedCountry ? (
+                      <button
+                        onClick={() => {
+                          setSelectedCountry("");
+                          setCountrySearch("");
+                          setSelectedUniversity("");
+                          setSelectedClass("");
+                          setUniversities([]);
+                          setClasses([]);
+                        }}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 h-4 w-4"
+                      >
+                        ✕
+                      </button>
+                    ) : (
+                      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    )}
                   </div>
-                  {countrySearch && (
+                  {countrySearch && !selectedCountry && (
                     <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-md bg-white shadow-lg z-10">
                       {filteredCountries.length > 0 ? (
                         filteredCountries.map((country) => (
@@ -367,7 +395,8 @@ const ClassSelection = () => {
                             className="p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
                             onClick={() => {
                               setSelectedCountry(country.id);
-                              setCountrySearch(country.name);
+                              setCountrySearch("");
+                              handleCountryChange(country.id);
                             }}
                           >
                             {country.name}
@@ -389,15 +418,32 @@ const ClassSelection = () => {
                     <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
                       type="text"
-                      placeholder={selectedCountry ? "Search universities..." : "Select country first"}
+                      placeholder={selectedCountry ? 
+                        (selectedUniversity ? universities.find(u => u.id === selectedUniversity)?.name : "Search universities...") : 
+                        "Select country first"
+                      }
                       value={universitySearch}
                       onChange={(e) => setUniversitySearch(e.target.value)}
                       disabled={!selectedCountry || loading}
                       className="pl-10 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
                     />
-                    <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    {selectedCountry && selectedUniversity ? (
+                      <button
+                        onClick={() => {
+                          setSelectedUniversity("");
+                          setUniversitySearch("");
+                          setSelectedClass("");
+                          setClasses([]);
+                        }}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 h-4 w-4"
+                      >
+                        ✕
+                      </button>
+                    ) : (
+                      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    )}
                   </div>
-                  {universitySearch && selectedCountry && (
+                  {universitySearch && selectedCountry && !selectedUniversity && (
                     <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-md bg-white shadow-lg z-10">
                       {filteredUniversities.length > 0 ? (
                         filteredUniversities.map((university) => (
@@ -406,7 +452,8 @@ const ClassSelection = () => {
                             className="p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
                             onClick={() => {
                               setSelectedUniversity(university.id);
-                              setUniversitySearch(university.name);
+                              setUniversitySearch("");
+                              handleUniversityChange(university.id);
                             }}
                           >
                             {university.name}
@@ -428,15 +475,30 @@ const ClassSelection = () => {
                     <BookOpen className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
                       type="text"
-                      placeholder={selectedUniversity ? "Search courses..." : "Select university first"}
+                      placeholder={selectedUniversity ? 
+                        (selectedClass ? `${classes.find(c => c.id === selectedClass)?.course_name} - Year ${classes.find(c => c.id === selectedClass)?.course_year}, Sem ${classes.find(c => c.id === selectedClass)?.semester}, Group ${classes.find(c => c.id === selectedClass)?.course_group}` : "Search courses...") : 
+                        "Select university first"
+                      }
                       value={classSearch}
                       onChange={(e) => setClassSearch(e.target.value)}
                       disabled={!selectedUniversity || loading}
                       className="pl-10 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
                     />
-                    <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    {selectedUniversity && selectedClass ? (
+                      <button
+                        onClick={() => {
+                          setSelectedClass("");
+                          setClassSearch("");
+                        }}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 h-4 w-4"
+                      >
+                        ✕
+                      </button>
+                    ) : (
+                      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    )}
                   </div>
-                  {classSearch && selectedUniversity && (
+                  {classSearch && selectedUniversity && !selectedClass && (
                     <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-md bg-white shadow-lg z-10">
                       {filteredClasses.length > 0 ? (
                         filteredClasses.map((classItem) => (
@@ -445,7 +507,7 @@ const ClassSelection = () => {
                             className="p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
                             onClick={() => {
                               setSelectedClass(classItem.id);
-                              setClassSearch(`${classItem.course_name} - Year ${classItem.course_year}, Sem ${classItem.semester}, Group ${classItem.course_group}`);
+                              setClassSearch("");
                             }}
                           >
                             {classItem.course_name} - Year {classItem.course_year}, Sem {classItem.semester}, Group {classItem.course_group}

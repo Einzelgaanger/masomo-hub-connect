@@ -35,7 +35,7 @@ export function useNotifications() {
 
     try {
       // Get user's profile to access class and university info
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select(`
           *,
@@ -47,7 +47,11 @@ export function useNotifications() {
         .eq('user_id', user.id)
         .single();
 
-      if (!profile) return;
+      // If profile doesn't exist (deleted), ProfileGuard will handle logout
+      if (!profile || profileError) {
+        setLoading(false);
+        return;
+      }
 
       const newNotifications: NotificationCounts = {
         masomo: 0,

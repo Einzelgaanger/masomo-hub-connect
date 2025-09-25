@@ -67,6 +67,19 @@ export const useApplicationStatus = () => {
         return;
       }
 
+      // If profile doesn't exist (deleted), don't show error, let ProfileGuard handle it
+      if (profileError && profileError.code === 'PGRST116') {
+        // Profile doesn't exist - ProfileGuard will handle logout
+        setStatus({
+          hasApplication: false,
+          status: null,
+          applicationId: null,
+          loading: false,
+          error: null
+        });
+        return;
+      }
+
       // No profile found, check for pending applications
       const { data: applications, error: applicationError } = await supabase
         .from('applications' as any)

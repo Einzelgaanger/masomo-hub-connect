@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import SecurityProvider from "@/components/SecurityProvider";
 import ApplicationStatusGuard from "@/components/ApplicationStatusGuard";
 import AdminGuard from "@/components/AdminGuard";
+import ProfileGuard from "@/components/ProfileGuard";
 import { FloatingConcernsButton } from "@/components/ui/FloatingConcernsButton";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -54,16 +55,17 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <SecurityProvider>
       <AuthProvider>
-        <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <div className="min-h-screen overflow-x-hidden">
-          <BrowserRouter
-            future={{
-              v7_startTransition: true,
-              v7_relativeSplatPath: true,
-            }}
-          >
+        <ProfileGuard>
+          <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <div className="min-h-screen overflow-x-hidden">
+            <BrowserRouter
+              future={{
+                v7_startTransition: true,
+                v7_relativeSplatPath: true,
+              }}
+            >
               <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
@@ -182,8 +184,9 @@ const App = () => (
           {/* Floating Concerns Button - appears on all pages */}
           <FloatingConcernsButton />
         </div>
-      </TooltipProvider>
-    </AuthProvider>
+        </TooltipProvider>
+        </ProfileGuard>
+      </AuthProvider>
     </SecurityProvider>
   </QueryClientProvider>
 );
