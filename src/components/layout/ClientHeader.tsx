@@ -1,6 +1,7 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useProfile } from "./AppLayout";
+import BackButton from "@/components/ui/BackButton";
 
 export function ClientHeader() {
   const profile = useProfile();
@@ -8,6 +9,8 @@ export function ClientHeader() {
   return (
     <header className="sticky top-0 z-50 flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
       <SidebarTrigger className="-ml-1" />
+      
+      <BackButton fallbackPath="/dashboard" />
       
       <div className="flex-1" />
       

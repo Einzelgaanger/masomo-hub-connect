@@ -383,15 +383,6 @@ const ApplicationForm = () => {
 
               <div className="flex gap-3">
                 <Button
-                  type="button"
-                  onClick={() => navigate('/class-selection')}
-                  variant="outline"
-                  className="flex-1 h-10 border-2 border-gray-300 hover:border-gray-400"
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back
-                </Button>
-                <Button
                   type="submit"
                   disabled={loading}
                   className="flex-1 h-10 bg-blue-600 hover:bg-blue-700 text-white font-medium"

@@ -1,5 +1,5 @@
 import { BookOpen, Settings, Info, User, GraduationCap, Shield, LogOut, Video, UserCircle, MessageCircle, Calendar, Briefcase, Mail, GraduationCap as MasomoIcon, Users } from "lucide-react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
   Sidebar as SidebarComponent,
   SidebarContent,
@@ -11,6 +11,7 @@ import {
   SidebarMenuItem,
   SidebarHeader,
   SidebarFooter,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -27,13 +28,22 @@ interface SidebarProps {
 
 export function Sidebar({ profile }: SidebarProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { notifications } = useNotifications();
+  const { setOpenMobile } = useSidebar();
 
   const getNavLinkClass = ({ isActive }: { isActive: boolean }) =>
     isActive 
       ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" 
       : "hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground";
+
+  const handleNavClick = (path: string) => {
+    // If clicking on the same page, close the sidebar
+    if (location.pathname === path) {
+      setOpenMobile(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -82,7 +92,11 @@ export function Sidebar({ profile }: SidebarProps) {
               <SidebarMenu className="space-y-1">
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <NavLink to="/dashboard" className={getNavLinkClass}>
+                    <NavLink 
+                      to="/dashboard" 
+                      className={getNavLinkClass}
+                      onClick={() => handleNavClick("/dashboard")}
+                    >
                       <User className="h-4 w-4" />
                       <span>Dashboard</span>
                     </NavLink>
@@ -90,7 +104,11 @@ export function Sidebar({ profile }: SidebarProps) {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <NavLink to="/units" className={getNavLinkClass}>
+                    <NavLink 
+                      to="/units" 
+                      className={getNavLinkClass}
+                      onClick={() => handleNavClick("/units")}
+                    >
                       <div className="relative">
                         <MasomoIcon className="h-4 w-4" />
                         <NotificationBadge count={notifications.masomo} />
@@ -101,7 +119,11 @@ export function Sidebar({ profile }: SidebarProps) {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <NavLink to="/ukumbi" className={getNavLinkClass}>
+                    <NavLink 
+                      to="/ukumbi" 
+                      className={getNavLinkClass}
+                      onClick={() => handleNavClick("/ukumbi")}
+                    >
                       <div className="relative">
                         <MessageCircle className="h-4 w-4" />
                         <NotificationBadge count={notifications.ukumbi} />
@@ -112,7 +134,11 @@ export function Sidebar({ profile }: SidebarProps) {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <NavLink to="/events" className={getNavLinkClass}>
+                    <NavLink 
+                      to="/events" 
+                      className={getNavLinkClass}
+                      onClick={() => handleNavClick("/events")}
+                    >
                       <div className="relative">
                         <Calendar className="h-4 w-4" />
                         <NotificationBadge count={notifications.tukio} />
@@ -123,7 +149,11 @@ export function Sidebar({ profile }: SidebarProps) {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <NavLink to="/ajira" className={getNavLinkClass}>
+                    <NavLink 
+                      to="/ajira" 
+                      className={getNavLinkClass}
+                      onClick={() => handleNavClick("/ajira")}
+                    >
                       <div className="relative">
                         <Briefcase className="h-4 w-4" />
                         <NotificationBadge count={notifications.ajira} />
@@ -134,7 +164,11 @@ export function Sidebar({ profile }: SidebarProps) {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <NavLink to="/inbox" className={getNavLinkClass}>
+                    <NavLink 
+                      to="/inbox" 
+                      className={getNavLinkClass}
+                      onClick={() => handleNavClick("/inbox")}
+                    >
                       <div className="relative">
                         <Mail className="h-4 w-4" />
                         <NotificationBadge count={notifications.inbox} />
@@ -145,7 +179,11 @@ export function Sidebar({ profile }: SidebarProps) {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <NavLink to="/alumni" className={getNavLinkClass}>
+                    <NavLink 
+                      to="/alumni" 
+                      className={getNavLinkClass}
+                      onClick={() => handleNavClick("/alumni")}
+                    >
                       <div className="relative">
                         <Users className="h-4 w-4" />
                         <NotificationBadge count={notifications.alumni} />
@@ -157,7 +195,11 @@ export function Sidebar({ profile }: SidebarProps) {
                 {profile && ['admin', 'super_admin'].includes(profile.role) && (
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
-                      <NavLink to="/admin" className={getNavLinkClass}>
+                      <NavLink 
+                        to="/admin" 
+                        className={getNavLinkClass}
+                        onClick={() => handleNavClick("/admin")}
+                      >
                         <Shield className="h-4 w-4" />
                         <span>Admin Panel</span>
                       </NavLink>
@@ -166,7 +208,11 @@ export function Sidebar({ profile }: SidebarProps) {
                 )}
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <NavLink to="/settings" className={getNavLinkClass}>
+                    <NavLink 
+                      to="/settings" 
+                      className={getNavLinkClass}
+                      onClick={() => handleNavClick("/settings")}
+                    >
                       <Settings className="h-4 w-4" />
                       <span>Settings</span>
                     </NavLink>
@@ -174,7 +220,11 @@ export function Sidebar({ profile }: SidebarProps) {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <NavLink to={`/profile/${profile?.user_id}`} className={getNavLinkClass}>
+                    <NavLink 
+                      to={`/profile/${profile?.user_id}`} 
+                      className={getNavLinkClass}
+                      onClick={() => handleNavClick(`/profile/${profile?.user_id}`)}
+                    >
                       <UserCircle className="h-4 w-4" />
                       <span>My Profile</span>
                     </NavLink>
@@ -182,7 +232,11 @@ export function Sidebar({ profile }: SidebarProps) {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <NavLink to="/info" className={getNavLinkClass}>
+                    <NavLink 
+                      to="/info" 
+                      className={getNavLinkClass}
+                      onClick={() => handleNavClick("/info")}
+                    >
                       <Info className="h-4 w-4" />
                       <span>Info</span>
                     </NavLink>

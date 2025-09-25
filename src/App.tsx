@@ -4,8 +4,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import SecurityProvider from "@/components/SecurityProvider";
 import ApplicationStatusGuard from "@/components/ApplicationStatusGuard";
 import AdminGuard from "@/components/AdminGuard";
+import { FloatingConcernsButton } from "@/components/ui/FloatingConcernsButton";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -14,6 +16,7 @@ import Dashboard from "./pages/Dashboard";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminClasses from "./pages/admin/AdminClasses";
+import AdminConcerns from "./pages/admin/AdminConcerns";
 import ClassSelection from "./pages/ClassSelection";
 import ApplicationForm from "./pages/ApplicationForm";
 import ApplicationStatus from "./pages/ApplicationStatus";
@@ -49,8 +52,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
+    <SecurityProvider>
+      <AuthProvider>
+        <TooltipProvider>
         <Toaster />
         <Sonner />
         <div className="min-h-screen overflow-x-hidden">
@@ -60,56 +64,73 @@ const App = () => (
               v7_relativeSplatPath: true,
             }}
           >
-            <ApplicationStatusGuard>
               <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/create-password" element={<CreatePassword />} />
             <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
+              <ApplicationStatusGuard>
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              </ApplicationStatusGuard>
             } />
             <Route path="/ukumbi" element={
-              <ProtectedRoute>
-                <Ukumbi />
-              </ProtectedRoute>
+              <ApplicationStatusGuard>
+                <ProtectedRoute>
+                  <Ukumbi />
+                </ProtectedRoute>
+              </ApplicationStatusGuard>
             } />
             <Route path="/events" element={
-              <ProtectedRoute>
-                <Events />
-              </ProtectedRoute>
+              <ApplicationStatusGuard>
+                <ProtectedRoute>
+                  <Events />
+                </ProtectedRoute>
+              </ApplicationStatusGuard>
             } />
             <Route path="/ajira" element={
-              <ProtectedRoute>
-                <Ajira />
-              </ProtectedRoute>
+              <ApplicationStatusGuard>
+                <ProtectedRoute>
+                  <Ajira />
+                </ProtectedRoute>
+              </ApplicationStatusGuard>
             } />
             <Route path="/inbox" element={
-              <ProtectedRoute>
-                <Inbox />
-              </ProtectedRoute>
+              <ApplicationStatusGuard>
+                <ProtectedRoute>
+                  <Inbox />
+                </ProtectedRoute>
+              </ApplicationStatusGuard>
             } />
             <Route path="/inbox/:conversationId" element={
-              <ProtectedRoute>
-                <Inbox />
-              </ProtectedRoute>
+              <ApplicationStatusGuard>
+                <ProtectedRoute>
+                  <Inbox />
+                </ProtectedRoute>
+              </ApplicationStatusGuard>
             } />
             <Route path="/units" element={
-              <ProtectedRoute>
-                <Units />
-              </ProtectedRoute>
+              <ApplicationStatusGuard>
+                <ProtectedRoute>
+                  <Units />
+                </ProtectedRoute>
+              </ApplicationStatusGuard>
             } />
             <Route path="/alumni" element={
-              <ProtectedRoute>
-                <Alumni />
-              </ProtectedRoute>
+              <ApplicationStatusGuard>
+                <ProtectedRoute>
+                  <Alumni />
+                </ProtectedRoute>
+              </ApplicationStatusGuard>
             } />
             <Route path="/profile/:userId" element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
+              <ApplicationStatusGuard>
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              </ApplicationStatusGuard>
             } />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin" element={
@@ -122,34 +143,48 @@ const App = () => (
                 <AdminClasses />
               </AdminGuard>
             } />
+            <Route path="/admin/concerns" element={
+              <AdminGuard>
+                <AdminConcerns />
+              </AdminGuard>
+            } />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/class-selection" element={<ClassSelection />} />
             <Route path="/application" element={<ApplicationForm />} />
             <Route path="/application-status" element={<ApplicationStatus />} />
             <Route path="/application-rejected" element={<ApplicationRejected />} />
             <Route path="/unit/:unitId" element={
-              <ProtectedRoute>
-                <UnitPage />
-              </ProtectedRoute>
+              <ApplicationStatusGuard>
+                <ProtectedRoute>
+                  <UnitPage />
+                </ProtectedRoute>
+              </ApplicationStatusGuard>
             } />
             <Route path="/settings" element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
+              <ApplicationStatusGuard>
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              </ApplicationStatusGuard>
             } />
             <Route path="/info" element={
-              <ProtectedRoute>
-                <Info />
-              </ProtectedRoute>
+              <ApplicationStatusGuard>
+                <ProtectedRoute>
+                  <Info />
+                </ProtectedRoute>
+              </ApplicationStatusGuard>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
             </Routes>
-            </ApplicationStatusGuard>
           </BrowserRouter>
+          
+          {/* Floating Concerns Button - appears on all pages */}
+          <FloatingConcernsButton />
         </div>
       </TooltipProvider>
     </AuthProvider>
+    </SecurityProvider>
   </QueryClientProvider>
 );
 

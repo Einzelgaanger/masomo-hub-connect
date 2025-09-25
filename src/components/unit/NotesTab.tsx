@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Upload, Download, Heart, HeartOff, MessageSquare, Trash2, Eye, FileText } from "lucide-react";
 import { format } from "date-fns";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 interface Note {
   id: string;
@@ -450,25 +451,13 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
   };
 
   if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Notes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <LoadingSpinner message="Loading notes..." variant="minimal" size="sm" />;
   }
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Notes</CardTitle>
+      <div className="flex flex-row items-center justify-between">
+        <h2 className="text-2xl font-bold">Notes</h2>
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={resetForm}>
@@ -530,9 +519,9 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
+      </div>
+
+      <div className="space-y-4">
             {notes.map((note) => {
               const userReaction = getUserReaction(note);
               return (
@@ -697,8 +686,6 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
               </div>
             )}
           </div>
-        </CardContent>
-      </Card>
 
       {/* Delete Confirmation Dialog */}
       {showDeleteDialog && (

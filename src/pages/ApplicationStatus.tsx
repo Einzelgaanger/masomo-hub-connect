@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Clock, CheckCircle, XCircle, RefreshCw, ArrowLeft } from "lucide-react";
 import Logo from "@/components/ui/Logo";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 const ApplicationStatus = () => {
   const { user } = useAuth();

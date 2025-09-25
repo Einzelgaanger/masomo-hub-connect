@@ -32,6 +32,10 @@ export function AppLayout({ children, showHeader = false, HeaderComponent }: App
   useEffect(() => {
     if (user) {
       fetchProfile();
+    } else {
+      // User logged out, clear profile and set loading to false
+      setProfile(null);
+      setLoading(false);
     }
   }, [user]);
 

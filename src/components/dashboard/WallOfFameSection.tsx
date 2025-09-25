@@ -7,6 +7,7 @@ import { Trophy, Medal, Award, Building, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getCharacterById } from "@/types/characters";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 export function WallOfFameSection() {
   const { user } = useAuth();
@@ -286,18 +287,12 @@ export function WallOfFameSection() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="flex items-center gap-3 animate-pulse">
-                <div className="h-10 w-10 bg-muted rounded-full"></div>
-                <div className="flex-1">
-                  <div className="h-4 bg-muted rounded w-1/2 mb-1"></div>
-                  <div className="h-3 bg-muted rounded w-1/4"></div>
-                </div>
-                <div className="h-4 bg-muted rounded w-12"></div>
-              </div>
-            ))}
-          </div>
+          <LoadingSpinner 
+            message="Loading top performers..." 
+            size="sm" 
+            variant="minimal"
+            className="p-4"
+          />
         </CardContent>
       </Card>
     );

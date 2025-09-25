@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Upload, Download, Trash2, Calendar, CheckCircle, Clock } from "lucide-react";
 import { format, formatDistanceToNow, isAfter } from "date-fns";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 interface Assignment {
   id: string;
@@ -276,25 +277,13 @@ export function AssignmentsTab({ unitId, profile }: AssignmentsTabProps) {
   };
 
   if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Assignments</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <LoadingSpinner message="Loading assignments..." variant="minimal" size="sm" />;
   }
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Assignments</CardTitle>
+      <div className="flex flex-row items-center justify-between">
+        <h2 className="text-2xl font-bold">Assignments</h2>
           {canCreate() && (
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
@@ -368,9 +357,9 @@ export function AssignmentsTab({ unitId, profile }: AssignmentsTabProps) {
               </DialogContent>
             </Dialog>
           )}
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
+      </div>
+
+      <div className="space-y-4">
             {assignments.map((assignment) => {
               const deadlineStatus = getDeadlineStatus(assignment.deadline);
               const completed = isCompleted(assignment);
@@ -471,8 +460,6 @@ export function AssignmentsTab({ unitId, profile }: AssignmentsTabProps) {
               </div>
             )}
           </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

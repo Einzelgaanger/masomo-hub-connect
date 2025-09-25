@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Calendar, Trash2, Clock, MapPin, Heart, HeartOff, MessageSquare } from "lucide-react";
 import { format, formatDistanceToNow, isAfter, isToday, isTomorrow, isYesterday } from "date-fns";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 interface Event {
   id: string;
@@ -328,25 +329,13 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
   };
 
   if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Events</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <LoadingSpinner message="Loading events..." variant="minimal" size="sm" />;
   }
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Events</CardTitle>
+      <div className="flex flex-row items-center justify-between">
+        <h2 className="text-2xl font-bold">Events</h2>
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={resetForm}>
@@ -425,9 +414,9 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
+      </div>
+
+      <div className="space-y-4">
             {events.map((event) => {
               const eventStatus = getEventStatus(event.event_date);
               
@@ -581,8 +570,6 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
               </div>
             )}
           </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

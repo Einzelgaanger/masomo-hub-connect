@@ -17,9 +17,276 @@ import {
   Eye,
   Users,
   MessageCircle,
-  Paperclip
+  Paperclip,
+  Trash2,
+  Volume2,
+  VolumeX
 } from "lucide-react";
 import { format } from "date-fns";
+
+// TikTok-style Video Player Component
+function VideoPlayer({ src, filename, message }: { src: string; filename: string; message: any }) {
+  const [isDownloaded, setIsDownloaded] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [videoRef, setVideoRef] = useState<HTMLVideoElement | null>(null);
+  const [showFullscreen, setShowFullscreen] = useState(false);
+  const [isMuted, setIsMuted] = useState(true); // Start muted by default
+
+  const downloadVideo = async () => {
+    if (isDownloaded) return;
+    
+    setIsDownloading(true);
+    setDownloadProgress(0);
+    
+    try {
+      const response = await fetch(src);
+      const contentLength = response.headers.get('content-length');
+      const total = parseInt(contentLength || '0', 10);
+      let loaded = 0;
+
+      const reader = response.body?.getReader();
+      const chunks: Uint8Array[] = [];
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          
+          if (done) break;
+          
+          chunks.push(value);
+          loaded += value.length;
+          
+          // Update progress
+          if (total > 0) {
+            const progress = Math.round((loaded / total) * 100);
+            setDownloadProgress(progress);
+          }
+        }
+      }
+
+      // Create blob from chunks
+      const blob = new Blob(chunks);
+      
+      // Create object URL for the video
+      const videoUrl = URL.createObjectURL(blob);
+      
+      if (videoRef) {
+        videoRef.src = videoUrl;
+        videoRef.load(); // Force reload with downloaded content
+        setIsDownloaded(true);
+      }
+    } catch (error) {
+      console.error('Error downloading video:', error);
+    } finally {
+      setIsDownloading(false);
+      setDownloadProgress(0);
+    }
+  };
+
+  const togglePlay = () => {
+    if (!videoRef || !isDownloaded) return;
+    
+    if (videoRef.paused) {
+      videoRef.play();
+    } else {
+      videoRef.pause();
+    }
+  };
+
+  const toggleMute = () => {
+    if (!videoRef) return;
+    const newMutedState = !videoRef.muted;
+    videoRef.muted = newMutedState;
+    setIsMuted(newMutedState);
+  };
+
+  const openFullscreen = () => {
+    if (isDownloaded) {
+      setShowFullscreen(true);
+    } else {
+      downloadVideo().then(() => {
+        setShowFullscreen(true);
+      });
+    }
+  };
+
+  const closeFullscreen = () => {
+    setShowFullscreen(false);
+    // Pause video when closing
+    if (videoRef) {
+      videoRef.pause();
+    }
+  };
+
+  return (
+    <>
+      {/* Preview thumbnail - click to open fullscreen */}
+      <div 
+        className="relative w-full aspect-video bg-black cursor-pointer"
+        onClick={openFullscreen}
+      >
+        <video
+          ref={setVideoRef}
+          className="w-full h-full object-cover border-0 outline-none rounded-none shadow-none"
+          preload="none"
+          onLoadedData={() => {
+            if (videoRef) {
+              videoRef.style.display = 'block';
+            }
+          }}
+        />
+        
+        {/* Download overlay - shows first */}
+        {!isDownloaded && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/80">
+            <div className="flex flex-col items-center gap-3">
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  downloadVideo();
+                }}
+                disabled={isDownloading}
+                className="bg-white/60 hover:bg-white/70 text-black rounded-full w-16 h-16 p-0 shadow-lg border border-white/20"
+              >
+                {isDownloading ? (
+                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-black border-t-transparent"></div>
+                ) : (
+                  <Download className="h-6 w-6" />
+                )}
+              </Button>
+              
+              {/* Progress percentage */}
+              {isDownloading && (
+                <div className="text-white text-sm font-medium">
+                  {downloadProgress}%
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        
+        {/* Play button - only shows after download */}
+        {isDownloaded && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                togglePlay();
+              }}
+              className="bg-white/60 hover:bg-white/70 rounded-full w-16 h-16 p-0 shadow-lg border border-white/20"
+            >
+              <Video className="h-6 w-6 text-gray-800" />
+            </Button>
+          </div>
+        )}
+        
+        {/* Mute button - only shows after download */}
+        {isDownloaded && (
+          <div className="absolute top-4 right-4">
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleMute();
+              }}
+              className="bg-black/50 hover:bg-black/70 text-white border-0 rounded-full w-8 h-8 p-0"
+            >
+              {isMuted ? (
+                <VolumeX className="h-4 w-4" />
+              ) : (
+                <Volume2 className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* TikTok-style Fullscreen Modal */}
+      {showFullscreen && (
+        <div className="fixed inset-0 z-50 bg-black flex flex-col">
+          {/* Close button */}
+          <div className="absolute top-4 left-4 z-10">
+            <Button
+              onClick={closeFullscreen}
+              className="bg-black/50 hover:bg-black/70 text-white border-0 rounded-full w-10 h-10 p-0"
+            >
+              ✕
+            </Button>
+          </div>
+
+          {/* Video takes most of screen */}
+          <div className="flex-1 flex items-center justify-center relative">
+            <video
+              src={videoRef?.src || src}
+              className="w-full h-full object-cover border-0 outline-none rounded-none shadow-none"
+              autoPlay
+              loop
+              muted={isMuted}
+              controls={false}
+              onLoadedData={() => {
+                const fullscreenVideo = document.querySelector('.fixed video') as HTMLVideoElement;
+                if (fullscreenVideo) {
+                  fullscreenVideo.play();
+                }
+              }}
+            />
+            
+            {/* Play button overlay for fullscreen (when paused) */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <Button
+                className="bg-white/60 hover:bg-white/70 rounded-full w-20 h-20 p-0 shadow-lg border border-white/20 pointer-events-auto"
+              >
+                <Video className="h-8 w-8 text-gray-800" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Description at bottom - TikTok style */}
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-6">
+            <div className="flex items-start gap-3">
+              <Avatar className="h-10 w-10 border-2 border-white/20">
+                <AvatarImage src={message.profiles?.profile_picture_url} />
+                <AvatarFallback className="text-xs bg-white/20 text-white">
+                  {message.profiles?.full_name?.split(' ').map((n: string) => n[0]).join('')}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <p className="text-white font-medium text-sm mb-1">
+                  {message.profiles?.full_name}
+                </p>
+                <p className="text-white/90 text-sm leading-relaxed">
+                  {message.content}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Mute button for fullscreen */}
+          <div className="absolute top-4 right-4 z-10">
+            <Button
+              onClick={() => {
+                const fullscreenVideo = document.querySelector('.fixed video') as HTMLVideoElement;
+                if (fullscreenVideo) {
+                  const newMutedState = !fullscreenVideo.muted;
+                  fullscreenVideo.muted = newMutedState;
+                  setIsMuted(newMutedState);
+                }
+              }}
+              className="bg-black/50 hover:bg-black/70 text-white border-0 rounded-full w-10 h-10 p-0"
+            >
+              {isMuted ? (
+                <VolumeX className="h-5 w-5" />
+              ) : (
+                <Volume2 className="h-5 w-5" />
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 
 interface Message {
   id: string;
@@ -45,6 +312,79 @@ interface Message {
   }[];
 }
 
+// TikTok-style Image Player Component
+function ImagePlayer({ src, message }: { src: string; message: any }) {
+  const [showFullscreen, setShowFullscreen] = useState(false);
+
+  const openFullscreen = () => {
+    setShowFullscreen(true);
+  };
+
+  const closeFullscreen = () => {
+    setShowFullscreen(false);
+  };
+
+  return (
+    <>
+      {/* Preview thumbnail - click to open fullscreen */}
+      <div 
+        className="relative w-full aspect-video bg-black cursor-pointer"
+        onClick={openFullscreen}
+      >
+        <img
+          src={src}
+          alt="Shared image"
+          className="w-full h-full object-cover border-0 outline-none rounded-none shadow-none"
+        />
+      </div>
+
+      {/* TikTok-style Fullscreen Modal */}
+      {showFullscreen && (
+        <div className="fixed inset-0 z-50 bg-black flex flex-col">
+          {/* Close button */}
+          <div className="absolute top-4 left-4 z-10">
+            <Button
+              onClick={closeFullscreen}
+              className="bg-black/50 hover:bg-black/70 text-white border-0 rounded-full w-10 h-10 p-0"
+            >
+              ✕
+            </Button>
+          </div>
+
+          {/* Image takes most of screen */}
+          <div className="flex-1 flex items-center justify-center relative">
+            <img
+              src={src}
+              alt="Fullscreen image"
+              className="w-full h-full object-contain border-0 outline-none rounded-none shadow-none"
+            />
+          </div>
+
+          {/* Description at bottom - TikTok style */}
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-6">
+            <div className="flex items-start gap-3">
+              <Avatar className="h-10 w-10 border-2 border-white/20">
+                <AvatarImage src={message.profiles?.profile_picture_url} />
+                <AvatarFallback className="text-xs bg-white/20 text-white">
+                  {message.profiles?.full_name?.split(' ').map((n: string) => n[0]).join('')}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <p className="text-white font-medium text-sm mb-1">
+                  {message.profiles?.full_name}
+                </p>
+                <p className="text-white/90 text-sm leading-relaxed">
+                  {message.content}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function Ukumbi() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -62,6 +402,7 @@ export default function Ukumbi() {
   const [pendingMessages, setPendingMessages] = useState<Set<string>>(new Set());
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState<Message | null>(null);
+  const [longPressingMessageId, setLongPressingMessageId] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileDescription, setFileDescription] = useState('');
   const [showFileUploadDialog, setShowFileUploadDialog] = useState(false);
@@ -276,6 +617,7 @@ export default function Ukumbi() {
       likes_count: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      reply_to_message_id: replyingTo?.id || null,
       profiles: {
         full_name: userProfile.full_name,
         profile_picture_url: userProfile.profile_picture_url,
@@ -306,7 +648,8 @@ export default function Ukumbi() {
           user_id: user?.id,
           university_id: userProfile.classes.university_id,
           content: messageContent,
-          message_type: 'text'
+          message_type: 'text',
+          reply_to_message_id: replyingTo?.id || null
         })
         .select(`
           *,
@@ -324,7 +667,8 @@ export default function Ukumbi() {
             user_id: user?.id,
             university_id: userProfile.classes.university_id,
             content: messageContent,
-            message_type: 'text'
+            message_type: 'text',
+            reply_to_message_id: replyingTo?.id || null
           })
           .select('*')
           .single();
@@ -406,9 +750,16 @@ export default function Ukumbi() {
     const messageType = selectedFile.type.startsWith('image/') ? 'image' : 'video';
     const fileIcon = messageType === 'image' ? '📷' : '🎥';
     const content = fileDescription.trim() 
-      ? `${fileIcon} ${selectedFile.name}\n\n${fileDescription.trim()}`
-      : `${fileIcon} ${selectedFile.name}`;
+      ? `${fileIcon} ${fileDescription.trim()}`
+      : `${fileIcon}`;
     
+    // Generate a better display name for optimistic message
+    const originalName = selectedFile.name;
+    const fileExt = selectedFile.name.split('.').pop();
+    const displayName = originalName.length > 20 
+      ? `${originalName.substring(0, 17)}...${fileExt}` 
+      : originalName;
+
     // Create optimistic message for file upload
     const optimisticMessage: Message = {
       id: tempId,
@@ -417,7 +768,7 @@ export default function Ukumbi() {
       content: content,
       message_type: messageType,
       media_url: null, // Will be updated when upload completes
-      media_filename: selectedFile.name,
+      media_filename: displayName,
       media_size: selectedFile.size,
       likes_count: 0,
       created_at: new Date().toISOString(),
@@ -452,6 +803,12 @@ export default function Ukumbi() {
       const fileExt = selectedFile.name.split('.').pop();
       const fileName = `${user?.id}-${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
+      
+      // Generate a better display name
+      const originalName = selectedFile.name;
+      const displayName = originalName.length > 20 
+        ? `${originalName.substring(0, 17)}...${fileExt}` 
+        : originalName;
 
       // Upload file to storage
       const { error: uploadError } = await supabase.storage
@@ -474,7 +831,7 @@ export default function Ukumbi() {
           content: content,
           message_type: messageType,
           media_url: publicUrl,
-          media_filename: selectedFile.name,
+          media_filename: displayName,
           media_size: selectedFile.size,
           reply_to_message_id: replyingTo?.id || null
         })
@@ -625,15 +982,27 @@ export default function Ukumbi() {
   // Long press to delete functionality
   const handleLongPress = (message: Message) => {
     if (message.user_id === user?.id) {
+      // Provide haptic feedback if available
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+      
       setShowDeleteDialog(message);
+      
+      toast({
+        title: "Delete Message",
+        description: "Long press detected. Confirm deletion in the dialog.",
+      });
     }
   };
 
-  const handleLongPressStart = (e: React.TouchEvent, message: Message) => {
+  const handleLongPressStart = (e: React.TouchEvent | React.MouseEvent, message: Message) => {
     e.preventDefault();
     if (message.user_id === user?.id) {
+      setLongPressingMessageId(message.id);
       const timer = setTimeout(() => {
         handleLongPress(message);
+        setLongPressingMessageId(null);
       }, 500); // 500ms long press
       setLongPressTimer(timer);
     }
@@ -643,6 +1012,7 @@ export default function Ukumbi() {
     if (longPressTimer) {
       clearTimeout(longPressTimer);
       setLongPressTimer(null);
+      setLongPressingMessageId(null);
     }
   };
 
@@ -684,9 +1054,9 @@ export default function Ukumbi() {
   // Jumping dots loading component
   const JumpingDots = () => (
     <div className="flex items-center space-x-1">
-      <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-      <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-      <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+      <div className="w-1 h-1 bg-current rounded-full animate-bounce [animation-delay:0ms]"></div>
+      <div className="w-1 h-1 bg-current rounded-full animate-bounce [animation-delay:150ms]"></div>
+      <div className="w-1 h-1 bg-current rounded-full animate-bounce [animation-delay:300ms]"></div>
     </div>
   );
 
@@ -732,7 +1102,7 @@ export default function Ukumbi() {
                     <div
                       className={`max-w-[75%] sm:max-w-[70%] space-y-1 ${
                         message.user_id === user?.id ? 'items-end' : 'items-start'
-                      } flex flex-col`}
+                      } flex flex-col group`}
                     >
                       {/* Message Header */}
                       <div className={`flex items-center gap-2 text-xs text-muted-foreground ${
@@ -752,10 +1122,14 @@ export default function Ukumbi() {
 
                       {/* Message Content */}
                       <div
-                        className={`px-3 py-2 rounded-2xl relative ${
+                        className={`px-3 py-2 rounded-2xl relative transition-all duration-200 ${
                           message.user_id === user?.id
                             ? 'bg-primary text-primary-foreground rounded-br-md'
                             : 'bg-muted rounded-bl-md'
+                        } ${
+                          longPressingMessageId === message.id
+                            ? 'scale-95 opacity-80 shadow-lg'
+                            : ''
                         }`}
                         onDoubleClick={() => toggleLike(message.id)}
                         onTouchStart={(e) => {
@@ -770,7 +1144,18 @@ export default function Ukumbi() {
                           onTouchEnd(e, message);
                           handleLongPressEnd();
                         }}
+                        onMouseDown={(e) => {
+                          handleLongPressStart(e, message);
+                        }}
+                        onMouseUp={handleLongPressEnd}
+                        onMouseLeave={handleLongPressEnd}
+                        title={message.user_id === user?.id ? "Long press to delete" : ""}
                       >
+                        {message.reply_to_message_id && (
+                          <div className="mb-2 p-2 bg-muted/30 rounded border-l-2 border-primary/50">
+                            <p className="text-xs text-muted-foreground">Replying to a message</p>
+                          </div>
+                        )}
                         {message.message_type === 'text' ? (
                           <div className="flex items-center gap-2">
                             <p className="text-sm whitespace-pre-wrap">{message.content}</p>
@@ -779,63 +1164,28 @@ export default function Ukumbi() {
                             )}
                           </div>
                         ) : (
-                          <div className="space-y-2">
+                          <div className="space-y-3">
+                            {/* Media display - NO BORDERS */}
+                            {message.message_type === 'image' ? (
+                              <ImagePlayer 
+                                src={message.media_url}
+                                message={message}
+                              />
+                            ) : (
+                              /* TikTok-style video preview - NO BORDERS, DOWNLOAD FIRST */
+                              <VideoPlayer 
+                                src={message.media_url}
+                                filename={message.media_filename || 'video'}
+                                message={message}
+                              />
+                            )}
+                            
+                            {/* Message content text - ALWAYS BELOW MEDIA */}
                             <div className="flex items-center gap-2">
                               <p className="text-sm">{message.content}</p>
                               {pendingMessages.has(message.id) && (
                                 <JumpingDots />
                               )}
-                            </div>
-                            <div className="space-y-2">
-                              {message.message_type === 'image' ? (
-                                <div className="relative group">
-                                  <img
-                                    src={message.media_url}
-                                    alt={message.media_filename}
-                                    className="max-w-full max-h-64 rounded-lg cursor-pointer"
-                                    onClick={() => window.open(message.media_url, '_blank')}
-                                  />
-                                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Button
-                                      size="sm"
-                                      variant="secondary"
-                                      onClick={() => window.open(message.media_url, '_blank')}
-                                    >
-                                      <Eye className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="relative group">
-                                  <video
-                                    src={message.media_url}
-                                    controls
-                                    className="max-w-full max-h-64 rounded-lg"
-                                  />
-                                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Button
-                                      size="sm"
-                                      variant="secondary"
-                                      onClick={() => window.open(message.media_url, '_blank')}
-                                    >
-                                      <Eye className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              )}
-                              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                <span>{message.media_filename}</span>
-                                <div className="flex items-center gap-2">
-                                  <span>{message.media_size && formatFileSize(message.media_size)}</span>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => downloadMedia(message.media_url!, message.media_filename!)}
-                                  >
-                                    <Download className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              </div>
                             </div>
                           </div>
                         )}
@@ -844,6 +1194,13 @@ export default function Ukumbi() {
                         {message.likes_count > 0 && (
                           <div className="absolute -bottom-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center shadow-lg">
                             <Heart className="h-2 w-2 fill-current" />
+                          </div>
+                        )}
+
+                        {/* Delete Indicator (for user's own messages) */}
+                        {message.user_id === user?.id && (
+                          <div className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center shadow-lg cursor-pointer">
+                            <Trash2 className="h-2 w-2" />
                           </div>
                         )}
                       </div>

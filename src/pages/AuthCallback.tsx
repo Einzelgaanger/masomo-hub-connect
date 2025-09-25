@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import Logo from '@/components/ui/Logo';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -134,9 +135,13 @@ const AuthCallback = () => {
         </div>
         
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md mx-auto">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">Processing Login</h2>
-          <p className="text-gray-600">
+          <LoadingSpinner 
+            message="Processing Login" 
+            size="md" 
+            variant="default"
+            className="border-0 shadow-none bg-transparent"
+          />
+          <p className="text-gray-600 mt-4 text-center">
             Please wait while we set up your account...
           </p>
         </div>

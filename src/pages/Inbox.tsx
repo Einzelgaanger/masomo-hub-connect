@@ -57,12 +57,16 @@ const Inbox = () => {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchingUsers, setSearchingUsers] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (user) {
+      fetchUserProfile();
       fetchConversations();
       if (conversationId) {
         fetchMessages(conversationId);
@@ -81,8 +85,100 @@ const Inbox = () => {
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    if (searchQuery.trim() && userProfile?.classes?.university_id) {
+      const timeoutId = setTimeout(() => {
+        searchUsers(searchQuery.trim());
+      }, 300); // 300ms debounce
+      
+      return () => clearTimeout(timeoutId);
+    } else {
+      setSearchResults([]);
+    }
+  }, [searchQuery, userProfile]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const fetchUserProfile = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(`
+          *,
+          classes (
+            *,
+            universities (*)
+          )
+        `)
+        .eq('user_id', user?.id)
+        .single();
+
+      if (error) throw error;
+      setUserProfile(data);
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  };
+
+  const searchUsers = async (query: string) => {
+    if (!userProfile?.classes?.university_id) return;
+
+    setSearchingUsers(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(`
+          user_id,
+          full_name,
+          profile_picture_url,
+          classes!inner (
+            university_id,
+            course_name,
+            universities (
+              name
+            )
+          )
+        `)
+        .eq('classes.university_id', userProfile.classes.university_id)
+        .neq('user_id', user?.id)
+        .ilike('full_name', `%${query}%`)
+        .limit(10);
+
+      if (error) throw error;
+      setSearchResults(data || []);
+    } catch (error) {
+      console.error('Error searching users:', error);
+      toast({
+        title: "Search Error",
+        description: "Failed to search for users.",
+        variant: "destructive",
+      });
+    } finally {
+      setSearchingUsers(false);
+    }
+  };
+
+  const startConversation = async (userId: string) => {
+    try {
+      setSelectedConversation(userId);
+      navigate(`/inbox/${userId}`);
+      setSearchQuery("");
+      setSearchResults([]);
+      
+      toast({
+        title: "Conversation Started",
+        description: "You can now start messaging this user.",
+      });
+    } catch (error) {
+      console.error('Error starting conversation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start conversation.",
+        variant: "destructive",
+      });
+    }
   };
 
   const fetchConversations = async () => {
@@ -204,6 +300,11 @@ const Inbox = () => {
     conv.participant_email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Filter out users who already have conversations from search results
+  const availableSearchResults = searchResults.filter(user => 
+    !conversations.some(conv => conv.participant_id === user.user_id)
+  );
+
   const selectedConvData = conversations.find(conv => conv.participant_id === selectedConversation);
 
   if (loading) {
@@ -229,7 +330,7 @@ const Inbox = () => {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search conversations..."
+                placeholder="Search conversations or find new people..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -238,12 +339,13 @@ const Inbox = () => {
           </div>
 
           <ScrollArea className="flex-1">
-            {filteredConversations.length === 0 ? (
+            {filteredConversations.length === 0 && availableSearchResults.length === 0 ? (
               <div className="p-4 text-center text-muted-foreground">
-                {searchQuery ? 'No conversations found' : 'No conversations yet'}
+                {searchQuery ? 'No users found' : 'No conversations yet'}
               </div>
             ) : (
               <div className="p-2">
+                {/* Existing Conversations */}
                 {filteredConversations.map((conversation) => (
                   <Card
                     key={conversation.participant_id}
@@ -289,6 +391,46 @@ const Inbox = () => {
                     </CardContent>
                   </Card>
                 ))}
+
+                {/* Search Results */}
+                {availableSearchResults.length > 0 && (
+                  <>
+                    <div className="px-3 py-2 border-t">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        {searchingUsers ? 'Searching...' : 'Start New Conversation'}
+                      </p>
+                    </div>
+                    {availableSearchResults.map((user) => (
+                      <Card
+                        key={user.user_id}
+                        className="mb-2 cursor-pointer transition-colors hover:bg-muted/50"
+                        onClick={() => startConversation(user.user_id)}
+                      >
+                        <CardContent className="p-3">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={user.profile_picture_url} />
+                              <AvatarFallback>
+                                {user.full_name.split(' ').map((n: string) => n[0]).join('')}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <p className="font-medium truncate">{user.full_name}</p>
+                                <Button size="sm" variant="outline" className="h-6 px-2 text-xs">
+                                  Message
+                                </Button>
+                              </div>
+                              <p className="text-sm text-muted-foreground truncate">
+                                {user.classes?.course_name} • {user.classes?.universities?.name}
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </>
+                )}
               </div>
             )}
           </ScrollArea>
@@ -301,17 +443,6 @@ const Inbox = () => {
               {/* Chat Header */}
               <div className="p-4 border-b bg-background flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedConversation(null);
-                      navigate('/inbox');
-                    }}
-                    className="md:hidden"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                  </Button>
                   {selectedConvData && (
                     <button className="flex items-center gap-2" onClick={() => navigate(`/profile/${selectedConvData.participant_id}`)}>
                       <Avatar className="h-8 w-8">

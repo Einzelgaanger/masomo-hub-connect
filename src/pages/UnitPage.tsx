@@ -15,6 +15,7 @@ import { AssignmentsTab } from "@/components/unit/AssignmentsTab";
 import { EventsTab } from "@/components/unit/EventsTab";
 import { useNotifications } from "@/hooks/useNotifications";
 import { NotificationBadge } from "@/components/ui/NotificationBadge";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 const UnitPage = () => {
   const { unitId } = useParams();
@@ -102,11 +103,7 @@ const UnitPage = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <LoadingSpinner message="Loading unit..." variant="fullscreen" />;
   }
 
   if (!unit) {
@@ -115,10 +112,9 @@ const UnitPage = () => {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-red-600 mb-2">Unit Not Found</h1>
           <p className="text-muted-foreground mb-4">The unit you're looking for doesn't exist.</p>
-          <Button onClick={() => navigate("/dashboard")}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
+          <BackButton fallbackPath="/dashboard">
             Back to Dashboard
-          </Button>
+          </BackButton>
         </div>
       </div>
     );
@@ -128,18 +124,6 @@ const UnitPage = () => {
     <AppLayout>
              {/* Unit Header */}
              <div className="space-y-4 mb-6">
-               {/* Back Button */}
-               <div className="flex items-center">
-                 <Button
-                   variant="ghost"
-                   size="icon"
-                   onClick={() => navigate("/units")}
-                   className="h-8 w-8"
-                 >
-                   <ArrowLeft className="h-4 w-4" />
-                 </Button>
-               </div>
-
                {/* Unit Title and Info */}
                <div className="space-y-3">
                  <div>
@@ -169,56 +153,68 @@ const UnitPage = () => {
 
             {/* Unit Tabs */}
             <Tabs defaultValue="notes" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
-                <TabsTrigger value="notes" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-                  <div className="relative">
-                    <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <NotificationBadge count={notifications.unitTabs[unitId || '']?.notes || 0} />
-                  </div>
-                  <span className="hidden xs:inline">Notes</span>
-                  <span className="xs:hidden">Notes</span>
-                </TabsTrigger>
-                <TabsTrigger value="past-papers" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-                  <div className="relative">
-                    <BookOpen className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <NotificationBadge count={notifications.unitTabs[unitId || '']?.pastPapers || 0} />
-                  </div>
-                  <span className="hidden xs:inline">Past Papers</span>
-                  <span className="xs:hidden">Papers</span>
-                </TabsTrigger>
-                <TabsTrigger value="assignments" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-                  <div className="relative">
-                    <ClipboardList className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <NotificationBadge count={notifications.unitTabs[unitId || '']?.assignments || 0} />
-                  </div>
-                  <span className="hidden xs:inline">Assignments</span>
-                  <span className="xs:hidden">Tasks</span>
-                </TabsTrigger>
-                <TabsTrigger value="events" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-                  <div className="relative">
-                    <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <NotificationBadge count={notifications.unitTabs[unitId || '']?.events || 0} />
-                  </div>
-                  <span className="hidden xs:inline">Events</span>
-                  <span className="xs:hidden">Events</span>
-                </TabsTrigger>
-              </TabsList>
+              <div className="border-b border-gray-200">
+                <TabsList className="h-auto p-0 bg-transparent w-full justify-start space-x-0">
+                  <TabsTrigger 
+                    value="notes" 
+                    className="flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none"
+                  >
+                    <div className="relative">
+                      <FileText className="h-4 w-4" />
+                      <NotificationBadge count={notifications.unitTabs[unitId || '']?.notes || 0} />
+                    </div>
+                    <span>Notes</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="past-papers" 
+                    className="flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none"
+                  >
+                    <div className="relative">
+                      <BookOpen className="h-4 w-4" />
+                      <NotificationBadge count={notifications.unitTabs[unitId || '']?.pastPapers || 0} />
+                    </div>
+                    <span>Past Papers</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="assignments" 
+                    className="flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none"
+                  >
+                    <div className="relative">
+                      <ClipboardList className="h-4 w-4" />
+                      <NotificationBadge count={notifications.unitTabs[unitId || '']?.assignments || 0} />
+                    </div>
+                    <span>Assignments</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="events" 
+                    className="flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none"
+                  >
+                    <div className="relative">
+                      <Calendar className="h-4 w-4" />
+                      <NotificationBadge count={notifications.unitTabs[unitId || '']?.events || 0} />
+                    </div>
+                    <span>Events</span>
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
-              <TabsContent value="notes" className="space-y-6">
-                <NotesTab unitId={unitId!} />
-              </TabsContent>
+              <div className="pt-6">
+                <TabsContent value="notes" className="mt-0">
+                  <NotesTab unitId={unitId!} />
+                </TabsContent>
 
-              <TabsContent value="past-papers" className="space-y-6">
-                <PastPapersTab unitId={unitId!} />
-              </TabsContent>
+                <TabsContent value="past-papers" className="mt-0">
+                  <PastPapersTab unitId={unitId!} />
+                </TabsContent>
 
-              <TabsContent value="assignments" className="space-y-6">
-                <AssignmentsTab unitId={unitId!} />
-              </TabsContent>
+                <TabsContent value="assignments" className="mt-0">
+                  <AssignmentsTab unitId={unitId!} />
+                </TabsContent>
 
-              <TabsContent value="events" className="space-y-6">
-                <EventsTab unitId={unitId!} />
-              </TabsContent>
+                <TabsContent value="events" className="mt-0">
+                  <EventsTab unitId={unitId!} />
+                </TabsContent>
+              </div>
             </Tabs>
     </AppLayout>
   );

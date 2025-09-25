@@ -254,16 +254,16 @@ const Login = () => {
         <div className="absolute bottom-10 left-1/3 w-14 h-14 bg-red-400/25 rounded-full animate-float animation-delay-1100 blur-sm"></div>
       </div>
 
-      <div className="relative z-10 min-h-screen flex flex-col justify-start px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20 pb-16 sm:pb-20">
+      <div className="relative z-10 min-h-screen flex flex-col justify-start px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12 pb-16 sm:pb-20">
         {/* Header with Logo */}
-        <div className="text-center mb-6">
+        <div className="text-center mb-4">
           <Link to="/" className="inline-block">
             <Logo size="lg" showText={true} className="scale-125 sm:scale-150" />
           </Link>
         </div>
 
         <div className="max-w-sm mx-auto w-full">
-          <Card className="backdrop-blur-sm bg-white/80 border-0 shadow-2xl">
+          <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-sm">
           <CardHeader className="text-center pb-4">
             <div className="space-y-2">
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900 fredoka-bold">
@@ -277,11 +277,11 @@ const Login = () => {
               </p>
             </div>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="px-5 pb-5">
             {mode === 'signin' ? (
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
-                  <label htmlFor="email" className="text-sm font-medium text-gray-700">
+                  <label htmlFor="email" className="text-sm font-semibold text-gray-700 fredoka-medium">
                     Email Address
                   </label>
                   <div className="relative">
@@ -292,14 +292,14 @@ const Login = () => {
                       placeholder="Enter your email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      className="pl-10 h-10 border border-gray-200 focus:border-blue-500 rounded-lg fredoka-medium placeholder:text-gray-400 placeholder:text-sm placeholder:font-normal"
                       required
                     />
                   </div>
                 </div>
                 
                 <div className="space-y-2">
-                  <label htmlFor="password" className="text-sm font-medium text-gray-700">
+                  <label htmlFor="password" className="text-sm font-semibold text-gray-700 fredoka-medium">
                     Password
                   </label>
                   <div className="relative">
@@ -309,7 +309,7 @@ const Login = () => {
                       placeholder="Enter your password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="pr-10 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      className="pr-10 h-10 border border-gray-200 focus:border-blue-500 rounded-lg fredoka-medium placeholder:text-gray-400 placeholder:text-sm placeholder:font-normal"
                       required
                     />
                     <button
@@ -334,7 +334,7 @@ const Login = () => {
 
                 <Button
                   type="submit"
-                  className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                  className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base"
                   disabled={loading}
                 >
                   {loading ? "Signing In..." : "Sign In"}
@@ -369,7 +369,7 @@ const Login = () => {
 
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
-                    <label htmlFor="signup-email" className="text-sm font-medium text-gray-700">
+                    <label htmlFor="signup-email" className="text-sm font-semibold text-gray-700 fredoka-medium">
                       Email Address
                     </label>
                     <div className="relative">
@@ -380,14 +380,14 @@ const Login = () => {
                         placeholder="Enter your email"
                         value={signupEmail}
                         onChange={(e) => setSignupEmail(e.target.value)}
-                        className="pl-10 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                        className="pl-10 h-10 border border-gray-200 focus:border-blue-500 rounded-lg fredoka-medium placeholder:text-gray-400 placeholder:text-sm placeholder:font-normal"
                         required
                       />
                     </div>
                   </div>
                   
                   <div className="space-y-2">
-                    <label htmlFor="signup-password" className="text-sm font-medium text-gray-700">
+                    <label htmlFor="signup-password" className="text-sm font-semibold text-gray-700 fredoka-medium">
                       Password
                     </label>
                     <div className="relative">
@@ -397,7 +397,7 @@ const Login = () => {
                         placeholder="Create a password"
                         value={signupPassword}
                         onChange={(e) => setSignupPassword(e.target.value)}
-                        className="pr-10 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                        className="pr-10 h-10 border border-gray-200 focus:border-blue-500 rounded-lg fredoka-medium placeholder:text-gray-400 placeholder:text-sm placeholder:font-normal"
                         required
                         minLength={8}
                       />
@@ -413,7 +413,7 @@ const Login = () => {
 
                   <Button
                     type="submit"
-                    className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                    className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base"
                     disabled={loading}
                   >
                     {loading ? "Creating Account..." : "Create Account"}
@@ -422,7 +422,7 @@ const Login = () => {
               </div>
             )}
 
-            <div className="text-center">
+            <div className="text-center mt-8 mb-6">
               <p className="text-sm text-gray-600">
                 {mode === 'signin' ? "Don't have an account? " : "Already have an account? "}
                 <button

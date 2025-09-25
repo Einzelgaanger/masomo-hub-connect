@@ -133,9 +133,9 @@ const ForgotPassword = () => {
         <div className="absolute bottom-10 left-1/3 w-14 h-14 bg-red-400/25 rounded-full animate-float animation-delay-1100 blur-sm"></div>
       </div>
 
-      <div className="relative z-10 min-h-screen flex flex-col justify-start px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20 pb-16 sm:pb-20">
+      <div className="relative z-10 min-h-screen flex flex-col justify-start px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12 pb-16 sm:pb-20">
         {/* Header with Logo */}
-        <div className="text-center mb-6">
+        <div className="text-center mb-4">
           <Link to="/" className="inline-block">
             <Logo size="lg" showText={true} className="scale-125 sm:scale-150" />
           </Link>
@@ -170,14 +170,14 @@ const ForgotPassword = () => {
                       placeholder="Enter your email address"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="h-10 border-2 border-gray-200 focus:border-blue-500 rounded-lg fredoka-medium"
+                      className="h-10 border border-gray-200 focus:border-blue-500 rounded-lg fredoka-medium placeholder:text-gray-400 placeholder:text-sm placeholder:font-normal"
                       required
                     />
                   </div>
                   
                   <Button 
                     type="submit"
-                    className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white fredoka-semibold text-base rounded-lg transition-all duration-300 hover:scale-105" 
+                    className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base rounded-lg transition-all duration-300 hover:scale-105" 
                     disabled={loading}
                   >
                     {loading ? "Sending..." : "Send New Password"}
