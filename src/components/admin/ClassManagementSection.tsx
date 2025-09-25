@@ -50,6 +50,7 @@ interface Application {
   user_id: string;
   full_name: string;
   admission_number: string;
+  email?: string;
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
   updated_at: string;
@@ -1050,6 +1051,7 @@ export function ClassManagementSection() {
                                 </div>
                                 <h4 className="font-semibold text-lg">{application.full_name}</h4>
                                 <div className="space-y-1 text-sm text-gray-600">
+                                  <p><strong>Email:</strong> {application.email || 'Not provided'}</p>
                                   <p><strong>Admission Number:</strong> {application.admission_number}</p>
                                   <p><strong>User ID:</strong> {application.user_id}</p>
                                 </div>

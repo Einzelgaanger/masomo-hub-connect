@@ -23,6 +23,9 @@ const AuthCallback = () => {
           return;
         }
 
+        // Set fresh login flag for new users
+        sessionStorage.setItem('fresh_login', 'true');
+
         // Check if user already has a profile with a class assigned (they're already approved)
         const { data: profile, error: profileError } = await supabase
           .from('profiles')

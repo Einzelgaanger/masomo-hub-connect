@@ -52,6 +52,7 @@ const ApplicationStatusGuard = ({ children }: ApplicationStatusGuardProps) => {
     // Clear any existing timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
 
     // Add a small delay to prevent flash during initial load

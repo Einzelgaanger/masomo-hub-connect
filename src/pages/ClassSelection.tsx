@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, GraduationCap, Building, Globe, Users, BookOpen } from "lucide-react";
+import { Loader2, GraduationCap, Building, Globe, Users, BookOpen, Search } from "lucide-react";
 import Logo from "@/components/ui/Logo";
 
 interface Country {
@@ -49,6 +49,23 @@ const ClassSelection = () => {
   
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  
+  // Search states
+  const [countrySearch, setCountrySearch] = useState<string>('');
+  const [universitySearch, setUniversitySearch] = useState<string>('');
+  const [classSearch, setClassSearch] = useState<string>('');
+  
+  // Filtered data based on search
+  const filteredCountries = countries.filter(country =>
+    country.name.toLowerCase().includes(countrySearch.toLowerCase())
+  );
+  const filteredUniversities = universities.filter(university =>
+    university.name.toLowerCase().includes(universitySearch.toLowerCase())
+  );
+  const filteredClasses = classes.filter(classItem =>
+    classItem.course_name.toLowerCase().includes(classSearch.toLowerCase()) ||
+    `${classItem.course_name} - Year ${classItem.course_year}, Semester ${classItem.semester}, Group ${classItem.course_group}`.toLowerCase().includes(classSearch.toLowerCase())
+  );
 
   useEffect(() => {
     if (!user) {
@@ -198,6 +215,9 @@ const ClassSelection = () => {
     setSelectedClass("");
     setUniversities([]);
     setClasses([]);
+    // Clear search states
+    setUniversitySearch("");
+    setClassSearch("");
     
     if (countryId) {
       fetchUniversities(countryId);
@@ -208,6 +228,8 @@ const ClassSelection = () => {
     setSelectedUniversity(universityId);
     setSelectedClass("");
     setClasses([]);
+    // Clear search state
+    setClassSearch("");
     
     if (universityId) {
       fetchClasses(universityId);
@@ -226,14 +248,41 @@ const ClassSelection = () => {
 
     setSubmitting(true);
     try {
-      // For now, we'll create a simplified application record
-      // This will be replaced with proper applications table once types are updated
+      // Submit the application with email for admin verification
+      const { error: insertError } = await supabase
+        .from('applications' as any)
+        .insert({
+          user_id: user.id,
+          class_id: selectedClass,
+          full_name: fullName.trim(),
+          admission_number: admissionNumber.trim(),
+          email: user.email, // Include email for admin verification
+          status: 'pending'
+        });
+
+      if (insertError) throw insertError;
+
+      // Update user role to pending
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          user_id: user.id,
+          email: user.email,
+          full_name: fullName.trim(),
+          role: 'pending'
+        });
+
+      if (profileError) {
+        console.error('Error updating profile role:', profileError);
+        // Don't fail the application if profile update fails
+      }
+
       toast({
         title: "Application Submitted!",
         description: "Your application has been submitted for review. You'll be notified once it's processed.",
       });
       
-      // For now, redirect to application status page
+      // Redirect to application status page
       navigate('/application-status');
     } catch (error: any) {
       console.error('Error submitting application:', error);
@@ -268,15 +317,17 @@ const ClassSelection = () => {
         <div className="absolute bottom-10 left-1/3 w-14 h-14 bg-red-400/25 rounded-full animate-float animation-delay-1100 blur-sm"></div>
       </div>
 
-      <div className="relative z-10 min-h-screen flex flex-col justify-start px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20 pb-16 sm:pb-20">
+      <div className="relative z-10 min-h-screen flex flex-col justify-start px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12 pb-16 sm:pb-20">
         {/* Header with Logo */}
-        <div className="text-center mb-6">
-          <Logo size="lg" showText={true} className="scale-125 sm:scale-150" />
+        <div className="text-center mb-4">
+          <Link to="/" className="inline-block">
+            <Logo size="lg" showText={true} className="scale-125 sm:scale-150" />
+          </Link>
         </div>
 
         {/* Class Selection Card */}
         <div className="max-w-md mx-auto w-full">
-          <Card className="backdrop-blur-sm bg-white/80 border-0 shadow-2xl">
+          <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-sm">
             <CardHeader className="text-center pb-4">
               <div className="space-y-2">
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900 fredoka-bold">
@@ -288,7 +339,7 @@ const ClassSelection = () => {
               </div>
             </CardHeader>
             
-            <CardContent className="space-y-6">
+            <CardContent className="px-5 pb-5 space-y-6">
               {/* Cascading Dropdowns */}
               <div className="space-y-4">
                 {/* Country Selection */}
@@ -298,19 +349,35 @@ const ClassSelection = () => {
                   </label>
                   <div className="relative">
                     <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Select value={selectedCountry} onValueChange={handleCountryChange}>
-                      <SelectTrigger className="pl-10 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500">
-                        <SelectValue placeholder="Select your country" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {countries.map((country) => (
-                          <SelectItem key={country.id} value={country.id}>
-                            {country.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Input
+                      type="text"
+                      placeholder="Search countries..."
+                      value={countrySearch}
+                      onChange={(e) => setCountrySearch(e.target.value)}
+                      className="pl-10 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                    <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   </div>
+                  {countrySearch && (
+                    <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-md bg-white shadow-lg z-10">
+                      {filteredCountries.length > 0 ? (
+                        filteredCountries.map((country) => (
+                          <div
+                            key={country.id}
+                            className="p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                            onClick={() => {
+                              setSelectedCountry(country.id);
+                              setCountrySearch(country.name);
+                            }}
+                          >
+                            {country.name}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-2 text-gray-500 text-sm">No countries found</div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* University Selection */}
@@ -320,23 +387,36 @@ const ClassSelection = () => {
                   </label>
                   <div className="relative">
                     <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Select 
-                      value={selectedUniversity} 
-                      onValueChange={handleUniversityChange}
+                    <Input
+                      type="text"
+                      placeholder={selectedCountry ? "Search universities..." : "Select country first"}
+                      value={universitySearch}
+                      onChange={(e) => setUniversitySearch(e.target.value)}
                       disabled={!selectedCountry || loading}
-                    >
-                      <SelectTrigger className="pl-10 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500">
-                        <SelectValue placeholder={selectedCountry ? "Select your university" : "Select country first"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {universities.map((university) => (
-                          <SelectItem key={university.id} value={university.id}>
-                            {university.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      className="pl-10 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
+                    />
+                    <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   </div>
+                  {universitySearch && selectedCountry && (
+                    <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-md bg-white shadow-lg z-10">
+                      {filteredUniversities.length > 0 ? (
+                        filteredUniversities.map((university) => (
+                          <div
+                            key={university.id}
+                            className="p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                            onClick={() => {
+                              setSelectedUniversity(university.id);
+                              setUniversitySearch(university.name);
+                            }}
+                          >
+                            {university.name}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-2 text-gray-500 text-sm">No universities found</div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Class Selection */}
@@ -346,23 +426,36 @@ const ClassSelection = () => {
                   </label>
                   <div className="relative">
                     <BookOpen className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Select 
-                      value={selectedClass} 
-                      onValueChange={setSelectedClass}
+                    <Input
+                      type="text"
+                      placeholder={selectedUniversity ? "Search courses..." : "Select university first"}
+                      value={classSearch}
+                      onChange={(e) => setClassSearch(e.target.value)}
                       disabled={!selectedUniversity || loading}
-                    >
-                      <SelectTrigger className="pl-10 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500">
-                        <SelectValue placeholder={selectedUniversity ? "Select your class" : "Select university first"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {classes.map((classItem) => (
-                          <SelectItem key={classItem.id} value={classItem.id}>
-                            {classItem.course_name} - Year {classItem.course_year}, Sem {classItem.semester}, Group {classItem.course_group}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      className="pl-10 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
+                    />
+                    <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   </div>
+                  {classSearch && selectedUniversity && (
+                    <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-md bg-white shadow-lg z-10">
+                      {filteredClasses.length > 0 ? (
+                        filteredClasses.map((classItem) => (
+                          <div
+                            key={classItem.id}
+                            className="p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                            onClick={() => {
+                              setSelectedClass(classItem.id);
+                              setClassSearch(`${classItem.course_name} - Year ${classItem.course_year}, Sem ${classItem.semester}, Group ${classItem.course_group}`);
+                            }}
+                          >
+                            {classItem.course_name} - Year {classItem.course_year}, Sem {classItem.semester}, Group {classItem.course_group}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-2 text-gray-500 text-sm">No courses found</div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -165,6 +165,7 @@ const ApplicationForm = () => {
           class_id: classDetails.id,
           full_name: fullName.trim(),
           admission_number: admissionNumber.trim(),
+          email: currentUser.email, // Include email for admin verification
           status: 'pending'
         });
 

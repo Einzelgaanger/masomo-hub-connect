@@ -27,7 +27,18 @@ export function FloatingConcernsButton() {
           message: message.trim()
         });
 
-      if (error) throw error;
+      if (error) {
+        // If table doesn't exist, show a helpful message
+        if (error.code === 'PGRST116' || error.message.includes('relation "concerns" does not exist')) {
+          toast({
+            title: "Feature Coming Soon",
+            description: "The concerns system is being set up. Please try again later.",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw error;
+      }
 
       toast({
         title: "Concern submitted!",

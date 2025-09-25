@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { AppLayout } from "@/components/layout/AppLayout";
+import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { AdminHeader } from "@/components/admin/AdminHeader";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +12,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { MessageSquare, User, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface Concern {
   id: string;
@@ -26,6 +29,9 @@ interface Concern {
 }
 
 export default function AdminConcerns() {
+  const navigate = useNavigate();
+  const [profile, setProfile] = useState<any>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
   const [concerns, setConcerns] = useState<Concern[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -35,28 +41,96 @@ export default function AdminConcerns() {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchConcerns();
-  }, [statusFilter]);
+    fetchAdminProfile();
+  }, []);
+
+  useEffect(() => {
+    if (profile) {
+      fetchConcerns();
+    }
+  }, [statusFilter, profile]);
+
+  const fetchAdminProfile = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate('/admin/login');
+        return;
+      }
+
+      const { data: profileData, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error || !profileData) {
+        console.error('Error fetching admin profile:', error);
+        navigate('/admin/login');
+        return;
+      }
+
+      setProfile(profileData);
+    } catch (error) {
+      console.error('Error in fetchAdminProfile:', error);
+      navigate('/admin/login');
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
 
   const fetchConcerns = async () => {
     try {
       setLoading(true);
+      
+      // First, get concerns without the join
       let query = supabase
         .from('concerns')
-        .select(`
-          *,
-          profiles!inner(full_name, profile_picture_url, email)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
       }
 
-      const { data, error } = await query;
+      const { data: concernsData, error: concernsError } = await query;
 
-      if (error) throw error;
-      setConcerns(data || []);
+      if (concernsError) {
+        // If table doesn't exist, show empty state
+        if (concernsError.code === 'PGRST116' || concernsError.message.includes('relation "concerns" does not exist')) {
+          console.warn('Concerns table does not exist yet');
+          setConcerns([]);
+          return;
+        }
+        throw concernsError;
+      }
+
+      if (!concernsData || concernsData.length === 0) {
+        setConcerns([]);
+        return;
+      }
+
+      // Now get user profiles for each concern
+      const userIds = concernsData.map(c => c.user_id);
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, profile_picture_url, email')
+        .in('user_id', userIds);
+
+      if (profilesError) {
+        console.warn('Error fetching profiles:', profilesError);
+      }
+
+      // Combine concerns with profile data
+      const combinedData = concernsData.map(concern => {
+        const profile = profilesData?.find(p => p.user_id === concern.user_id);
+        return {
+          ...concern,
+          profiles: profile || { full_name: 'Unknown User', email: 'No email', profile_picture_url: null }
+        };
+      });
+
+      setConcerns(combinedData);
     } catch (error) {
       console.error('Error fetching concerns:', error);
       toast({
@@ -131,19 +205,46 @@ export default function AdminConcerns() {
     return concern.status === statusFilter;
   });
 
+  if (loadingProfile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-2">Access Denied</h1>
+          <p className="text-muted-foreground">You don't have permission to access this page.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <AppLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-3">
-              <MessageSquare className="h-8 w-8 text-blue-600" />
-              User Concerns & Feedback
-            </h1>
-            <p className="text-muted-foreground mt-2">
-              Review and manage user concerns, feedback, and ideas
-            </p>
-          </div>
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background overflow-x-hidden">
+        <AdminSidebar profile={profile} />
+        <main className="flex-1 flex flex-col overflow-x-hidden">
+          <AdminHeader profile={profile} />
+          <div className="flex-1 p-6 space-y-6 overflow-auto">
+            <div className="mb-6">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-blue-50 rounded-lg">
+                  <MessageSquare className="h-6 w-6 text-blue-600" />
+                </div>
+                <h1 className="text-3xl font-bold">User Concerns & Feedback</h1>
+              </div>
+              <p className="text-muted-foreground">
+                Review and manage user concerns, feedback, and ideas
+              </p>
+            </div>
+
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
           
           <div className="flex items-center gap-4">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -296,7 +397,10 @@ export default function AdminConcerns() {
             ))}
           </div>
         )}
+            </div>
+          </div>
+        </main>
       </div>
-    </AppLayout>
+    </SidebarProvider>
   );
 }
