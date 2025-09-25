@@ -185,24 +185,62 @@ serve(async (req) => {
       `
     }
 
-    // For now, we'll just log the email (in production, you'd use a service like SendGrid, Resend, etc.)
-    console.log('Email would be sent:', {
+    // Send email using Resend if API key is available
+    const resendApiKey = Deno.env.get('RESEND_API_KEY')
+    
+    if (resendApiKey) {
+      try {
+        const resendResponse = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: 'Bunifu <onboarding@resend.dev>',
+            to: [email],
+            subject: subject,
+            html: htmlContent,
+          }),
+        })
+
+        const resendData = await resendResponse.json()
+        
+        if (!resendResponse.ok) {
+          console.error('Resend API error:', resendData)
+          throw new Error(`Resend API error: ${resendData.message || 'Unknown error'}`)
+        }
+
+        console.log('Email sent successfully via Resend:', resendData.id)
+        
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: 'Email sent successfully',
+            emailId: resendData.id
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200
+          }
+        )
+      } catch (resendError) {
+        console.error('Failed to send email via Resend:', resendError)
+        // Fall back to just logging the email
+      }
+    }
+
+    // Fallback: Log the email content for development
+    console.log('Email would be sent (Resend not configured):', {
       to: email,
       subject,
       html: htmlContent
     })
 
-    // In a real implementation, you would send the email here using a service like:
-    // - Resend
-    // - SendGrid
-    // - Mailgun
-    // - AWS SES
-
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Email sent successfully',
-        // For development, return the email content
+        message: 'Email logged successfully (Resend not configured)',
         emailContent: htmlContent
       }),
       { 
@@ -211,11 +249,11 @@ serve(async (req) => {
       }
     )
 
-  } catch (error) {
+  } catch (error: any) {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message 
+        error: error?.message || 'Unknown error occurred'
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

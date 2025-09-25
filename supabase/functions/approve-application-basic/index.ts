@@ -63,7 +63,7 @@ serve(async (req) => {
     console.log('Found application:', application)
 
     // Update the application status
-    const updateData = {
+    const updateData: any = {
       status: action,
       updated_at: new Date().toISOString()
     }
@@ -103,13 +103,13 @@ serve(async (req) => {
       }
     )
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in approve-application-basic function:', error)
     
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'An unexpected error occurred',
-        details: error.toString()
+        error: error?.message || 'An unexpected error occurred',
+        details: error?.toString() || 'Unknown error'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
