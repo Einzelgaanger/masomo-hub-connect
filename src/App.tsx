@@ -18,6 +18,7 @@ import AdminContentManagement from "./pages/admin/AdminContentManagement";
 import ClassSelection from "./pages/ClassSelection";
 import ApplicationForm from "./pages/ApplicationForm";
 import ApplicationStatus from "./pages/ApplicationStatus";
+import AuthCallback from "./pages/AuthCallback";
 import UnitPage from "./pages/UnitPage";
 import Settings from "./pages/Settings";
 import Info from "./pages/Info";
@@ -96,6 +97,7 @@ const App = () => (
                 <AdminContentManagement />
               </AdminGuard>
             } />
+            <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/class-selection" element={<ClassSelection />} />
             <Route path="/application" element={<ApplicationForm />} />
             <Route path="/application-status" element={<ApplicationStatus />} />

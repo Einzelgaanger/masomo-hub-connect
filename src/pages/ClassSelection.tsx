@@ -55,8 +55,69 @@ const ClassSelection = () => {
       navigate('/login');
       return;
     }
+    
+    // Check if user already has a profile (approved user)
+    checkUserProfile();
     fetchCountries();
   }, [user, navigate]);
+
+  const checkUserProfile = async () => {
+    if (!user) return;
+    
+    try {
+      // Check if user has a profile (they're already approved)
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, role, class_id, full_name')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profile && !profileError) {
+        // User already has a profile, redirect to dashboard
+        toast({
+          title: "Welcome back!",
+          description: `Hi ${profile.full_name}, you're already registered.`,
+        });
+        navigate('/dashboard');
+        return;
+      }
+
+      // Check if user has pending applications
+      const { data: applications, error: applicationError } = await supabase
+        .from('applications' as any)
+        .select('id, status, class_id')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (applicationError) {
+        console.error('Error checking applications:', applicationError);
+        return;
+      }
+
+      if (applications && applications.length > 0) {
+        const latestApplication = applications[0];
+        if (latestApplication.status === 'approved') {
+          // Application was approved, redirect to dashboard
+          navigate('/dashboard');
+          return;
+        } else if (latestApplication.status === 'pending') {
+          // Application is pending, redirect to status page
+          navigate('/application-status');
+          return;
+        } else if (latestApplication.status === 'rejected') {
+          // Application was rejected, show message and allow re-application
+          toast({
+            title: "Application Rejected",
+            description: "Your previous application was rejected. You can apply again with different information.",
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error checking user profile:', error);
+    }
+  };
 
   const fetchCountries = async () => {
     try {

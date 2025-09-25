@@ -53,7 +53,7 @@ const Login = () => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/class-selection`
+          redirectTo: `${window.location.origin}/auth/callback`
         }
       });
 
@@ -249,8 +249,6 @@ const Login = () => {
       </div>
 
       <div className="relative z-10 min-h-screen flex flex-col justify-start px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20 pb-16 sm:pb-20">
-
-        <div className="max-w-sm mx-auto w-full">
         {/* Header with Logo */}
         <div className="text-center mb-6">
           <Link to="/" className="inline-block">
@@ -258,7 +256,8 @@ const Login = () => {
           </Link>
         </div>
 
-        <Card className="backdrop-blur-sm bg-white/80 border-0 shadow-2xl">
+        <div className="max-w-sm mx-auto w-full">
+          <Card className="backdrop-blur-sm bg-white/80 border-0 shadow-2xl">
           <CardHeader className="text-center pb-4">
             <div className="space-y-2">
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900 fredoka-bold">

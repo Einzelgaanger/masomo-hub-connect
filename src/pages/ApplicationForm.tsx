@@ -214,7 +214,6 @@ const ApplicationForm = () => {
         </div>
 
         <div className="relative z-10 min-h-screen flex flex-col justify-start px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20 pb-16 sm:pb-20">
-          <div className="max-w-md mx-auto w-full">
           {/* Header with Logo */}
           <div className="text-center mb-6">
             <Link to="/" className="inline-block">
@@ -222,7 +221,8 @@ const ApplicationForm = () => {
             </Link>
           </div>
 
-          <Card className="backdrop-blur-sm bg-white/80 border-0 shadow-2xl">
+          <div className="max-w-md mx-auto w-full">
+            <Card className="backdrop-blur-sm bg-white/80 border-0 shadow-2xl">
             <CardHeader className="text-center pb-4">
               <div className="space-y-4">
                 <div className="flex justify-center">
@@ -310,13 +310,14 @@ const ApplicationForm = () => {
       </div>
 
       <div className="relative z-10 min-h-screen flex flex-col justify-start px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20 pb-16 sm:pb-20">
-        <div className="max-w-md mx-auto w-full">
         {/* Header with Logo */}
         <div className="text-center mb-6">
           <Link to="/" className="inline-block">
             <Logo size="lg" showText={true} className="scale-125 sm:scale-150" />
           </Link>
         </div>
+
+        <div className="max-w-md mx-auto w-full">
 
         <Card className="backdrop-blur-sm bg-white/80 border-0 shadow-2xl">
           <CardHeader className="text-center pb-4">
