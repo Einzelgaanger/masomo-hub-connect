@@ -20,17 +20,35 @@ export function WallOfFameSection() {
 
   const fetchTopUsers = async () => {
     try {
+      // First get the current user's university
+      const { data: userProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select(`
+          classes!inner(
+            university_id
+          )
+        `)
+        .eq('user_id', user?.id)
+        .single();
+
+      if (profileError || !userProfile) {
+        console.error('Error fetching user profile:', profileError);
+        return;
+      }
+
+      // Then get top users from the same university
       const { data, error } = await supabase
         .from('profiles')
         .select(`
           *,
           classes!inner(
-            universities!inner(
-              id,
-              name
-            )
+            course_name,
+            course_year,
+            semester,
+            university_id
           )
         `)
+        .eq('classes.university_id', userProfile.classes.university_id)
         .order('points', { ascending: false })
         .limit(10);
 
@@ -119,12 +137,28 @@ export function WallOfFameSection() {
                   {getRankIcon(index + 1)}
                 </div>
                 
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={profile.profile_picture_url} />
-                  <AvatarFallback>
-                    {profile.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                {/* Profile Picture and Character */}
+                <div className="relative">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={profile.profile_picture_url} />
+                    <AvatarFallback>
+                      {profile.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  {/* Character beside profile picture */}
+                  <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm border border-gray-200">
+                    {(() => {
+                      const character = getCharacterById(profile.character_id || 'people');
+                      return (
+                        <img 
+                          src={character?.image || '/characters/people.png'} 
+                          alt={character?.name || 'Regular Person'}
+                          className="w-4 h-4 object-contain"
+                        />
+                      );
+                    })()}
+                  </div>
+                </div>
                 
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">
@@ -138,23 +172,16 @@ export function WallOfFameSection() {
                       {profile.rank}
                     </Badge>
                     <span className="text-xs text-muted-foreground truncate">
-                      {profile.classes?.universities?.name}
+                      {profile.classes?.course_name} - Year {profile.classes?.course_year}
                     </span>
                   </div>
                   <div className="flex items-center gap-1 mt-1">
                     {(() => {
                       const character = getCharacterById(profile.character_id || 'people');
                       return (
-                        <>
-                          <img 
-                            src={character?.image || '/characters/people.png'} 
-                            alt={character?.name || 'Regular Person'}
-                            className="w-3 h-3 object-contain"
-                          />
-                          <span className="text-xs text-muted-foreground truncate">
-                            {character?.name || 'Regular Person'}
-                          </span>
-                        </>
+                        <span className="text-xs text-muted-foreground truncate">
+                          {character?.name || 'Regular Person'}
+                        </span>
                       );
                     })()}
                   </div>

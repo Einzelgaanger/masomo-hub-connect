@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Calendar, Trash2, Clock, ThumbsUp, ThumbsDown, MessageCircle } from "lucide-react";
+import { Plus, Calendar, Trash2, Clock, MapPin, ThumbsUp, ThumbsDown, MessageCircle } from "lucide-react";
 import { format, formatDistanceToNow, isAfter, isToday, isTomorrow, isYesterday } from "date-fns";
 
 interface Event {
@@ -18,6 +18,8 @@ interface Event {
   title: string;
   description: string;
   event_date: string;
+  location?: string;
+  venue?: string;
   created_at: string;
   created_by: string;
   profiles?: {
@@ -59,7 +61,9 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    event_date: ""
+    event_date: "",
+    location: "",
+    venue: ""
   });
 
   useEffect(() => {
@@ -146,7 +150,7 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
       if (!formData.title || !formData.description || !formData.event_date) {
         toast({
           title: "Error",
-          description: "Please fill in all required fields.",
+          description: "Please fill in all required fields (Title, Description, and Date).",
           variant: "destructive",
         });
         return;
@@ -161,6 +165,8 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
           title: formData.title,
           description: formData.description,
           event_date: formData.event_date,
+          location: formData.location || null,
+          venue: formData.venue || null,
           created_by: user?.id
         });
 
@@ -217,7 +223,9 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
     setFormData({
       title: "",
       description: "",
-      event_date: ""
+      event_date: "",
+      location: "",
+      venue: ""
     });
   };
 
@@ -371,7 +379,7 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
                     id="description"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Describe the event details"
+                    placeholder="Describe the event details (include time and venue details here if needed)"
                     rows={4}
                   />
                 </div>
@@ -383,6 +391,26 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
                     type="datetime-local"
                     value={formData.event_date}
                     onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="location">Location (Optional)</Label>
+                  <Input
+                    id="location"
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    placeholder="e.g., Main Campus, Room 101, etc."
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="venue">Venue (Optional)</Label>
+                  <Input
+                    id="venue"
+                    value={formData.venue}
+                    onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
+                    placeholder="e.g., Library Hall, Computer Lab, etc."
                   />
                 </div>
               </div>
@@ -440,7 +468,7 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
                   </CardHeader>
                   <CardContent>
                     <div className="mb-4">
-                      <div className="flex items-center gap-4">
+                      <div className="flex flex-wrap items-center gap-4">
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm">
@@ -453,6 +481,17 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
                             {format(new Date(event.event_date), 'HH:mm')}
                           </span>
                         </div>
+                        {event.location && (
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm">{event.location}</span>
+                          </div>
+                        )}
+                        {event.venue && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">{event.venue}</span>
+                          </div>
+                        )}
                         <span className="text-xs text-muted-foreground">
                           ({formatDistanceToNow(new Date(event.event_date), { addSuffix: true })})
                         </span>

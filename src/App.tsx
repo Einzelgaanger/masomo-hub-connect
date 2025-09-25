@@ -22,7 +22,11 @@ import AuthCallback from "./pages/AuthCallback";
 import UnitPage from "./pages/UnitPage";
 import Settings from "./pages/Settings";
 import Info from "./pages/Info";
-import Tukio from "./pages/Tukio";
+import Ukumbi from "./pages/Ukumbi";
+import Events from "./pages/Events";
+import Ajira from "./pages/Ajira";
+import Inbox from "./pages/Inbox";
+import Units from "./pages/Units";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
@@ -67,10 +71,45 @@ const App = () => (
                 </ApplicationGuard>
               </ProtectedRoute>
             } />
-            <Route path="/tukio" element={
+            <Route path="/ukumbi" element={
               <ProtectedRoute>
                 <ApplicationGuard>
-                  <Tukio />
+                  <Ukumbi />
+                </ApplicationGuard>
+              </ProtectedRoute>
+            } />
+            <Route path="/events" element={
+              <ProtectedRoute>
+                <ApplicationGuard>
+                  <Events />
+                </ApplicationGuard>
+              </ProtectedRoute>
+            } />
+            <Route path="/ajira" element={
+              <ProtectedRoute>
+                <ApplicationGuard>
+                  <Ajira />
+                </ApplicationGuard>
+              </ProtectedRoute>
+            } />
+            <Route path="/inbox" element={
+              <ProtectedRoute>
+                <ApplicationGuard>
+                  <Inbox />
+                </ApplicationGuard>
+              </ProtectedRoute>
+            } />
+            <Route path="/inbox/:conversationId" element={
+              <ProtectedRoute>
+                <ApplicationGuard>
+                  <Inbox />
+                </ApplicationGuard>
+              </ProtectedRoute>
+            } />
+            <Route path="/units" element={
+              <ProtectedRoute>
+                <ApplicationGuard>
+                  <Units />
                 </ApplicationGuard>
               </ProtectedRoute>
             } />

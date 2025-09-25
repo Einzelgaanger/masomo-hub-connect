@@ -6,7 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, BookOpen, Calendar, ClipboardList } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { FileText, BookOpen, Calendar, ClipboardList, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { NotesTab } from "@/components/unit/NotesTab";
 import { PastPapersTab } from "@/components/unit/PastPapersTab";
@@ -123,16 +124,27 @@ const UnitPage = () => {
   return (
     <AppLayout>
              {/* Unit Header */}
-             <div className="flex items-center justify-between">
-               <div>
-                 <h1 className="text-3xl font-bold">{unit.name}</h1>
-                <p className="text-muted-foreground">
-                  {unit.classes.course_name} - {unit.classes.universities.name}
-                </p>
-                {unit.description && (
-                  <p className="text-sm text-muted-foreground mt-2">{unit.description}</p>
-                )}
-              </div>
+             <div className="flex items-center justify-between mb-6">
+               <div className="flex items-center gap-4">
+                 <Button
+                   variant="outline"
+                   size="sm"
+                   onClick={() => navigate("/units")}
+                   className="flex items-center gap-2"
+                 >
+                   <ArrowLeft className="h-4 w-4" />
+                   Back to Units
+                 </Button>
+                 <div>
+                   <h1 className="text-3xl font-bold">{unit.name}</h1>
+                   <p className="text-muted-foreground">
+                     {unit.classes.course_name} - {unit.classes.universities.name}
+                   </p>
+                   {unit.description && (
+                     <p className="text-sm text-muted-foreground mt-2">{unit.description}</p>
+                   )}
+                 </div>
+               </div>
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">
                   Year {unit.classes.course_year}, Semester {unit.classes.semester}

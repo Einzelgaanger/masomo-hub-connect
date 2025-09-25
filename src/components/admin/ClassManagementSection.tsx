@@ -649,6 +649,38 @@ export function ClassManagementSection() {
     }
   };
 
+  const handleGraduateClass = async (classId: string) => {
+    if (!confirm('Are you sure you want to graduate this class? This will:\n\n• Mark all students as alumni\n• Create alumni profiles for all students\n• Remove their access to current student features\n• This action cannot be undone')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase.rpc('graduate_class', {
+        class_id_param: classId
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Class graduated successfully! All students are now alumni.",
+      });
+
+      // Refresh data
+      fetchData();
+      if (selectedClass) {
+        await fetchClassDetails(selectedClass.id);
+      }
+    } catch (error) {
+      console.error('Error graduating class:', error);
+      toast({
+        title: "Error",
+        description: "Failed to graduate class.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const fetchClassDetails = async (classId: string) => {
     try {
       const { data: classData, error } = await supabase
@@ -666,7 +698,8 @@ export function ClassManagementSection() {
           units (
             id,
             name,
-            description
+            description,
+            created_at
           )
         `)
         .eq('id', classId)
@@ -675,68 +708,20 @@ export function ClassManagementSection() {
       if (error) throw error;
 
       if (classData) {
-        setSelectedClass(classData as Class);
+        // Sort units by created_at descending (most recent first)
+        const sortedClassData = {
+          ...classData,
+          units: classData.units.sort((a: any, b: any) => 
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          )
+        };
+        setSelectedClass(sortedClassData as Class);
       }
     } catch (error) {
       console.error('Error fetching class details:', error);
     }
   };
 
-  const handleProgressSemester = async (classId: string) => {
-    if (!confirm('Are you sure you want to progress all students to the next semester? This will update the class semester and create new units for the next semester.')) {
-      return;
-    }
-
-    try {
-      // Get current class details
-      const { data: currentClass, error: classError } = await supabase
-        .from('classes')
-        .select('*')
-        .eq('id', classId)
-        .single();
-
-      if (classError) throw classError;
-
-      // Determine next semester
-      let nextSemester = currentClass.semester + 1;
-      let nextYear = currentClass.course_year;
-
-      // If semester > 2, move to next year
-      if (nextSemester > 2) {
-        nextSemester = 1;
-        nextYear = currentClass.course_year + 1;
-      }
-
-      // Update class to next semester
-      const { error: updateError } = await supabase
-        .from('classes')
-        .update({
-          semester: nextSemester,
-          course_year: nextYear
-        })
-        .eq('id', classId);
-
-      if (updateError) throw updateError;
-
-      toast({
-        title: "Success",
-        description: `Class progressed to Year ${nextYear}, Semester ${nextSemester}. You can now add new units for this semester.`,
-      });
-
-      // Refresh data
-      fetchData();
-      if (selectedClass) {
-        await fetchClassDetails(selectedClass.id);
-      }
-    } catch (error) {
-      console.error('Error progressing semester:', error);
-      toast({
-        title: "Error",
-        description: "Failed to progress semester.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleCreateClass = async () => {
     try {
@@ -940,15 +925,22 @@ export function ClassManagementSection() {
               <Badge variant="secondary">
                 Year {selectedClass.course_year}, Sem {selectedClass.semester}
               </Badge>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => handleProgressSemester(selectedClass.id)}
-                className="text-blue-600 border-blue-600 hover:bg-blue-50"
-              >
-                <Calendar className="h-4 w-4 mr-2" />
-                Progress to Next Semester
-              </Button>
+              {!selectedClass.is_graduated && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleGraduateClass(selectedClass.id)}
+                  className="text-green-600 border-green-600 hover:bg-green-50"
+                >
+                  <GraduationCap className="h-4 w-4 mr-2" />
+                  Graduate Class
+                </Button>
+              )}
+              {selectedClass.is_graduated && (
+                <Badge variant="default" className="bg-green-100 text-green-800">
+                  Graduated {selectedClass.graduation_year}
+                </Badge>
+              )}
             </div>
           </CardHeader>
           <CardContent>
