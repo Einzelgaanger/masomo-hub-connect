@@ -150,10 +150,17 @@ export function useNotifications() {
         .gt('created_at', tukioLastVisit);
       newNotifications.tukio = tukioCount || 0;
 
-      // 6. Fetch Alumni notifications
+      // 6. Fetch Alumni notifications with comprehensive fallback handling
       const alumniLastVisit = lastVisits.alumni || new Date().toISOString();
       
+      // Temporarily disable alumni notifications due to database issues
+      // TODO: Re-enable when alumni tables are properly set up
+      newNotifications.alumni = 0;
+      
+      // Commented out until database issues are resolved
+      /*
       try {
+        // Try full queries first
         const alumniNotifications = await Promise.all([
           supabase
             .from('alumni_events')
@@ -167,11 +174,25 @@ export function useNotifications() {
             .gt('created_at', alumniLastVisit)
         ]);
         
-        newNotifications.alumni = (alumniNotifications[0].count || 0) + (alumniNotifications[1].count || 0);
+        // Check if queries were successful
+        const eventsCount = alumniNotifications[0].error ? 0 : (alumniNotifications[0].count || 0);
+        const storiesCount = alumniNotifications[1].error ? 0 : (alumniNotifications[1].count || 0);
+        
+        newNotifications.alumni = eventsCount + storiesCount;
+        
+        // Log warnings for failed queries
+        if (alumniNotifications[0].error) {
+          console.warn('Alumni events notifications query failed:', alumniNotifications[0].error);
+        }
+        if (alumniNotifications[1].error) {
+          console.warn('Alumni success stories notifications query failed:', alumniNotifications[1].error);
+        }
+        
       } catch (error) {
-        console.warn('Alumni notifications query failed:', error);
+        console.warn('Alumni notifications queries failed completely:', error);
         newNotifications.alumni = 0;
       }
+      */
 
       setNotifications(newNotifications);
     } catch (error) {

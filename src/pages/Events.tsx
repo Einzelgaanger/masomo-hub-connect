@@ -116,7 +116,7 @@ export default function Events() {
           )
         `)
         .eq('profiles.classes.university_id', userProfile.classes.university_id)
-        .order('created_at', { ascending: false });
+        .order('event_date', { ascending: true });
 
       // Fetch all events (global, country, and university)
       const { data: allEventsData, error: allEventsError } = await supabase
@@ -136,17 +136,44 @@ export default function Events() {
             )
           )
         `)
-        .order('created_at', { ascending: false });
+        .order('event_date', { ascending: true });
 
       if (myUniError) throw myUniError;
       if (allEventsError) throw allEventsError;
 
       const myUniId = userProfile.classes.university_id;
-      setMyUniversityEvents(myUniEvents || []);
+      const now = new Date();
+      
+      // Sort events to prioritize upcoming events first
+      const sortEventsByPriority = (events: any[]) => {
+        return events.sort((a, b) => {
+          const dateA = new Date(a.event_date);
+          const dateB = new Date(b.event_date);
+          const isAUpcoming = dateA >= now;
+          const isBUpcoming = dateB >= now;
+          
+          // Upcoming events come first
+          if (isAUpcoming && !isBUpcoming) return -1;
+          if (!isAUpcoming && isBUpcoming) return 1;
+          
+          // Among upcoming events, sort by event date (earliest first)
+          // Among past events, sort by event date (most recent first)
+          if (isAUpcoming && isBUpcoming) {
+            return dateA.getTime() - dateB.getTime();
+          } else {
+            return dateB.getTime() - dateA.getTime();
+          }
+        });
+      };
+      
+      const sortedMyUniEvents = sortEventsByPriority(myUniEvents || []);
+      setMyUniversityEvents(sortedMyUniEvents);
+      
       // Exclude anything from my own university from the All tab to avoid repetition
       const filteredAll = (allEventsData || []).filter((ev: any) => ev?.profiles?.classes?.university_id !== myUniId);
-      setAllEvents(filteredAll);
-      setEvents(myUniEvents || []); // Default to university events
+      const sortedAllEvents = sortEventsByPriority(filteredAll);
+      setAllEvents(sortedAllEvents);
+      setEvents(sortedMyUniEvents); // Default to university events
     } catch (error) {
       console.error('Error fetching events:', error);
       toast({
@@ -644,6 +671,7 @@ export default function Events() {
                     value={formData.visibility}
                     onChange={(e) => setFormData({...formData, visibility: e.target.value as 'university' | 'country' | 'global'})}
                     className="w-full px-3 py-2 border border-input bg-background rounded-md"
+                    aria-label="Select event visibility"
                   >
                     <option value="university">My University Only</option>
                     <option value="country">Selected Countries</option>

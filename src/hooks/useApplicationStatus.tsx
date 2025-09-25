@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
@@ -20,6 +20,7 @@ export const useApplicationStatus = () => {
   });
 
   const { user } = useAuth();
+  const lastUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -30,10 +31,15 @@ export const useApplicationStatus = () => {
         loading: false,
         error: null
       });
+      lastUserIdRef.current = null;
       return;
     }
 
-    checkApplicationStatus();
+    // Only check if user changed or we haven't checked yet
+    if (lastUserIdRef.current !== user.id) {
+      lastUserIdRef.current = user.id;
+      checkApplicationStatus();
+    }
   }, [user]);
 
   const checkApplicationStatus = async () => {

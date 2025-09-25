@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
-import ApplicationGuard from "@/components/ApplicationGuard";
 import ApplicationStatusGuard from "@/components/ApplicationStatusGuard";
 import AdminGuard from "@/components/AdminGuard";
 import Index from "./pages/Index";
@@ -69,65 +68,47 @@ const App = () => (
             <Route path="/create-password" element={<CreatePassword />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>
-                <ApplicationGuard>
-                  <Dashboard />
-                </ApplicationGuard>
+                <Dashboard />
               </ProtectedRoute>
             } />
             <Route path="/ukumbi" element={
               <ProtectedRoute>
-                <ApplicationGuard>
-                  <Ukumbi />
-                </ApplicationGuard>
+                <Ukumbi />
               </ProtectedRoute>
             } />
             <Route path="/events" element={
               <ProtectedRoute>
-                <ApplicationGuard>
-                  <Events />
-                </ApplicationGuard>
+                <Events />
               </ProtectedRoute>
             } />
             <Route path="/ajira" element={
               <ProtectedRoute>
-                <ApplicationGuard>
-                  <Ajira />
-                </ApplicationGuard>
+                <Ajira />
               </ProtectedRoute>
             } />
             <Route path="/inbox" element={
               <ProtectedRoute>
-                <ApplicationGuard>
-                  <Inbox />
-                </ApplicationGuard>
+                <Inbox />
               </ProtectedRoute>
             } />
             <Route path="/inbox/:conversationId" element={
               <ProtectedRoute>
-                <ApplicationGuard>
-                  <Inbox />
-                </ApplicationGuard>
+                <Inbox />
               </ProtectedRoute>
             } />
             <Route path="/units" element={
               <ProtectedRoute>
-                <ApplicationGuard>
-                  <Units />
-                </ApplicationGuard>
+                <Units />
               </ProtectedRoute>
             } />
             <Route path="/alumni" element={
               <ProtectedRoute>
-                <ApplicationGuard>
-                  <Alumni />
-                </ApplicationGuard>
+                <Alumni />
               </ProtectedRoute>
             } />
             <Route path="/profile/:userId" element={
               <ProtectedRoute>
-                <ApplicationGuard>
-                  <Profile />
-                </ApplicationGuard>
+                <Profile />
               </ProtectedRoute>
             } />
             <Route path="/admin/login" element={<AdminLogin />} />
@@ -148,23 +129,17 @@ const App = () => (
             <Route path="/application-rejected" element={<ApplicationRejected />} />
             <Route path="/unit/:unitId" element={
               <ProtectedRoute>
-                <ApplicationGuard>
-                  <UnitPage />
-                </ApplicationGuard>
+                <UnitPage />
               </ProtectedRoute>
             } />
             <Route path="/settings" element={
               <ProtectedRoute>
-                <ApplicationGuard>
-                  <Settings />
-                </ApplicationGuard>
+                <Settings />
               </ProtectedRoute>
             } />
             <Route path="/info" element={
               <ProtectedRoute>
-                <ApplicationGuard>
-                  <Info />
-                </ApplicationGuard>
+                <Info />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

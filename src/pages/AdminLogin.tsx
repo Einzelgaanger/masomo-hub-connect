@@ -22,6 +22,9 @@ const AdminLogin = () => {
     setIsLoading(true);
 
     try {
+      // Set flag to indicate this is a fresh login
+      sessionStorage.setItem('fresh_login', 'true');
+      
       // Sign in with Supabase Auth
       const { data, error } = await supabase.auth.signInWithPassword({
         email,

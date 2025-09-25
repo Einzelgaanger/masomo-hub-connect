@@ -25,7 +25,7 @@ export function WallOfFameSection() {
       setLoading(true);
 
       if (viewMode === 'university') {
-        // First get the current user's university
+        // First get the current user's university with fallback
         const { data: userProfile, error: profileError } = await supabase
           .from('profiles')
           .select(`
@@ -37,36 +37,156 @@ export function WallOfFameSection() {
           .single();
 
         if (profileError || !userProfile) {
-          console.error('Error fetching user profile:', profileError);
-          return;
+          console.warn('Full profile query failed, trying simple query:', profileError);
+          const { data: simpleProfile, error: simpleError } = await supabase
+            .from('profiles')
+            .select('class_id')
+            .eq('user_id', user?.id)
+            .single();
+
+          if (simpleError || !simpleProfile) {
+            console.error('Error fetching user profile:', simpleError);
+            return;
+          }
+
+          // Get university_id from class_id
+          const { data: classData, error: classError } = await supabase
+            .from('classes')
+            .select('university_id')
+            .eq('id', simpleProfile.class_id)
+            .single();
+
+          if (classError || !classData) {
+            console.error('Error fetching class data:', classError);
+            return;
+          }
+
+          // Try full query first, then fallback
+          const { data, error } = await supabase
+            .from('profiles')
+            .select(`
+              *,
+              classes!inner(
+                course_name,
+                course_year,
+                semester,
+                university_id,
+                universities!inner(
+                  name,
+                  countries!inner(
+                    name
+                  )
+                )
+              )
+            `)
+            .eq('classes.university_id', classData.university_id)
+            .order('points', { ascending: false })
+            .limit(30);
+
+          if (error) {
+            console.warn('Full query failed, trying simplified query:', error);
+            const { data: simpleData, error: simpleError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('class_id', simpleProfile.class_id)
+              .order('points', { ascending: false })
+              .limit(30);
+
+            if (simpleError) throw simpleError;
+
+            // Manually fetch class and university data for each profile
+            const profilesWithClasses = await Promise.all(
+              (simpleData || []).map(async (profile) => {
+                const { data: classInfo } = await supabase
+                  .from('classes')
+                  .select(`
+                    course_name,
+                    course_year,
+                    semester,
+                    university_id,
+                    universities!inner(
+                      name,
+                      countries!inner(
+                        name
+                      )
+                    )
+                  `)
+                  .eq('id', profile.class_id)
+                  .single();
+
+                return { ...profile, classes: classInfo };
+              })
+            );
+
+            setTopUsers(profilesWithClasses);
+          } else {
+            setTopUsers(data || []);
+          }
+        } else {
+          // Try full query first, then fallback
+          const { data, error } = await supabase
+            .from('profiles')
+            .select(`
+              *,
+              classes!inner(
+                course_name,
+                course_year,
+                semester,
+                university_id,
+                universities!inner(
+                  name,
+                  countries!inner(
+                    name
+                  )
+                )
+              )
+            `)
+            .eq('classes.university_id', userProfile.classes.university_id)
+            .order('points', { ascending: false })
+            .limit(30);
+
+          if (error) {
+            console.warn('Full query failed, trying simplified query:', error);
+            const { data: simpleData, error: simpleError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('class_id', userProfile.class_id)
+              .order('points', { ascending: false })
+              .limit(30);
+
+            if (simpleError) throw simpleError;
+
+            // Manually fetch class and university data for each profile
+            const profilesWithClasses = await Promise.all(
+              (simpleData || []).map(async (profile) => {
+                const { data: classInfo } = await supabase
+                  .from('classes')
+                  .select(`
+                    course_name,
+                    course_year,
+                    semester,
+                    university_id,
+                    universities!inner(
+                      name,
+                      countries!inner(
+                        name
+                      )
+                    )
+                  `)
+                  .eq('id', profile.class_id)
+                  .single();
+
+                return { ...profile, classes: classInfo };
+              })
+            );
+
+            setTopUsers(profilesWithClasses);
+          } else {
+            setTopUsers(data || []);
+          }
         }
-
-        // Then get top users from the same university
-        const { data, error } = await supabase
-          .from('profiles')
-          .select(`
-            *,
-            classes!inner(
-              course_name,
-              course_year,
-              semester,
-              university_id,
-              universities!inner(
-                name,
-                countries!inner(
-                  name
-                )
-              )
-            )
-          `)
-          .eq('classes.university_id', userProfile.classes.university_id)
-          .order('points', { ascending: false })
-          .limit(30);
-
-        if (error) throw error;
-        setTopUsers(data || []);
       } else {
-        // Get top users globally
+        // Global mode - try full query first, then fallback
         const { data, error } = await supabase
           .from('profiles')
           .select(`
@@ -87,11 +207,50 @@ export function WallOfFameSection() {
           .order('points', { ascending: false })
           .limit(30);
 
-        if (error) throw error;
-        setTopUsers(data || []);
+        if (error) {
+          console.warn('Full global query failed, trying simplified query:', error);
+          const { data: simpleData, error: simpleError } = await supabase
+            .from('profiles')
+            .select('*')
+            .order('points', { ascending: false })
+            .limit(30);
+
+          if (simpleError) throw simpleError;
+
+          // Manually fetch class and university data for each profile
+          const profilesWithClasses = await Promise.all(
+            (simpleData || []).map(async (profile) => {
+              if (!profile.class_id) return profile;
+              
+              const { data: classInfo } = await supabase
+                .from('classes')
+                .select(`
+                  course_name,
+                  course_year,
+                  semester,
+                  university_id,
+                  universities!inner(
+                    name,
+                    countries!inner(
+                      name
+                    )
+                  )
+                `)
+                .eq('id', profile.class_id)
+                .single();
+
+              return { ...profile, classes: classInfo };
+            })
+          );
+
+          setTopUsers(profilesWithClasses);
+        } else {
+          setTopUsers(data || []);
+        }
       }
     } catch (error) {
       console.error('Error fetching top users:', error);
+      setTopUsers([]);
     } finally {
       setLoading(false);
     }

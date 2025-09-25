@@ -50,6 +50,9 @@ const Login = () => {
   const handleGoogleSignUp = async () => {
     setLoading(true);
     try {
+      // Set flag to indicate this is a fresh login
+      sessionStorage.setItem('fresh_login', 'true');
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -83,6 +86,9 @@ const Login = () => {
 
     setLoading(true);
     try {
+      // Set flag to indicate this is a fresh login
+      sessionStorage.setItem('fresh_login', 'true');
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,

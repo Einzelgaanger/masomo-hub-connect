@@ -31,10 +31,15 @@ const AuthCallback = () => {
 
         if (profile && !profileError && profile.class_id) {
           // User already has a profile with a class assigned, redirect to dashboard
-          toast({
-            title: "Welcome back!",
-            description: `Hi ${profile.full_name}, you're already registered.`,
-          });
+          // Only show welcome message if this is a fresh login (not a page refresh)
+          const isFreshLogin = sessionStorage.getItem('fresh_login') === 'true';
+          if (isFreshLogin) {
+            toast({
+              title: "Welcome back!",
+              description: `Hi ${profile.full_name}, you're already registered.`,
+            });
+            sessionStorage.removeItem('fresh_login');
+          }
           navigate('/dashboard');
           return;
         } else if (profile && !profileError && !profile.class_id) {

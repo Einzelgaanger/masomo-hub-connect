@@ -25,7 +25,7 @@ export function UpcomingSection() {
       const now = new Date().toISOString();
 
       if (viewMode === 'university') {
-        // First get the current user's university
+        // First get the current user's university with fallback
         const { data: userProfile, error: profileError } = await supabase
           .from('profiles')
           .select(`
@@ -37,47 +37,200 @@ export function UpcomingSection() {
           .single();
 
         if (profileError || !userProfile) {
-          console.error('Error fetching user profile:', profileError);
-          return;
+          console.warn('Full profile query failed, trying simple query:', profileError);
+          const { data: simpleProfile, error: simpleError } = await supabase
+            .from('profiles')
+            .select('class_id')
+            .eq('user_id', user?.id)
+            .single();
+
+          if (simpleError || !simpleProfile) {
+            console.error('Error fetching user profile:', simpleError);
+            setUpcoming([]);
+            return;
+          }
+
+          // Get university_id from class_id
+          const { data: classData, error: classError } = await supabase
+            .from('classes')
+            .select('university_id')
+            .eq('id', simpleProfile.class_id)
+            .single();
+
+          if (classError || !classData) {
+            console.error('Error fetching class data:', classError);
+            setUpcoming([]);
+            return;
+          }
+
+          // Try full queries first, then fallback
+          const { data: assignments, error: assignmentsError } = await supabase
+            .from('assignments')
+            .select(`
+              *,
+              units(name, classes!inner(id, university_id))
+            `)
+            .eq('units.classes.university_id', classData.university_id)
+            .gte('deadline', now)
+            .order('deadline', { ascending: true })
+            .limit(10);
+
+          const { data: events, error: eventsError } = await supabase
+            .from('events')
+            .select(`
+              *,
+              units(name, classes!inner(id, university_id))
+            `)
+            .eq('units.classes.university_id', classData.university_id)
+            .gte('event_date', now)
+            .order('event_date', { ascending: true })
+            .limit(10);
+
+          if (assignmentsError || eventsError) {
+            console.warn('Full queries failed, trying simplified queries:', { assignmentsError, eventsError });
+            
+            // Simplified queries - get assignments and events by unit_id
+            const { data: simpleAssignments } = await supabase
+              .from('assignments')
+              .select('*')
+              .gte('deadline', now)
+              .order('deadline', { ascending: true })
+              .limit(10);
+
+            const { data: simpleEvents } = await supabase
+              .from('events')
+              .select('*')
+              .gte('event_date', now)
+              .order('event_date', { ascending: true })
+              .limit(10);
+
+            // Manually fetch unit data for each item
+            const assignmentsWithUnits = await Promise.all(
+              (simpleAssignments || []).map(async (assignment) => {
+                const { data: unitData } = await supabase
+                  .from('units')
+                  .select('name')
+                  .eq('id', assignment.unit_id)
+                  .single();
+                return { ...assignment, units: unitData };
+              })
+            );
+
+            const eventsWithUnits = await Promise.all(
+              (simpleEvents || []).map(async (event) => {
+                const { data: unitData } = await supabase
+                  .from('units')
+                  .select('name')
+                  .eq('id', event.unit_id)
+                  .single();
+                return { ...event, units: unitData };
+              })
+            );
+
+            // Combine and sort by date
+            const combined = [
+              ...assignmentsWithUnits.map(item => ({ ...item, type: 'assignment', date: item.deadline })),
+              ...eventsWithUnits.map(item => ({ ...item, type: 'event', date: item.event_date }))
+            ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+             .slice(0, 10);
+
+            setUpcoming(combined);
+          } else {
+            // Combine and sort by date
+            const combined = [
+              ...(assignments || []).map(item => ({ ...item, type: 'assignment', date: item.deadline })),
+              ...(events || []).map(item => ({ ...item, type: 'event', date: item.event_date }))
+            ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+             .slice(0, 10);
+
+            setUpcoming(combined);
+          }
+        } else {
+          // Try full queries first, then fallback
+          const { data: assignments, error: assignmentsError } = await supabase
+            .from('assignments')
+            .select(`
+              *,
+              units(name, classes!inner(id, university_id))
+            `)
+            .eq('units.classes.university_id', userProfile.classes.university_id)
+            .gte('deadline', now)
+            .order('deadline', { ascending: true })
+            .limit(10);
+
+          const { data: events, error: eventsError } = await supabase
+            .from('events')
+            .select(`
+              *,
+              units(name, classes!inner(id, university_id))
+            `)
+            .eq('units.classes.university_id', userProfile.classes.university_id)
+            .gte('event_date', now)
+            .order('event_date', { ascending: true })
+            .limit(10);
+
+          if (assignmentsError || eventsError) {
+            console.warn('Full queries failed, trying simplified queries:', { assignmentsError, eventsError });
+            
+            // Simplified queries
+            const { data: simpleAssignments } = await supabase
+              .from('assignments')
+              .select('*')
+              .gte('deadline', now)
+              .order('deadline', { ascending: true })
+              .limit(10);
+
+            const { data: simpleEvents } = await supabase
+              .from('events')
+              .select('*')
+              .gte('event_date', now)
+              .order('event_date', { ascending: true })
+              .limit(10);
+
+            // Manually fetch unit data for each item
+            const assignmentsWithUnits = await Promise.all(
+              (simpleAssignments || []).map(async (assignment) => {
+                const { data: unitData } = await supabase
+                  .from('units')
+                  .select('name')
+                  .eq('id', assignment.unit_id)
+                  .single();
+                return { ...assignment, units: unitData };
+              })
+            );
+
+            const eventsWithUnits = await Promise.all(
+              (simpleEvents || []).map(async (event) => {
+                const { data: unitData } = await supabase
+                  .from('units')
+                  .select('name')
+                  .eq('id', event.unit_id)
+                  .single();
+                return { ...event, units: unitData };
+              })
+            );
+
+            // Combine and sort by date
+            const combined = [
+              ...assignmentsWithUnits.map(item => ({ ...item, type: 'assignment', date: item.deadline })),
+              ...eventsWithUnits.map(item => ({ ...item, type: 'event', date: item.event_date }))
+            ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+             .slice(0, 10);
+
+            setUpcoming(combined);
+          } else {
+            // Combine and sort by date
+            const combined = [
+              ...(assignments || []).map(item => ({ ...item, type: 'assignment', date: item.deadline })),
+              ...(events || []).map(item => ({ ...item, type: 'event', date: item.event_date }))
+            ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+             .slice(0, 10);
+
+            setUpcoming(combined);
+          }
         }
-
-        // Fetch upcoming assignments from user's university
-        const { data: assignments, error: assignmentsError } = await supabase
-          .from('assignments')
-          .select(`
-            *,
-            units(name, classes!inner(id, university_id))
-          `)
-          .eq('units.classes.university_id', userProfile.classes.university_id)
-          .gte('deadline', now)
-          .order('deadline', { ascending: true })
-          .limit(10);
-
-        // Fetch upcoming events from user's university
-        const { data: events, error: eventsError } = await supabase
-          .from('events')
-          .select(`
-            *,
-            units(name, classes!inner(id, university_id))
-          `)
-          .eq('units.classes.university_id', userProfile.classes.university_id)
-          .gte('event_date', now)
-          .order('event_date', { ascending: true })
-          .limit(10);
-
-        if (assignmentsError) throw assignmentsError;
-        if (eventsError) throw eventsError;
-
-        // Combine and sort by date
-        const combined = [
-          ...(assignments || []).map(item => ({ ...item, type: 'assignment', date: item.deadline })),
-          ...(events || []).map(item => ({ ...item, type: 'event', date: item.event_date }))
-        ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-         .slice(0, 10);
-
-        setUpcoming(combined);
       } else {
-        // Global mode - fetch global public events
+        // Global mode - try full query first, then fallback
         const { data: globalEvents, error: globalEventsError } = await (supabase as any)
           .from('public_events')
           .select(`
@@ -94,22 +247,52 @@ export function UpcomingSection() {
           .order('event_date', { ascending: true })
           .limit(10);
 
-        if (globalEventsError) throw globalEventsError;
+        if (globalEventsError) {
+          console.warn('Full global events query failed, trying simplified query:', globalEventsError);
+          
+          // Simplified global events query
+          const { data: simpleGlobalEvents, error: simpleGlobalError } = await (supabase as any)
+            .from('public_events')
+            .select('*')
+            .gte('event_date', now)
+            .order('event_date', { ascending: true })
+            .limit(10);
 
-        // Transform global events to match the expected format
-        const transformedEvents = (globalEvents || []).map(item => ({
-          ...item,
-          type: 'global_event',
-          title: item.title,
-          date: item.event_date,
-          description: item.description,
-          location: item.location
-        }));
+          if (simpleGlobalError) {
+            console.error('Error fetching global events:', simpleGlobalError);
+            setUpcoming([]);
+            return;
+          }
 
-        setUpcoming(transformedEvents);
+          // Transform global events to match the expected format
+          const transformedEvents = (simpleGlobalEvents || []).map(item => ({
+            ...item,
+            type: 'global_event',
+            title: item.title,
+            date: item.event_date,
+            description: item.description,
+            location: item.location,
+            profiles: null // Will be null for simplified query
+          }));
+
+          setUpcoming(transformedEvents);
+        } else {
+          // Transform global events to match the expected format
+          const transformedEvents = (globalEvents || []).map(item => ({
+            ...item,
+            type: 'global_event',
+            title: item.title,
+            date: item.event_date,
+            description: item.description,
+            location: item.location
+          }));
+
+          setUpcoming(transformedEvents);
+        }
       }
     } catch (error) {
       console.error('Error fetching upcoming items:', error);
+      setUpcoming([]);
     } finally {
       setLoading(false);
     }

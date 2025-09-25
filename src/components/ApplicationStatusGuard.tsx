@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { useApplicationStatus } from '@/hooks/useApplicationStatus';
 import { useToast } from '@/hooks/use-toast';
 
 interface ApplicationStatusGuardProps {
@@ -10,114 +10,85 @@ interface ApplicationStatusGuardProps {
 
 const ApplicationStatusGuard = ({ children }: ApplicationStatusGuardProps) => {
   const { user, loading: authLoading } = useAuth();
+  const { hasApplication, status, loading: statusLoading } = useApplicationStatus();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
   const [checkingStatus, setCheckingStatus] = useState(false);
+  const lastCheckRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const checkApplicationStatus = async () => {
-      // Don't check if auth is still loading or user is not authenticated
-      if (authLoading || !user) return;
+    // Don't check if auth or status is still loading
+    if (authLoading || statusLoading || !user) return;
 
-      // Don't redirect if already on the correct status pages
-      const currentPath = location.pathname;
-      if (currentPath === '/application-status' || 
-          currentPath === '/application-rejected' || 
-          currentPath === '/login' || 
-          currentPath === '/class-selection') {
-        return;
+    // Don't redirect if already on the correct status pages
+    const currentPath = location.pathname;
+    if (currentPath === '/application-status' || 
+        currentPath === '/application-rejected' || 
+        currentPath === '/login' || 
+        currentPath === '/class-selection') {
+      return;
+    }
+
+    // Don't check if we just checked this path (prevent rapid-fire checks)
+    if (lastCheckRef.current === currentPath) return;
+    lastCheckRef.current = currentPath;
+
+    if (status === 'approved') {
+      // User is approved and has a class assigned
+      // Only redirect to dashboard if they're on an invalid page (not on any main app page)
+      const validPaths = [
+        '/dashboard', '/ukumbi', '/events', '/ajira', '/inbox', '/alumni', 
+        '/profile', '/settings', '/info', '/units'
+      ];
+      
+      // Check if current path is a valid main app page or a sub-page
+      const isValidPath = validPaths.some(path => currentPath.startsWith(path));
+      
+      if (!isValidPath && currentPath !== '/') {
+        // Only redirect if they're on an invalid page
+        navigate('/dashboard');
+      }
+    } else if (status === 'pending') {
+      // Application is pending - redirect to status page
+      navigate('/application-status');
+    } else if (status === 'rejected') {
+      // Check if rejection cooldown is active
+      const rejectionData = localStorage.getItem(`rejection_${user.id}`);
+      let shouldRedirectToRejected = false;
+
+      if (rejectionData) {
+        const { rejectedAt } = JSON.parse(rejectionData);
+        const rejectionTime = new Date(rejectedAt);
+        const now = new Date();
+        const timeDiff = now.getTime() - rejectionTime.getTime();
+        const daysDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
+        
+        // If less than 7 days have passed, redirect to rejected page
+        if (daysDiff < 7) {
+          shouldRedirectToRejected = true;
+        }
+      } else {
+        // If no rejection data in localStorage, create it
+        localStorage.setItem(`rejection_${user.id}`, JSON.stringify({
+          rejectedAt: new Date().toISOString()
+        }));
+        shouldRedirectToRejected = true;
       }
 
-      setCheckingStatus(true);
-
-      try {
-        // Check if user has a profile with a class assigned (approved)
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, role, class_id, full_name')
-          .eq('user_id', user.id)
-          .single();
-
-        if (profile && !profileError && profile.class_id) {
-          // User is approved and has a class assigned
-          // Redirect to dashboard if not already there
-          if (currentPath !== '/dashboard') {
-            navigate('/dashboard');
-          }
-          return;
-        }
-
-        // Check for applications
-        const { data: applications, error: applicationError } = await supabase
-          .from('applications' as any)
-          .select('id, status, created_at')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        if (applicationError && applicationError.code !== 'PGRST116') {
-          console.error('Application check error:', applicationError);
-          // If we can't check applications, allow navigation
-          return;
-        }
-
-        if (applications && applications.length > 0) {
-          const latestApplication = applications[0];
-          
-          if (latestApplication.status === 'pending') {
-            // Application is pending - redirect to status page
-            navigate('/application-status');
-            return;
-          } else if (latestApplication.status === 'rejected') {
-            // Check if rejection cooldown is active
-            const rejectionData = localStorage.getItem(`rejection_${user.id}`);
-            let shouldRedirectToRejected = false;
-
-            if (rejectionData) {
-              const { rejectedAt } = JSON.parse(rejectionData);
-              const rejectionTime = new Date(rejectedAt);
-              const now = new Date();
-              const timeDiff = now.getTime() - rejectionTime.getTime();
-              const daysDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
-              
-              // If less than 7 days have passed, redirect to rejected page
-              if (daysDiff < 7) {
-                shouldRedirectToRejected = true;
-              }
-            } else {
-              // If no rejection data in localStorage, create it
-              localStorage.setItem(`rejection_${user.id}`, JSON.stringify({
-                rejectedAt: latestApplication.created_at || new Date().toISOString()
-              }));
-              shouldRedirectToRejected = true;
-            }
-
-            if (shouldRedirectToRejected) {
-              navigate('/application-rejected');
-              return;
-            }
-          }
-        }
-
-        // No profile and no applications - redirect to class selection
-        if (currentPath !== '/class-selection') {
-          navigate('/class-selection');
-        }
-
-      } catch (error) {
-        console.error('Error checking application status:', error);
-        // On error, allow navigation to continue
-      } finally {
-        setCheckingStatus(false);
+      if (shouldRedirectToRejected) {
+        navigate('/application-rejected');
       }
-    };
-
-    checkApplicationStatus();
-  }, [user, authLoading, location.pathname, navigate]);
+    } else if (!hasApplication) {
+      // No profile and no applications - redirect to class selection
+      if (currentPath !== '/class-selection') {
+        navigate('/class-selection');
+      }
+    }
+  }, [user, authLoading, statusLoading, status, hasApplication, location.pathname, navigate]);
 
   // Show loading while checking application status
-  if (authLoading || checkingStatus) {
+  if (authLoading || statusLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
