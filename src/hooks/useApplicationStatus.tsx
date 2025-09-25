@@ -50,7 +50,7 @@ export const useApplicationStatus = () => {
         .single();
 
       if (profile && !profileError) {
-        // User has a profile, they are approved
+        // User has a profile, they are approved - NO NEED TO CHECK APPLICATIONS
         setStatus({
           hasApplication: true,
           status: 'approved',

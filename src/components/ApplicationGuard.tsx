@@ -18,6 +18,11 @@ const ApplicationGuard = ({ children }: ApplicationGuardProps) => {
     // Don't redirect if still loading or user not authenticated
     if (loading || !user) return;
 
+    // If user is approved (has profile), let them through immediately
+    if (status === 'approved') {
+      return;
+    }
+
     // If user has no application, let them through (they might need to apply)
     if (!hasApplication) return;
 
@@ -31,15 +36,10 @@ const ApplicationGuard = ({ children }: ApplicationGuardProps) => {
       navigate('/application-status');
       return;
     }
-
-    // If approved, let them through to the protected content
-    if (status === 'approved') {
-      return;
-    }
   }, [user, hasApplication, status, loading, navigate, toast]);
 
-  // Show loading while checking application status
-  if (loading) {
+  // Show loading while checking application status (only for non-approved users)
+  if (loading && status !== 'approved') {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

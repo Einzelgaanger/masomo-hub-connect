@@ -82,103 +82,36 @@ const Tukio = () => {
     };
   }, [longPressTimer]);
 
-  // TikTok-style video management with proper preloading and audio control
+  // Simple video management - just handle current video
   useEffect(() => {
     if (reels.length === 0) return;
 
-    // 1. STOP ALL VIDEOS AND CLEAR AUDIO (Critical!)
+    // Pause all videos except current
     videoRefs.current.forEach((video, index) => {
-      if (video) {
+      if (video && index !== currentIndex) {
         video.pause();
-        video.currentTime = 0;
-        video.muted = true; // Mute all videos first
-        video.volume = 0; // Ensure no audio
+        video.muted = true;
       }
     });
 
-    // 2. PLAY CURRENT VIDEO WITH PROPER AUDIO
+    // Play current video
     const currentVideo = videoRefs.current[currentIndex];
     if (currentVideo) {
-      // Ensure video is loaded
-      if (!loadedVideos.has(reels[currentIndex].id)) {
-        currentVideo.load();
-      }
-      
-      // Set audio settings for current video
       currentVideo.muted = isMuted;
-      currentVideo.volume = isMuted ? 0 : 1;
-      
-      // Play current video
-      setTimeout(() => {
-        if (currentVideo && !currentVideo.paused) {
-          currentVideo.play().catch((error) => {
-            if (error.name !== 'AbortError') {
-              console.error('Video play error:', error);
-            }
-          });
-          setIsPlaying(true);
+      currentVideo.play().catch((error) => {
+        if (error.name !== 'AbortError') {
+          console.error('Video play error:', error);
         }
-      }, 50);
+      });
     }
 
-    // 3. PRELOAD VIDEOS (TikTok-style: 3 ahead, 2 behind)
-    const preloadRange = 3;
-    const startIndex = Math.max(0, currentIndex - 2);
-    const endIndex = Math.min(reels.length - 1, currentIndex + preloadRange);
-    
-    // Preload videos in the range
-    for (let i = startIndex; i <= endIndex; i++) {
-      if (i !== currentIndex && !loadedVideos.has(reels[i].id)) {
-        preloadVideo(reels[i].id, reels[i].video_url, i);
-      }
-    }
-
-    // 4. CLEANUP DISTANT VIDEOS (Memory management)
-    const cleanupRange = 5;
-    videoRefs.current.forEach((video, index) => {
-      if (video && Math.abs(index - currentIndex) > cleanupRange) {
-        // Unload distant videos to save memory
-        video.src = '';
-        video.load();
-      }
-    });
-
-  }, [currentIndex, reels, loadedVideos, isMuted]);
+  }, [currentIndex, isMuted]);
 
   // TikTok-style video preloading function (Fixed for Supabase Storage)
   const preloadVideo = (videoId: string, videoUrl: string, index: number) => {
-    // Skip preloading for Supabase Storage URLs to avoid cache errors
-    if (videoUrl.includes('supabase.co/storage')) {
-      console.log(`Skipping preload for Supabase video: ${videoId}`);
-      return;
-    }
-
-    const video = document.createElement('video');
-    video.src = videoUrl;
-    video.preload = 'metadata'; // Less aggressive for compatibility
-    video.muted = true;
-    video.crossOrigin = 'anonymous';
-    video.style.display = 'none';
-    
-    video.onloadeddata = () => {
-      setLoadedVideos(prev => new Set([...prev, videoId]));
-      setBufferedVideos(prev => new Set([...prev, videoId]));
-    };
-    
-    video.onerror = (e) => {
-      console.warn(`Failed to preload video ${videoId}:`, e);
-      // Don't retry on cache errors
-    };
-    
-    // Add to DOM for proper loading
-    document.body.appendChild(video);
-    
-    // Clean up after loading
-    setTimeout(() => {
-      if (document.body.contains(video)) {
-        document.body.removeChild(video);
-      }
-    }, 5000); // Shorter cleanup time
+    // Skip all preloading for now to avoid issues
+    console.log(`Skipping preload for video: ${videoId}`);
+    return;
   };
 
   // Handle wheel events and touch for horizontal scrolling
@@ -685,23 +618,9 @@ const Tukio = () => {
         </div>
       </div>
 
-      {/* Video Status Indicator */}
-      {currentReel && (
-        <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-50">
-          <div className="bg-black/50 text-white px-2 py-1 rounded-full text-xs">
-            {!loadedVideos.has(currentReel.id) ? (
-              <span className="text-yellow-400">Loading...</span>
-            ) : !bufferedVideos.has(currentReel.id) ? (
-              <span className="text-orange-400">Buffering...</span>
-            ) : (
-              <span className="text-green-400">Ready</span>
-            )}
-          </div>
-        </div>
-      )}
 
-      {/* Navigation Buttons - Desktop Only */}
-      <div className="hidden md:block">
+      {/* Navigation Buttons - Always Visible */}
+      <div className="block">
         {/* Previous Video Button */}
         {currentIndex > 0 && (
           <div className="absolute left-1/2 top-8 transform -translate-x-1/2 z-50">
@@ -744,14 +663,12 @@ const Tukio = () => {
             {/* Video */}
             {reel.video_url && (
               <div className="absolute inset-0 flex items-center justify-center bg-black">
-                {/* Loading/Buffering Indicator */}
-                {(!loadedVideos.has(reel.id) || (index === currentIndex && !bufferedVideos.has(reel.id))) && (
+                {/* Simple loading indicator only for current video */}
+                {index === currentIndex && !loadedVideos.has(reel.id) && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
                     <div className="text-center">
                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-2"></div>
-                      <p className="text-white text-sm">
-                        {!loadedVideos.has(reel.id) ? 'Loading...' : 'Buffering...'}
-                      </p>
+                      <p className="text-white text-sm">Loading...</p>
                     </div>
                   </div>
                 )}
@@ -763,7 +680,7 @@ const Tukio = () => {
                   muted={index !== currentIndex || isMuted}
                   loop
                   playsInline
-                  autoPlay={false} // We control this manually
+                  autoPlay={index === currentIndex} // Auto-play current video
                   preload="metadata" // Compatible with Supabase Storage
                   crossOrigin="anonymous"
                   onPlay={() => {
