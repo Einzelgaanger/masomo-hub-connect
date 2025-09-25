@@ -27,6 +27,7 @@ import Events from "./pages/Events";
 import Ajira from "./pages/Ajira";
 import Inbox from "./pages/Inbox";
 import Units from "./pages/Units";
+import Alumni from "./pages/Alumni";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
@@ -110,6 +111,13 @@ const App = () => (
               <ProtectedRoute>
                 <ApplicationGuard>
                   <Units />
+                </ApplicationGuard>
+              </ProtectedRoute>
+            } />
+            <Route path="/alumni" element={
+              <ProtectedRoute>
+                <ApplicationGuard>
+                  <Alumni />
                 </ApplicationGuard>
               </ProtectedRoute>
             } />

@@ -130,12 +130,15 @@ ALTER TABLE public.student_alumni_interactions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Alumni can view all alumni profiles from their university" ON public.alumni_profiles 
 FOR SELECT TO authenticated 
 USING (
-  EXISTS (
-    SELECT 1 FROM public.alumni_profiles ap1
-    JOIN public.classes c1 ON ap1.graduation_class_id = c1.id
-    JOIN public.alumni_profiles ap2 ON ap2.graduation_class_id = c2.id
-    JOIN public.classes c2 ON ap2.graduation_class_id = c2.id
-    WHERE ap1.user_id = auth.uid() AND c1.university_id = c2.university_id
+  graduation_class_id IN (
+    SELECT c.id 
+    FROM public.classes c
+    WHERE c.university_id IN (
+      SELECT c2.university_id 
+      FROM public.alumni_profiles ap
+      JOIN public.classes c2 ON ap.graduation_class_id = c2.id
+      WHERE ap.user_id = auth.uid()
+    )
   )
 );
 

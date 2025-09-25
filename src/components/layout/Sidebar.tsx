@@ -1,4 +1,4 @@
-import { BookOpen, Settings, Info, User, GraduationCap, Shield, LogOut, Video, UserCircle, MessageCircle, Calendar, Briefcase, Mail, GraduationCap as MasomoIcon } from "lucide-react";
+import { BookOpen, Settings, Info, User, GraduationCap, Shield, LogOut, Video, UserCircle, MessageCircle, Calendar, Briefcase, Mail, GraduationCap as MasomoIcon, Users } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   Sidebar as SidebarComponent,
@@ -62,128 +62,126 @@ export function Sidebar({ profile }: SidebarProps) {
       </SidebarHeader>
 
       <SidebarContent className="flex flex-col h-full">
-        {/* Fixed Navigation Section */}
-        <div className="flex-shrink-0">
+        {/* Main Navigation Section */}
+        <div className="flex-1">
           <SidebarGroup>
-            <SidebarGroupLabel>Navigation</SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink to="/dashboard" className={getNavLinkClass}>
-                    <User className="h-4 w-4" />
-                    <span>Dashboard</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink to="/units" className={getNavLinkClass}>
-                    <MasomoIcon className="h-4 w-4" />
-                    <span>Masomo</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink to="/ukumbi" className={getNavLinkClass}>
-                    <MessageCircle className="h-4 w-4" />
-                    <span>Ukumbi</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink to="/events" className={getNavLinkClass}>
-                    <Calendar className="h-4 w-4" />
-                    <span>Tukio</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink to="/ajira" className={getNavLinkClass}>
-                    <Briefcase className="h-4 w-4" />
-                    <span>Ajira</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink to="/inbox" className={getNavLinkClass}>
-                    <Mail className="h-4 w-4" />
-                    <span>Inbox</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              {profile && ['admin', 'super_admin'].includes(profile.role) && (
+              <SidebarMenu className="space-y-1">
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <NavLink to="/admin" className={getNavLinkClass}>
-                      <Shield className="h-4 w-4" />
-                      <span>Admin Panel</span>
+                    <NavLink to="/dashboard" className={getNavLinkClass}>
+                      <User className="h-4 w-4" />
+                      <span>Dashboard</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              )}
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink to="/units" className={getNavLinkClass}>
+                      <MasomoIcon className="h-4 w-4" />
+                      <span>Masomo</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink to="/ukumbi" className={getNavLinkClass}>
+                      <MessageCircle className="h-4 w-4" />
+                      <span>Ukumbi</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink to="/events" className={getNavLinkClass}>
+                      <Calendar className="h-4 w-4" />
+                      <span>Tukio</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink to="/ajira" className={getNavLinkClass}>
+                      <Briefcase className="h-4 w-4" />
+                      <span>Ajira</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink to="/inbox" className={getNavLinkClass}>
+                      <Mail className="h-4 w-4" />
+                      <span>Inbox</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink to="/alumni" className={getNavLinkClass}>
+                      <Users className="h-4 w-4" />
+                      <span>Alumni</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                {profile && ['admin', 'super_admin'].includes(profile.role) && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink to="/admin" className={getNavLinkClass}>
+                        <Shield className="h-4 w-4" />
+                        <span>Admin Panel</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink to="/settings" className={getNavLinkClass}>
+                      <Settings className="h-4 w-4" />
+                      <span>Settings</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink to={`/profile/${profile?.user_id}`} className={getNavLinkClass}>
+                      <UserCircle className="h-4 w-4" />
+                      <span>My Profile</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink to="/info" className={getNavLinkClass}>
+                      <Info className="h-4 w-4" />
+                      <span>Info</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         </div>
 
-
-        {/* Fixed Bottom Section */}
-        <div className="flex-shrink-0 space-y-4">
+        {/* Bottom Section - Logout button right above profile */}
+        <div className="flex-shrink-0">
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink to="/settings" className={getNavLinkClass}>
-                    <Settings className="h-4 w-4" />
-                    <span>Settings</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink to={`/profile/${profile?.user_id}`} className={getNavLinkClass}>
-                    <UserCircle className="h-4 w-4" />
-                    <span>My Profile</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink to="/info" className={getNavLinkClass}>
-                    <Info className="h-4 w-4" />
-                    <span>Info</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+                      onClick={handleLogout}
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span>Logout</span>
+                    </Button>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-
-          {/* Logout Section - Always visible at bottom */}
-          <div className="border-t border-sidebar-border">
-            <SidebarGroup>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
-                    onClick={handleLogout}
-                  >
-                    <LogOut className="h-4 w-4" />
-                    <span>Logout</span>
-                  </Button>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </div>
         </div>
       </SidebarContent>
 

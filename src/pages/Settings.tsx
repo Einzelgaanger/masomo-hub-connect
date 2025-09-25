@@ -7,10 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { User, Lock, Image, Edit3, X } from "lucide-react";
+import { User, Lock, Image, Edit3, X, GraduationCap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
@@ -32,6 +33,24 @@ const Settings = () => {
     newPassword: "",
     confirmPassword: ""
   });
+
+  const [emailData, setEmailData] = useState({
+    newEmail: "",
+    confirmEmail: ""
+  });
+  const [isEditingEmail, setIsEditingEmail] = useState(false);
+  const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
+
+  const [alumniData, setAlumniData] = useState({
+    current_company: "",
+    current_position: "",
+    industry: "",
+    linkedin_url: "",
+    bio: "",
+    mentoring_available: false
+  });
+  const [isEditingAlumni, setIsEditingAlumni] = useState(false);
+  const [isUpdatingAlumni, setIsUpdatingAlumni] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -61,6 +80,26 @@ const Settings = () => {
 
       if (error) throw error;
       setProfile(data);
+
+      // If user is alumni, fetch alumni profile data
+      if (data?.role === 'alumni') {
+        const { data: alumniProfile, error: alumniError } = await supabase
+          .from('alumni_profiles')
+          .select('*')
+          .eq('user_id', user?.id)
+          .single();
+
+        if (!alumniError && alumniProfile) {
+          setAlumniData({
+            current_company: alumniProfile.current_company || "",
+            current_position: alumniProfile.current_position || "",
+            industry: alumniProfile.industry || "",
+            linkedin_url: alumniProfile.linkedin_url || "",
+            bio: alumniProfile.bio || "",
+            mentoring_available: alumniProfile.mentoring_available || false
+          });
+        }
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
       toast({
@@ -73,6 +112,116 @@ const Settings = () => {
     }
   };
 
+
+  const handleEmailUpdate = async () => {
+    if (!emailData.newEmail || !emailData.confirmEmail) {
+      toast({
+        title: "Error",
+        description: "Please fill in all email fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (emailData.newEmail !== emailData.confirmEmail) {
+      toast({
+        title: "Error",
+        description: "Email addresses do not match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (emailData.newEmail === profile?.email) {
+      toast({
+        title: "Error",
+        description: "New email is the same as current email.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUpdatingEmail(true);
+    try {
+      // Update email in Supabase Auth
+      const { error: authError } = await supabase.auth.updateUser({
+        email: emailData.newEmail
+      });
+
+      if (authError) throw authError;
+
+      // Update email in profiles table
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ email: emailData.newEmail })
+        .eq('user_id', user?.id);
+
+      if (profileError) throw profileError;
+
+      toast({
+        title: "Success",
+        description: "Email updated successfully! Please check your new email for verification.",
+      });
+
+      setEmailData({ newEmail: "", confirmEmail: "" });
+      setIsEditingEmail(false);
+      fetchProfile();
+    } catch (error: any) {
+      console.error('Error updating email:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update email.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingEmail(false);
+    }
+  };
+
+  const handleAlumniUpdate = async () => {
+    if (!alumniData.current_company || !alumniData.current_position) {
+      toast({
+        title: "Error",
+        description: "Please fill in company and position fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUpdatingAlumni(true);
+    try {
+      const { error } = await supabase
+        .from('alumni_profiles')
+        .update({
+          current_company: alumniData.current_company,
+          current_position: alumniData.current_position,
+          industry: alumniData.industry || null,
+          linkedin_url: alumniData.linkedin_url || null,
+          bio: alumniData.bio || null,
+          mentoring_available: alumniData.mentoring_available
+        })
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Alumni profile updated successfully!",
+      });
+
+      setIsEditingAlumni(false);
+      fetchProfile();
+    } catch (error: any) {
+      console.error('Error updating alumni profile:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update alumni profile.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingAlumni(false);
+    }
+  };
 
   const handlePasswordChange = async () => {
     try {
@@ -293,7 +442,59 @@ const Settings = () => {
                         />
                       </div>
                       <h3 className="font-semibold">{profile?.full_name}</h3>
-                      <p className="text-sm text-muted-foreground">{profile?.email}</p>
+                      <div className="flex items-center gap-2">
+                        {isEditingEmail && profile?.role === 'alumni' ? (
+                          <div className="flex-1 space-y-2">
+                            <Input
+                              type="email"
+                              placeholder="New email address"
+                              value={emailData.newEmail}
+                              onChange={(e) => setEmailData({...emailData, newEmail: e.target.value})}
+                              className="text-sm"
+                            />
+                            <Input
+                              type="email"
+                              placeholder="Confirm new email address"
+                              value={emailData.confirmEmail}
+                              onChange={(e) => setEmailData({...emailData, confirmEmail: e.target.value})}
+                              className="text-sm"
+                            />
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                onClick={handleEmailUpdate}
+                                disabled={isUpdatingEmail}
+                              >
+                                {isUpdatingEmail ? "Updating..." : "Update Email"}
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => {
+                                  setIsEditingEmail(false);
+                                  setEmailData({ newEmail: "", confirmEmail: "" });
+                                }}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm text-muted-foreground">{profile?.email}</p>
+                            {profile?.role === 'alumni' && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setIsEditingEmail(true)}
+                                className="h-6 w-6 p-0"
+                              >
+                                <Edit3 className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                       <Badge className={getRankColor(profile?.rank)}>
                         {profile?.rank?.charAt(0).toUpperCase() + profile?.rank?.slice(1)}
                       </Badge>
@@ -409,6 +610,178 @@ const Settings = () => {
                     </Button>
                   </CardContent>
                 </Card>
+
+                {/* Alumni Profile Settings - Only for Alumni */}
+                {profile?.role === 'alumni' && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <GraduationCap className="h-5 w-5" />
+                        Alumni Profile
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {isEditingAlumni ? (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="current_company">Current Company *</Label>
+                              <Input
+                                id="current_company"
+                                value={alumniData.current_company}
+                                onChange={(e) => setAlumniData({...alumniData, current_company: e.target.value})}
+                                placeholder="Enter your company name"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="current_position">Current Position *</Label>
+                              <Input
+                                id="current_position"
+                                value={alumniData.current_position}
+                                onChange={(e) => setAlumniData({...alumniData, current_position: e.target.value})}
+                                placeholder="Enter your job title"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor="industry">Industry</Label>
+                            <Input
+                              id="industry"
+                              value={alumniData.industry}
+                              onChange={(e) => setAlumniData({...alumniData, industry: e.target.value})}
+                              placeholder="e.g., Technology, Finance, Healthcare"
+                            />
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor="linkedin_url">LinkedIn Profile</Label>
+                            <Input
+                              id="linkedin_url"
+                              type="url"
+                              value={alumniData.linkedin_url}
+                              onChange={(e) => setAlumniData({...alumniData, linkedin_url: e.target.value})}
+                              placeholder="https://linkedin.com/in/yourprofile"
+                            />
+                          </div>
+                          
+                          <div>
+                            <Label htmlFor="alumni_bio">Professional Bio</Label>
+                            <Textarea
+                              id="alumni_bio"
+                              value={alumniData.bio}
+                              onChange={(e) => setAlumniData({...alumniData, bio: e.target.value})}
+                              placeholder="Tell us about your professional journey and achievements..."
+                              rows={4}
+                            />
+                          </div>
+                          
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id="mentoring_available"
+                              checked={alumniData.mentoring_available}
+                              onChange={(e) => setAlumniData({...alumniData, mentoring_available: e.target.checked})}
+                              className="rounded"
+                              title="Available for mentoring current students"
+                              aria-label="Available for mentoring current students"
+                            />
+                            <Label htmlFor="mentoring_available">Available for mentoring current students</Label>
+                          </div>
+                          
+                          <div className="flex gap-2">
+                            <Button 
+                              onClick={handleAlumniUpdate}
+                              disabled={isUpdatingAlumni}
+                            >
+                              {isUpdatingAlumni ? "Updating..." : "Update Profile"}
+                            </Button>
+                            <Button 
+                              variant="outline"
+                              onClick={() => {
+                                setIsEditingAlumni(false);
+                                // Reset form data
+                                setAlumniData({
+                                  current_company: "",
+                                  current_position: "",
+                                  industry: "",
+                                  linkedin_url: "",
+                                  bio: "",
+                                  mentoring_available: false
+                                });
+                                fetchProfile(); // Reload original data
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label>Current Company</Label>
+                              <p className="text-sm text-muted-foreground">
+                                {alumniData.current_company || "Not specified"}
+                              </p>
+                            </div>
+                            <div>
+                              <Label>Current Position</Label>
+                              <p className="text-sm text-muted-foreground">
+                                {alumniData.current_position || "Not specified"}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <Label>Industry</Label>
+                            <p className="text-sm text-muted-foreground">
+                              {alumniData.industry || "Not specified"}
+                            </p>
+                          </div>
+                          
+                          {alumniData.linkedin_url && (
+                            <div>
+                              <Label>LinkedIn Profile</Label>
+                              <a 
+                                href={alumniData.linkedin_url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-sm text-blue-600 hover:underline"
+                              >
+                                {alumniData.linkedin_url}
+                              </a>
+                            </div>
+                          )}
+                          
+                          {alumniData.bio && (
+                            <div>
+                              <Label>Professional Bio</Label>
+                              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                                {alumniData.bio}
+                              </p>
+                            </div>
+                          )}
+                          
+                          <div className="flex items-center space-x-2">
+                            <div className={`w-3 h-3 rounded-full ${alumniData.mentoring_available ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                            <span className="text-sm text-muted-foreground">
+                              {alumniData.mentoring_available ? 'Available for mentoring' : 'Not available for mentoring'}
+                            </span>
+                          </div>
+                          
+                          <Button 
+                            variant="outline"
+                            onClick={() => setIsEditingAlumni(true)}
+                          >
+                            <Edit3 className="h-4 w-4 mr-2" />
+                            Edit Alumni Profile
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
 
               </div>
             </div>
