@@ -39,7 +39,7 @@ const ApplicationStatusGuard = ({ children }: ApplicationStatusGuardProps) => {
       // Only redirect to dashboard if they're on an invalid page (not on any main app page)
       const validPaths = [
         '/dashboard', '/ukumbi', '/events', '/ajira', '/inbox', '/alumni', 
-        '/profile', '/settings', '/info', '/units'
+        '/profile', '/settings', '/info', '/units', '/unit'
       ];
       
       // Check if current path is a valid main app page or a sub-page

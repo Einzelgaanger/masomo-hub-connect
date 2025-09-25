@@ -96,13 +96,23 @@ function isDeadlineUrgent(deadline: string) {
   return diffDays <= 7 && diffDays >= 0;
 }
 
+function isJobExpired(deadline: string) {
+  if (!deadline) return false;
+  const deadlineDate = new Date(deadline);
+  const now = new Date();
+  return deadlineDate < now;
+}
+
 // JobCard component
 function JobCard({ job }: { job: JobPosting }) {
   const hasDeadline = !!job.application_deadline;
   const isUrgent = hasDeadline && isDeadlineUrgent(job.application_deadline!);
+  const isExpired = hasDeadline && isJobExpired(job.application_deadline!);
 
   return (
-    <Card className="hover:shadow-lg transition-shadow duration-200 h-full flex flex-col">
+    <Card className={`transition-shadow duration-200 h-full flex flex-col ${
+      isExpired ? 'opacity-60 bg-gray-50' : 'hover:shadow-lg'
+    }`}>
       <CardHeader className="pb-4">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-2">
           <div className="flex-1">
@@ -112,9 +122,16 @@ function JobCard({ job }: { job: JobPosting }) {
               <span className="font-medium truncate">{job.company}</span>
             </div>
           </div>
-          <Badge className={getJobTypeColor(job.job_type)}>
-            {getJobTypeLabel(job.job_type)}
-          </Badge>
+          <div className="flex flex-col gap-1">
+            <Badge className={getJobTypeColor(job.job_type)}>
+              {getJobTypeLabel(job.job_type)}
+            </Badge>
+            {isExpired && (
+              <Badge variant="secondary" className="bg-red-100 text-red-800 border-red-200">
+                Expired
+              </Badge>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
@@ -138,51 +155,72 @@ function JobCard({ job }: { job: JobPosting }) {
 
         <div className="space-y-2 mb-4">
           <div className="flex items-center gap-2 text-sm">
-            <User className="h-4 w-4 text-muted-foreground" />
-            <span>Posted by {job.profiles?.full_name}</span>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                {job.profiles?.profile_picture_url ? (
+                  <img 
+                    src={job.profiles.profile_picture_url} 
+                    alt={job.profiles.full_name || 'User'} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <User className="h-3 w-3 text-gray-500" />
+                )}
+              </div>
+              <span className="font-medium">{job.profiles?.full_name || 'Unknown User'}</span>
+            </div>
             <span className="text-muted-foreground">
               • {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
             </span>
           </div>
 
           {/* University and Course Info */}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Building className="h-3 w-3" />
-            {job.universities?.name && (
-              <>
-                <span>{job.universities.name}</span>
-                {job.classes?.course_name && <span>•</span>}
-              </>
-            )}
-            {job.classes?.course_name && (
-              <>
-                <span>{job.classes.course_name}</span>
-                {job.universities?.countries?.name && <span>•</span>}
-              </>
-            )}
-            {job.universities?.countries?.name && (
-              <span>{job.universities.countries.name}</span>
-            )}
-          </div>
+          {(job.universities?.name || job.classes?.course_name || job.universities?.countries?.name) && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Building className="h-3 w-3" />
+              {job.universities?.name && (
+                <>
+                  <span>{job.universities.name}</span>
+                  {job.classes?.course_name && <span>•</span>}
+                </>
+              )}
+              {job.classes?.course_name && (
+                <>
+                  <span>{job.classes.course_name}</span>
+                  {job.universities?.countries?.name && <span>•</span>}
+                </>
+              )}
+              {job.universities?.countries?.name && (
+                <span>{job.universities.countries.name}</span>
+              )}
+            </div>
+          )}
 
           {/* Visibility Info */}
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            {job.visibility === 'university' && <Building className="h-3 w-3" />}
-            {job.visibility === 'country' && <Users className="h-3 w-3" />}
-            {job.visibility === 'global' && <Globe className="h-3 w-3" />}
-            <span>
-              {job.visibility === 'university' && 'My University'}
-              {job.visibility === 'country' && 'Selected Countries'}
-              {job.visibility === 'global' && 'All Countries'}
-            </span>
-          </div>
+          {job.visibility && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              {job.visibility === 'university' && <Building className="h-3 w-3" />}
+              {job.visibility === 'country' && <Users className="h-3 w-3" />}
+              {job.visibility === 'global' && <Globe className="h-3 w-3" />}
+              <span>
+                {job.visibility === 'university' && 'My University'}
+                {job.visibility === 'country' && 'Selected Countries'}
+                {job.visibility === 'global' && 'All Countries'}
+              </span>
+            </div>
+          )}
 
           {hasDeadline && (
-            <div className={`flex items-center gap-2 text-sm ${isUrgent ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
+            <div className={`flex items-center gap-2 text-sm ${
+              isExpired ? 'text-red-600 font-medium' : 
+              isUrgent ? 'text-red-600 font-medium' : 
+              'text-muted-foreground'
+            }`}>
               <Calendar className="h-4 w-4" />
               <span>
                 Deadline: {format(new Date(job.application_deadline!), 'MMM dd, yyyy')}
-                {isUrgent && ' (Urgent!)'}
+                {isExpired && ' (Expired)'}
+                {isUrgent && !isExpired && ' (Urgent!)'}
               </span>
             </div>
           )}
@@ -190,12 +228,18 @@ function JobCard({ job }: { job: JobPosting }) {
 
         <div className="mt-auto">
           <div className="flex gap-2">
-            {job.application_url && (
+            {job.application_url && !isExpired && (
               <Button size="sm" className="flex-1" asChild>
                 <a href={job.application_url} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-4 w-4 mr-1" />
                   Apply
                 </a>
+              </Button>
+            )}
+            {isExpired && (
+              <Button size="sm" disabled className="flex-1">
+                <ExternalLink className="h-4 w-4 mr-1" />
+                Expired
               </Button>
             )}
             {job.contact_email && (
@@ -245,6 +289,10 @@ export default function Ajira() {
   // Filter state
   const [searchTerm, setSearchTerm] = useState("");
   const [jobTypeFilter, setJobTypeFilter] = useState("all");
+  const [locationFilter, setLocationFilter] = useState("");
+  const [salaryFilter, setSalaryFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all"); // all, active, expired, urgent
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const fetchJobPostings = useCallback(async () => {
     try {
@@ -309,11 +357,41 @@ export default function Ajira() {
       if (allJobsError) throw allJobsError;
 
       const myUniId = userProfile.classes.university_id;
-      setMyUniversityJobs((myUniJobs as any[]) || []);
+      
+      // Sort jobs by priority: recent first, then by deadline urgency
+      const sortJobsByPriority = (jobs: any[]) => {
+        return jobs.sort((a, b) => {
+          const aDeadline = a.application_deadline ? new Date(a.application_deadline) : null;
+          const bDeadline = b.application_deadline ? new Date(b.application_deadline) : null;
+          const now = new Date();
+          
+          // Check if jobs are expired
+          const aExpired = aDeadline && aDeadline < now;
+          const bExpired = bDeadline && bDeadline < now;
+          
+          // Check if jobs are urgent (deadline within 7 days)
+          const aUrgent = aDeadline && !aExpired && (aDeadline.getTime() - now.getTime()) <= 7 * 24 * 60 * 60 * 1000;
+          const bUrgent = bDeadline && !bExpired && (bDeadline.getTime() - now.getTime()) <= 7 * 24 * 60 * 60 * 1000;
+          
+          // Priority order: urgent jobs first, then recent jobs, then expired jobs
+          if (aUrgent && !bUrgent) return -1;
+          if (!aUrgent && bUrgent) return 1;
+          
+          // If both are urgent or both are not urgent, sort by creation date (most recent first)
+          const aCreated = new Date(a.created_at);
+          const bCreated = new Date(b.created_at);
+          return bCreated.getTime() - aCreated.getTime();
+        });
+      };
+      
+      const sortedMyUniJobs = sortJobsByPriority((myUniJobs as any[]) || []);
+      setMyUniversityJobs(sortedMyUniJobs);
+      
       // Exclude anything from my own university from the All tab to avoid repetition
       const filteredAll = ((allJobsData as any[]) || []).filter((job: any) => job?.profiles?.classes?.university_id !== myUniId);
-      setAllJobs(filteredAll);
-      setJobPostings((myUniJobs as any[]) || []); // Default to university jobs
+      const sortedAllJobs = sortJobsByPriority(filteredAll);
+      setAllJobs(sortedAllJobs);
+      setJobPostings(sortedMyUniJobs); // Default to university jobs
     } catch (error) {
       console.error('Error fetching job postings:', error);
       toast({
@@ -339,14 +417,19 @@ export default function Ajira() {
   const filterJobs = useCallback(() => {
     let filtered = jobPostings;
 
-    // Filter by search term
+    // Enhanced search functionality - searches through title, company, description, location, and requirements
     if (searchTerm) {
-      filtered = filtered.filter(job =>
-        job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.location.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      filtered = filtered.filter(job => {
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          job.title.toLowerCase().includes(searchLower) ||
+          job.company.toLowerCase().includes(searchLower) ||
+          job.description.toLowerCase().includes(searchLower) ||
+          job.location.toLowerCase().includes(searchLower) ||
+          (job.requirements && job.requirements.toLowerCase().includes(searchLower)) ||
+          (job.benefits && job.benefits.toLowerCase().includes(searchLower))
+        );
+      });
     }
 
     // Filter by job type
@@ -354,15 +437,53 @@ export default function Ajira() {
       filtered = filtered.filter(job => job.job_type === jobTypeFilter);
     }
 
+    // Filter by location
+    if (locationFilter) {
+      filtered = filtered.filter(job => 
+        job.location.toLowerCase().includes(locationFilter.toLowerCase())
+      );
+    }
+
+    // Filter by salary range
+    if (salaryFilter) {
+      filtered = filtered.filter(job => {
+        if (!job.salary_range) return false;
+        return job.salary_range.toLowerCase().includes(salaryFilter.toLowerCase());
+      });
+    }
+
+    // Filter by status (active, expired, urgent)
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(job => {
+        if (!job.application_deadline) return statusFilter === "active";
+        
+        const deadline = new Date(job.application_deadline);
+        const now = new Date();
+        const isExpired = deadline < now;
+        const isUrgent = !isExpired && (deadline.getTime() - now.getTime()) <= 7 * 24 * 60 * 60 * 1000;
+        
+        switch (statusFilter) {
+          case "active":
+            return !isExpired;
+          case "expired":
+            return isExpired;
+          case "urgent":
+            return isUrgent;
+          default:
+            return true;
+        }
+      });
+    }
+
     setFilteredJobs(filtered);
-  }, [jobPostings, searchTerm, jobTypeFilter]);
+  }, [jobPostings, searchTerm, jobTypeFilter, locationFilter, salaryFilter, statusFilter]);
 
   const handleCreateJob = async () => {
     try {
-      if (!formData.title || !formData.company || !formData.description || !formData.job_type || !formData.location || !formData.requirements) {
+      if (!formData.title || !formData.company || !formData.description || !formData.job_type || !formData.location || !formData.requirements || !formData.application_deadline) {
         toast({
           title: "Error",
-          description: "Please fill in all required fields.",
+          description: "Please fill in all required fields including the application deadline.",
           variant: "destructive",
         });
         return;
@@ -379,7 +500,7 @@ export default function Ajira() {
           job_type: formData.job_type,
           location: formData.location,
           salary_range: formData.salary_range || null,
-          application_deadline: formData.application_deadline || null,
+          application_deadline: formData.application_deadline,
           application_url: formData.application_url || null,
           contact_email: formData.contact_email || null,
           requirements: formData.requirements,
@@ -663,6 +784,106 @@ export default function Ajira() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+        </div>
+
+        {/* Search and Filter Section */}
+        <div className="bg-white rounded-lg border p-4 mb-6">
+          <div className="space-y-4">
+            {/* Main Search Bar */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <Input
+                  placeholder="Search jobs by title, company, description, requirements, or location..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                className="w-full sm:w-auto"
+              >
+                <Filter className="h-4 w-4 mr-2" />
+                {showAdvancedFilters ? 'Hide Filters' : 'Advanced Filters'}
+              </Button>
+            </div>
+
+            {/* Advanced Filters */}
+            {showAdvancedFilters && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-4 border-t">
+                <div>
+                  <Label htmlFor="job-type-filter">Job Type</Label>
+                  <Select value={jobTypeFilter} onValueChange={setJobTypeFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      <SelectItem value="full-time">Full Time</SelectItem>
+                      <SelectItem value="part-time">Part Time</SelectItem>
+                      <SelectItem value="internship">Internship</SelectItem>
+                      <SelectItem value="contract">Contract</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="location-filter">Location</Label>
+                  <Input
+                    id="location-filter"
+                    placeholder="e.g., Nairobi, Remote"
+                    value={locationFilter}
+                    onChange={(e) => setLocationFilter(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="salary-filter">Salary Range</Label>
+                  <Input
+                    id="salary-filter"
+                    placeholder="e.g., 50k, 100k+"
+                    value={salaryFilter}
+                    onChange={(e) => setSalaryFilter(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="status-filter">Status</Label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="active">Active Jobs</SelectItem>
+                      <SelectItem value="urgent">Urgent (≤7 days)</SelectItem>
+                      <SelectItem value="expired">Expired Jobs</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {/* Clear Filters Button */}
+            {(searchTerm || jobTypeFilter !== "all" || locationFilter || salaryFilter || statusFilter !== "all") && (
+              <div className="flex justify-end pt-2 border-t">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setJobTypeFilter("all");
+                    setLocationFilter("");
+                    setSalaryFilter("");
+                    setStatusFilter("all");
+                  }}
+                >
+                  Clear All Filters
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Job Postings Tabs */}

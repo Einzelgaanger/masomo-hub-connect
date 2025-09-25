@@ -514,24 +514,22 @@ export default function Alumni() {
         <Tabs defaultValue="alumni" className="w-full">
           <Card>
             <CardContent className="p-2 sm:p-3">
-              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
-                <TabsTrigger value="alumni" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-                  <Users className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline">Alumni Directory</span>
-                  <span className="sm:hidden">Alumni</span>
+              <TabsList className="grid w-full grid-cols-4 h-auto">
+                <TabsTrigger value="alumni" className="flex items-center justify-center gap-1 text-xs px-1 sm:px-2 py-2 min-w-0">
+                  <Users className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                  <span className="truncate">Alumni</span>
                 </TabsTrigger>
-                <TabsTrigger value="events" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-                  <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
-                  Events
+                <TabsTrigger value="events" className="flex items-center justify-center gap-1 text-xs px-1 sm:px-2 py-2 min-w-0">
+                  <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                  <span className="truncate">Events</span>
                 </TabsTrigger>
-                <TabsTrigger value="stories" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-                  <Star className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline">Success Stories</span>
-                  <span className="sm:hidden">Stories</span>
+                <TabsTrigger value="stories" className="flex items-center justify-center gap-1 text-xs px-1 sm:px-2 py-2 min-w-0">
+                  <Star className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                  <span className="truncate">Stories</span>
                 </TabsTrigger>
-                <TabsTrigger value="mentorship" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-                  <MessageCircle className="h-3 w-3 sm:h-4 sm:w-4" />
-                  Mentorship
+                <TabsTrigger value="mentorship" className="flex items-center justify-center gap-1 text-xs px-1 sm:px-2 py-2 min-w-0">
+                  <MessageCircle className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                  <span className="truncate">Mentor</span>
                 </TabsTrigger>
               </TabsList>
             </CardContent>
