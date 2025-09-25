@@ -483,7 +483,7 @@ const Index = () => {
       </div>
               
               <p className="text-gray-600 fredoka-medium text-xs">
-                🚀 Join the revolution and make learning legendary!
+                Join the revolution and make learning legendary!
               </p>
             </div>
           </div>

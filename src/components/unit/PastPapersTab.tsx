@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Upload, Download, ThumbsUp, ThumbsDown, MessageCircle, Trash2, FileText } from "lucide-react";
+import { Plus, Upload, Download, Heart, HeartOff, MessageSquare, Trash2, FileText } from "lucide-react";
 import { format } from "date-fns";
 
 interface PastPaper {
@@ -56,6 +56,11 @@ export function PastPapersTab({ unitId, profile }: PastPapersTabProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [expandedPaper, setExpandedPaper] = useState<string | null>(null);
   const [newComment, setNewComment] = useState("");
+  const [replyingTo, setReplyingTo] = useState<{ paperId: string; comment: any } | null>(null);
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
+  const [touchEnd, setTouchEnd] = useState<{ x: number; y: number } | null>(null);
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState<{ comment: any; paperId: string } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
   // Form state
@@ -192,7 +197,7 @@ export function PastPapersTab({ unitId, profile }: PastPapersTabProps) {
       // Award points for uploading
       await supabase.rpc('update_user_points', {
         user_uuid: user?.id,
-        points_change: 15
+        points_change: 7
       });
 
       toast({
@@ -250,7 +255,7 @@ export function PastPapersTab({ unitId, profile }: PastPapersTabProps) {
       }
 
       // Update like/dislike counts and award points
-      const pointsChange = reactionType === 'like' ? 2 : -1;
+      const pointsChange = reactionType === 'like' ? 1 : -1;
       await supabase.rpc('update_user_points', {
         user_uuid: user?.id,
         points_change: pointsChange
@@ -279,7 +284,7 @@ export function PastPapersTab({ unitId, profile }: PastPapersTabProps) {
       // Award points for commenting
       await supabase.rpc('update_user_points', {
         user_uuid: user?.id,
-        points_change: 3
+        points_change: 2
       });
 
       setNewComment("");
@@ -458,7 +463,9 @@ export function PastPapersTab({ unitId, profile }: PastPapersTabProps) {
                       )}
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent 
+                    onDoubleClick={() => handleReaction(paper.id, 'like')}
+                  >
                     {paper.file_url && (
                       <div className="mb-4">
                         <Button
@@ -472,65 +479,68 @@ export function PastPapersTab({ unitId, profile }: PastPapersTabProps) {
                       </div>
                     )}
                     
-                    <div className="flex items-center gap-4 mb-4">
-                      <Button
-                        variant={userReaction === 'like' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handleReaction(paper.id, 'like')}
-                      >
-                        <ThumbsUp className="h-4 w-4 mr-1" />
-                        {getLikesCount(paper)}
-                      </Button>
-                      <Button
-                        variant={userReaction === 'dislike' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handleReaction(paper.id, 'dislike')}
-                      >
-                        <ThumbsDown className="h-4 w-4 mr-1" />
-                        {getDislikesCount(paper)}
-                      </Button>
+                    <div className="flex items-center gap-2 sm:gap-3 mb-4">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setExpandedPaper(expandedPaper === paper.id ? null : paper.id)}
+                        className="h-7 px-2 text-xs"
                       >
-                        <MessageCircle className="h-4 w-4 mr-1" />
-                        {paper.comments.length} Comments
+                        <MessageSquare className="h-3 w-3 mr-1" />
+                        {paper.comments.length}
                       </Button>
+                      {/* Like Badge */}
+                      {getLikesCount(paper) > 0 && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Heart className="h-3 w-3 fill-red-500 text-red-500" />
+                          <span>{getLikesCount(paper)}</span>
+                        </div>
+                      )}
                     </div>
 
                     {expandedPaper === paper.id && (
                       <div className="border-t pt-4">
-                        <div className="space-y-3 mb-4">
+                        <div className="max-h-64 overflow-y-auto space-y-3 mb-4 pr-2">
                           {paper.comments.map((comment) => (
-                            <div key={comment.id} className="flex gap-3">
-                              <Avatar className="h-8 w-8">
+                            <div key={comment.id} className="flex gap-2 sm:gap-3">
+                              <Avatar className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0">
                                 <AvatarImage src={comment.profiles.profile_picture_url} />
-                                <AvatarFallback>
+                                <AvatarFallback className="text-xs">
                                   {comment.profiles.full_name.split(' ').map((n: string) => n[0]).join('')}
                                 </AvatarFallback>
                               </Avatar>
-                              <div className="flex-1">
-                                <div className="bg-muted p-3 rounded-lg">
-                                  <p className="text-sm">{comment.content}</p>
-                                  <p className="text-xs text-muted-foreground mt-1">
+                              <div className="flex-1 min-w-0">
+                                <div className="bg-muted p-2 sm:p-3 rounded-lg relative">
+                                  <p className="text-xs sm:text-sm break-words line-clamp-3">{comment.content}</p>
+                                  <p className="text-xs text-muted-foreground mt-1 truncate">
                                     {comment.profiles.full_name} • {format(new Date(comment.created_at), 'MMM dd, yyyy')}
                                   </p>
+                                  {/* Like Badge */}
+                                  {comment.likes_count > 0 && (
+                                    <div className="absolute -bottom-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center shadow-lg">
+                                      <Heart className="h-2 w-2 fill-current" />
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>
                           ))}
                         </div>
                         
-                        <div className="flex gap-2">
+                        <div className="flex gap-1 sm:gap-2">
                           <Input
                             placeholder="Add a comment..."
                             value={newComment}
                             onChange={(e) => setNewComment(e.target.value)}
                             onKeyPress={(e) => e.key === 'Enter' && handleAddComment(paper.id)}
+                            className="text-sm h-8 sm:h-10"
                           />
-                          <Button onClick={() => handleAddComment(paper.id)}>
-                            Comment
+                          <Button 
+                            onClick={() => handleAddComment(paper.id)}
+                            className="h-8 sm:h-10 px-3 text-xs sm:text-sm"
+                          >
+                            <span className="hidden sm:inline">Comment</span>
+                            <span className="sm:hidden">+</span>
                           </Button>
                         </div>
                       </div>

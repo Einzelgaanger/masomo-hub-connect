@@ -148,14 +148,20 @@ function JobCard({ job }: { job: JobPosting }) {
           {/* University and Course Info */}
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Building className="h-3 w-3" />
-            <span>{job.universities?.name}</span>
-            <span>•</span>
-            <span>{job.classes?.course_name}</span>
-            {job.universities?.countries && (
+            {job.universities?.name && (
               <>
-                <span>•</span>
-                <span>{job.universities.countries.name}</span>
+                <span>{job.universities.name}</span>
+                {job.classes?.course_name && <span>•</span>}
               </>
+            )}
+            {job.classes?.course_name && (
+              <>
+                <span>{job.classes.course_name}</span>
+                {job.universities?.countries?.name && <span>•</span>}
+              </>
+            )}
+            {job.universities?.countries?.name && (
+              <span>{job.universities.countries.name}</span>
             )}
           </div>
 
@@ -217,6 +223,7 @@ export default function Ajira() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [availableCountries, setAvailableCountries] = useState<Country[]>([]);
+  const [selectedJob, setSelectedJob] = useState<JobPosting | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -301,8 +308,11 @@ export default function Ajira() {
       if (myUniError) throw myUniError;
       if (allJobsError) throw allJobsError;
 
+      const myUniId = userProfile.classes.university_id;
       setMyUniversityJobs((myUniJobs as any[]) || []);
-      setAllJobs((allJobsData as any[]) || []);
+      // Exclude anything from my own university from the All tab to avoid repetition
+      const filteredAll = ((allJobsData as any[]) || []).filter((job: any) => job?.profiles?.classes?.university_id !== myUniId);
+      setAllJobs(filteredAll);
       setJobPostings((myUniJobs as any[]) || []); // Default to university jobs
     } catch (error) {
       console.error('Error fetching job postings:', error);
@@ -440,7 +450,7 @@ export default function Ajira() {
       </AppLayout>
     );
   }
-
+   
   return (
     <AppLayout>
       <div className="max-w-6xl mx-auto">
@@ -672,7 +682,9 @@ export default function Ajira() {
           <TabsContent value="my-campus" className="mt-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
               {myUniversityJobs.map((job) => (
-                <JobCard key={job.id} job={job} />
+                <div key={job.id} onClick={() => setSelectedJob(job)} className="cursor-pointer">
+                  <JobCard job={job} />
+                </div>
               ))}
             </div>
 
@@ -694,7 +706,9 @@ export default function Ajira() {
           <TabsContent value="all" className="mt-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
               {allJobs.map((job) => (
-                <JobCard key={job.id} job={job} />
+                <div key={job.id} onClick={() => setSelectedJob(job)} className="cursor-pointer">
+                  <JobCard job={job} />
+                </div>
               ))}
             </div>
 
@@ -714,6 +728,86 @@ export default function Ajira() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Job Details Dialog */}
+      <Dialog open={!!selectedJob} onOpenChange={(open) => !open && setSelectedJob(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedJob?.title}</DialogTitle>
+            <DialogDescription>
+              Posted by {selectedJob?.profiles?.full_name} • {selectedJob?.company}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedJob && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Building className="h-4 w-4" />
+                  <span>{selectedJob.company}</span>
+                </div>
+                {selectedJob.location && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <MapPin className="h-4 w-4" />
+                    <span>{selectedJob.location}</span>
+                  </div>
+                )}
+                {selectedJob.salary_range && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <DollarSign className="h-4 w-4" />
+                    <span>{selectedJob.salary_range}</span>
+                  </div>
+                )}
+                {selectedJob.application_deadline && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    <span>Deadline: {format(new Date(selectedJob.application_deadline), 'MMM dd, yyyy')}</span>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-2">Description</h4>
+                <p className="whitespace-pre-wrap text-sm text-muted-foreground">{selectedJob.description}</p>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-2">Requirements</h4>
+                <p className="whitespace-pre-wrap text-sm text-muted-foreground">{selectedJob.requirements}</p>
+              </div>
+
+              {selectedJob.benefits && (
+                <div>
+                  <h4 className="font-semibold mb-2">Benefits</h4>
+                  <p className="whitespace-pre-wrap text-sm text-muted-foreground">{selectedJob.benefits}</p>
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-2">
+                {selectedJob.application_url && (
+                  <Button className="flex-1" asChild>
+                    <a href={selectedJob.application_url} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Apply Now
+                    </a>
+                  </Button>
+                )}
+                {selectedJob.contact_email && (
+                  <Button variant="outline" className="flex-1" asChild>
+                    <a href={`mailto:${selectedJob.contact_email}`}>
+                      Contact Recruiter
+                    </a>
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelectedJob(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

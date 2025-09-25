@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Star, Target, Zap, Users, MessageCircle, Upload, Calendar, ThumbsUp, ThumbsDown, Award, Crown } from "lucide-react";
+import { Trophy, Star, Target, Zap, Users, MessageCircle, Upload, Calendar, ThumbsUp, ThumbsDown, Award, Crown, Briefcase, GraduationCap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { CharacterSelector } from "@/components/ui/CharacterSelector";
 
@@ -112,39 +112,63 @@ const Info = () => {
   const pointActions = [
     {
       action: "Upload a note",
-      points: 10,
+      points: 5,
       icon: <Upload className="h-5 w-5" />,
       description: "Share your study materials with classmates"
     },
     {
       action: "Upload a past paper",
-      points: 15,
+      points: 7,
       icon: <Upload className="h-5 w-5" />,
       description: "Help others prepare for exams"
     },
     {
       action: "Complete an assignment",
-      points: 20,
+      points: 10,
       icon: <Target className="h-5 w-5" />,
       description: "Finish your coursework on time"
     },
     {
       action: "Like content",
-      points: 2,
+      points: 1,
       icon: <ThumbsUp className="h-5 w-5" />,
       description: "Show appreciation for helpful content"
     },
     {
       action: "Comment on content",
-      points: 3,
+      points: 2,
       icon: <MessageCircle className="h-5 w-5" />,
       description: "Engage in discussions and help others"
     },
     {
       action: "Daily visit",
-      points: 5,
+      points: 2,
       icon: <Calendar className="h-5 w-5" />,
       description: "Stay active and engaged daily"
+    },
+    {
+      action: "Create an event",
+      points: 4,
+      icon: <Calendar className="h-5 w-5" />,
+      description: "Organize academic or social events"
+    },
+    {
+      action: "Post in Ukumbi",
+      points: 1,
+      icon: <MessageCircle className="h-5 w-5" />,
+      description: "Engage in university-wide discussions"
+    },
+    {
+      action: "Share in Alumni network",
+      points: 3,
+      icon: <GraduationCap className="h-5 w-5" />,
+      description: "Connect with alumni and share experiences"
+    },
+    {
+      action: "Post job opportunities",
+      points: 3,
+      icon: <Briefcase className="h-5 w-5" />,
+      description: "Help others find career opportunities"
     }
   ];
 
@@ -153,7 +177,7 @@ const Info = () => {
       action: "Your content gets disliked",
       points: -1,
       icon: <ThumbsDown className="h-5 w-5" />,
-      description: "Each dislike on your notes, past papers, assignments, events, or comments reduces your points"
+      description: "Each dislike on your content reduces your points"
     }
   ];
 
@@ -306,8 +330,8 @@ const Info = () => {
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                     <h4 className="font-medium text-yellow-800 mb-2">Important Notes:</h4>
                     <ul className="text-sm text-yellow-700 space-y-1">
-                      <li>• <strong>Liking content:</strong> You get +2 points, content creator gets +1 point</li>
-                      <li>• <strong>Commenting on content:</strong> You get +3 points</li>
+                      <li>• <strong>Liking content:</strong> You get +1 point, content creator gets +1 point</li>
+                      <li>• <strong>Commenting on content:</strong> You get +2 points</li>
                       <li>• <strong>Your content gets liked:</strong> You get +1 point per like</li>
                       <li>• <strong>Your content gets disliked:</strong> You lose -1 point per dislike</li>
                     </ul>

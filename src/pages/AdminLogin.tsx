@@ -175,7 +175,7 @@ const AdminLogin = () => {
                   <p className="text-sm font-semibold text-blue-800 fredoka-semibold">Admin Access</p>
                 </div>
                 <p className="text-sm text-blue-700 fredoka-medium">
-                  Only users with admin or super_admin roles can access this panel.
+                  Only users with admin roles can access this panel.
                 </p>
               </div>
             </CardContent>

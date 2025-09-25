@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Clock, CheckCircle, XCircle, RefreshCw, ArrowLeft } from "lucide-react";
 import Logo from "@/components/ui/Logo";
 
@@ -22,6 +23,13 @@ const ApplicationStatus = () => {
     }
     checkApplicationStatus();
   }, [user, navigate]);
+
+  // Redirect rejected users to the rejection page
+  useEffect(() => {
+    if (applicationStatus === 'rejected') {
+      navigate('/application-rejected');
+    }
+  }, [applicationStatus, navigate]);
 
   const checkApplicationStatus = async () => {
     if (!user) return;
@@ -44,7 +52,7 @@ const ApplicationStatus = () => {
       // Check for pending applications
       const { data: applications, error: applicationError } = await supabase
         .from('applications' as any)
-        .select('id, status')
+        .select('id, status, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(1);
@@ -55,7 +63,15 @@ const ApplicationStatus = () => {
 
       if (applications && applications.length > 0) {
         const latestApplication = applications[0];
-        setApplicationStatus((latestApplication as any).status as 'pending' | 'approved' | 'rejected');
+        const status = (latestApplication as any).status as 'pending' | 'approved' | 'rejected';
+        setApplicationStatus(status);
+        
+        // If rejected, store rejection data for cooldown
+        if (status === 'rejected') {
+          localStorage.setItem(`rejection_${user.id}`, JSON.stringify({
+            rejectedAt: latestApplication.created_at || new Date().toISOString()
+          }));
+        }
       } else {
         setApplicationStatus('none');
       }

@@ -17,7 +17,7 @@ const ProfileContext = createContext<any>(null);
 
 export const useProfile = () => {
   const context = useContext(ProfileContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useProfile must be used within AppLayout');
   }
   return context;
@@ -80,11 +80,11 @@ export function AppLayout({ children, showHeader = false, HeaderComponent }: App
   return (
     <ProfileContext.Provider value={profile}>
       <SidebarProvider>
-        <div className="min-h-screen flex w-full bg-background overflow-x-hidden">
+        <div className="h-screen flex w-full bg-background overflow-hidden">
           <Sidebar profile={profile} />
-          <main className="flex-1 flex flex-col overflow-x-hidden">
+          <main className="flex-1 flex flex-col overflow-hidden">
             <ClientHeader />
-            <div className="flex-1 p-4 lg:p-6 space-y-4 lg:space-y-6 overflow-auto">
+            <div className="flex-1 p-4 lg:p-6 space-y-4 lg:space-y-6 overflow-y-auto overflow-x-hidden">
               {children}
             </div>
           </main>

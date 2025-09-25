@@ -158,11 +158,11 @@ const Profile = () => {
                   </AvatarFallback>
                 </Avatar>
                 {profile.character_id && (
-                  <div className="absolute -bottom-2 -right-2 bg-white rounded-full p-1 shadow-lg">
+                  <div className="absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4 bg-background rounded-full p-0.5 shadow-lg ring-2 ring-background">
                     <img
                       src={`/characters/${getCharacterImage(profile.character_id)}.png`}
                       alt="Character"
-                      className="h-8 w-8 rounded-full"
+                      className="h-7 w-7 rounded-full"
                     />
                   </div>
                 )}
@@ -317,26 +317,26 @@ const Profile = () => {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm">Upload Notes</span>
-                  <span className="text-sm font-medium text-green-600">+10 points</span>
+                  <span className="text-sm font-medium text-green-600">+5 points</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm">Upload Past Papers</span>
-                  <span className="text-sm font-medium text-green-600">+10 points</span>
+                  <span className="text-sm font-medium text-green-600">+7 points</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm">Comment on Posts</span>
-                  <span className="text-sm font-medium text-green-600">+3 points</span>
+                  <span className="text-sm font-medium text-green-600">+2 points</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm">Daily Visit</span>
-                  <span className="text-sm font-medium text-green-600">+1 point</span>
+                  <span className="text-sm font-medium text-green-600">+2 points</span>
                 </div>
               </div>
               
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm">Receive Likes</span>
-                  <span className="text-sm font-medium text-green-600">+2 points</span>
+                  <span className="text-sm font-medium text-green-600">+1 point</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm">Receive Dislikes</span>
@@ -344,11 +344,11 @@ const Profile = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm">Complete Assignments</span>
-                  <span className="text-sm font-medium text-green-600">+5 points</span>
+                  <span className="text-sm font-medium text-green-600">+10 points</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm">Create Events</span>
-                  <span className="text-sm font-medium text-green-600">+8 points</span>
+                  <span className="text-sm font-medium text-green-600">+4 points</span>
                 </div>
               </div>
             </div>

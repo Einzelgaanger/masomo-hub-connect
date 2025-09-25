@@ -5,6 +5,7 @@ import { ClassManagementSection } from "@/components/admin/ClassManagementSectio
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useNavigate } from "react-router-dom";
 import { BookOpen } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const AdminClasses = () => {
   const navigate = useNavigate();
@@ -12,24 +13,37 @@ const AdminClasses = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if admin session exists
-    const adminSession = sessionStorage.getItem('admin_session');
-    if (!adminSession) {
-      navigate('/admin/login');
-      return;
-    }
-    
-    // Create a mock admin profile
-    setProfile({
-      id: 'admin-1',
-      full_name: 'System Administrator',
-      email: 'admin@bunifu.com',
-      role: 'super_admin',
-      profile_picture_url: null,
-      points: 0,
-      rank: 'diamond'
-    });
-    setLoading(false);
+    // Fetch the actual admin profile from the database
+    const fetchAdminProfile = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          navigate('/admin/login');
+          return;
+        }
+
+        const { data: profileData, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (error || !profileData) {
+          console.error('Error fetching admin profile:', error);
+          navigate('/admin/login');
+          return;
+        }
+
+        setProfile(profileData);
+      } catch (error) {
+        console.error('Error in fetchAdminProfile:', error);
+        navigate('/admin/login');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAdminProfile();
   }, [navigate]);
 
   if (loading) {

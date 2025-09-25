@@ -27,20 +27,20 @@ COMMENT ON COLUMN profiles.character_id IS 'References the character ID from the
 CREATE OR REPLACE FUNCTION update_character_based_on_points()
 RETURNS TRIGGER AS $$
 BEGIN
-  -- Update character based on points (this logic matches our CHARACTERS constant)
+  -- Update character based on points (matching new CHARACTERS constant)
   NEW.character_id := CASE
-    WHEN NEW.points >= 5000 THEN 'anonymous'
-    WHEN NEW.points >= 3000 THEN 'halloween'
-    WHEN NEW.points >= 2500 THEN 'zombie'
-    WHEN NEW.points >= 2000 THEN 'assasin'
-    WHEN NEW.points >= 1500 THEN 'angel'
-    WHEN NEW.points >= 1000 THEN 'superhero'
-    WHEN NEW.points >= 750 THEN 'pirate'
-    WHEN NEW.points >= 500 THEN 'swordsman'
-    WHEN NEW.points >= 350 THEN 'leonardo'
-    WHEN NEW.points >= 200 THEN 'elf'
-    WHEN NEW.points >= 100 THEN 'guard'
-    WHEN NEW.points >= 50 THEN 'pinocchio'
+    WHEN NEW.points >= 25000 THEN 'anonymous'
+    WHEN NEW.points >= 15000 THEN 'halloween'
+    WHEN NEW.points >= 9000 THEN 'zombie'
+    WHEN NEW.points >= 6500 THEN 'assasin'
+    WHEN NEW.points >= 4500 THEN 'angel'
+    WHEN NEW.points >= 3000 THEN 'superhero'
+    WHEN NEW.points >= 2000 THEN 'pirate'
+    WHEN NEW.points >= 1300 THEN 'swordsman'
+    WHEN NEW.points >= 850 THEN 'leonardo'
+    WHEN NEW.points >= 500 THEN 'elf'
+    WHEN NEW.points >= 250 THEN 'guard'
+    WHEN NEW.points >= 100 THEN 'pinocchio'
     ELSE 'people'
   END;
   

@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -191,7 +192,7 @@ const Inbox = () => {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
@@ -219,7 +220,7 @@ const Inbox = () => {
     <AppLayout>
       <div className="h-[calc(100vh-4rem)] flex">
         {/* Conversations Sidebar */}
-        <div className="w-80 border-r bg-background flex flex-col">
+        <div className={`${selectedConversation ? 'hidden md:flex' : 'flex'} w-full md:w-80 border-r bg-background flex-col`}>
           <div className="p-4 border-b">
             <div className="flex items-center gap-2 mb-4">
               <MessageCircle className="h-6 w-6" />
@@ -294,7 +295,7 @@ const Inbox = () => {
         </div>
 
         {/* Messages Area */}
-        <div className="flex-1 flex flex-col">
+        <div className={`${selectedConversation ? 'flex' : 'hidden md:flex'} flex-1 flex-col`}>
           {selectedConversation ? (
             <>
               {/* Chat Header */}
@@ -312,18 +313,18 @@ const Inbox = () => {
                     <ArrowLeft className="h-4 w-4" />
                   </Button>
                   {selectedConvData && (
-                    <>
+                    <button className="flex items-center gap-2" onClick={() => navigate(`/profile/${selectedConvData.participant_id}`)}>
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={selectedConvData.participant_avatar} />
                         <AvatarFallback>
                           {selectedConvData.participant_name.split(' ').map((n: string) => n[0]).join('')}
                         </AvatarFallback>
                       </Avatar>
-                      <div>
-                        <p className="font-medium">{selectedConvData.participant_name}</p>
+                      <div className="text-left">
+                        <p className="font-medium leading-none">{selectedConvData.participant_name}</p>
                         <p className="text-sm text-muted-foreground">{selectedConvData.participant_email}</p>
                       </div>
-                    </>
+                    </button>
                   )}
                 </div>
                 <Button variant="ghost" size="sm">
@@ -372,14 +373,14 @@ const Inbox = () => {
 
               {/* Message Input */}
               <div className="p-4 border-t bg-background">
-                <div className="flex gap-2">
-                  <Input
+                <div className="flex items-end gap-2">
+                  <Textarea
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={handleKeyPress}
+                    onKeyDown={handleKeyDown}
                     placeholder="Type a message..."
-                    className="flex-1"
-                    disabled={sending}
+                    className="flex-1 resize-none"
+                    rows={1}
                   />
                   <Button 
                     onClick={sendMessage} 

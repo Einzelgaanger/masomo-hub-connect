@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, BookOpen, Users, Calendar, ArrowLeft, Search, Filter, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Plus, Edit, Trash2, BookOpen, Users, Calendar, ArrowLeft, Search, Filter, CheckCircle, XCircle, Clock, GraduationCap } from "lucide-react";
 import { format } from "date-fns";
 
 interface Class {

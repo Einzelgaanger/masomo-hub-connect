@@ -26,7 +26,7 @@ export const CHARACTERS: Character[] = [
     name: 'Pinocchio',
     image: '/characters/pinocchio.png',
     description: 'The wooden puppet who dreams of becoming real. Perfect for students learning to be honest in their studies.',
-    pointsRequired: 50,
+    pointsRequired: 100,
     rank: 2,
     category: 'starter',
     specialTraits: ['Honest', 'Dreamer', 'Growing']
@@ -36,7 +36,7 @@ export const CHARACTERS: Character[] = [
     name: 'Guardian',
     image: '/characters/guard.png',
     description: 'A vigilant protector of knowledge. Students who help others and maintain academic integrity.',
-    pointsRequired: 100,
+    pointsRequired: 250,
     rank: 3,
     category: 'starter',
     specialTraits: ['Protective', 'Reliable', 'Helpful']
@@ -48,7 +48,7 @@ export const CHARACTERS: Character[] = [
     name: 'Elf',
     image: '/characters/elf.png',
     description: 'A mystical being with ancient wisdom. For students who excel in research and critical thinking.',
-    pointsRequired: 200,
+    pointsRequired: 500,
     rank: 4,
     category: 'intermediate',
     specialTraits: ['Wise', 'Ancient Knowledge', 'Mystical']
@@ -58,7 +58,7 @@ export const CHARACTERS: Character[] = [
     name: 'Leonardo',
     image: '/characters/leonardo.png',
     description: 'The Renaissance master of learning. For creative students who excel in multiple subjects.',
-    pointsRequired: 350,
+    pointsRequired: 850,
     rank: 5,
     category: 'intermediate',
     specialTraits: ['Renaissance', 'Creative', 'Multi-talented']
@@ -68,7 +68,7 @@ export const CHARACTERS: Character[] = [
     name: 'Swordsman',
     image: '/characters/swordsman.png',
     description: 'A warrior of knowledge, cutting through ignorance with sharp intellect.',
-    pointsRequired: 500,
+    pointsRequired: 1300,
     rank: 6,
     category: 'intermediate',
     specialTraits: ['Sharp Mind', 'Determined', 'Warrior Spirit']
@@ -80,7 +80,7 @@ export const CHARACTERS: Character[] = [
     name: 'Pirate',
     image: '/characters/pirate.png',
     description: 'Sailing the seas of academia, collecting treasures of knowledge and sharing them freely.',
-    pointsRequired: 750,
+    pointsRequired: 2000,
     rank: 7,
     category: 'advanced',
     specialTraits: ['Adventurous', 'Treasure Hunter', 'Free Spirit']
@@ -90,7 +90,7 @@ export const CHARACTERS: Character[] = [
     name: 'Superhero',
     image: '/characters/superhero.png',
     description: 'Using the power of knowledge to help fellow students and make the world a better place.',
-    pointsRequired: 1000,
+    pointsRequired: 3000,
     rank: 8,
     category: 'advanced',
     specialTraits: ['Heroic', 'Helpful', 'Inspiring']
@@ -100,7 +100,7 @@ export const CHARACTERS: Character[] = [
     name: 'Angel',
     image: '/characters/angel.png',
     description: 'A divine being who guides lost students and spreads wisdom throughout the academic realm.',
-    pointsRequired: 1500,
+    pointsRequired: 4500,
     rank: 9,
     category: 'advanced',
     specialTraits: ['Divine', 'Guiding', 'Pure Heart']
@@ -112,7 +112,7 @@ export const CHARACTERS: Character[] = [
     name: 'Assassin',
     image: '/characters/assasin.png',
     description: 'A stealthy master of learning, silently acquiring knowledge and eliminating ignorance.',
-    pointsRequired: 2000,
+    pointsRequired: 6500,
     rank: 10,
     category: 'legendary',
     specialTraits: ['Stealthy', 'Precise', 'Master of Secrets']
@@ -122,7 +122,7 @@ export const CHARACTERS: Character[] = [
     name: 'Zombie',
     image: '/characters/zombie.png',
     description: 'A relentless pursuer of knowledge, never stopping in the quest for academic excellence.',
-    pointsRequired: 2500,
+    pointsRequired: 9000,
     rank: 11,
     category: 'legendary',
     specialTraits: ['Relentless', 'Unstoppable', 'Undying Dedication']
@@ -132,7 +132,7 @@ export const CHARACTERS: Character[] = [
     name: 'Ghost',
     image: '/characters/halloween.png',
     description: 'A shadowy figure who emerges during the most challenging academic periods, mastering the dark arts of learning.',
-    pointsRequired: 3000,
+    pointsRequired: 15000,
     rank: 12,
     category: 'legendary',
     specialTraits: ['Mysterious', 'Dark Arts', 'Shadow Master']
@@ -144,7 +144,7 @@ export const CHARACTERS: Character[] = [
     name: 'Anonymous',
     image: '/characters/anonymous.png',
     description: 'The ultimate enigma. A legendary figure whose true identity remains unknown, but whose impact on the academic world is undeniable.',
-    pointsRequired: 5000,
+    pointsRequired: 25000,
     rank: 13,
     category: 'ultimate',
     specialTraits: ['Legendary', 'Mysterious', 'Ultimate Power', 'Unknown Identity']

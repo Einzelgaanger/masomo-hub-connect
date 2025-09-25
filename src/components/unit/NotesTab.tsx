@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Upload, Download, ThumbsUp, ThumbsDown, MessageCircle, Trash2, Eye, FileText } from "lucide-react";
+import { Plus, Upload, Download, Heart, HeartOff, MessageSquare, Trash2, Eye, FileText } from "lucide-react";
 import { format } from "date-fns";
 
 interface Note {
@@ -56,6 +56,11 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [expandedNote, setExpandedNote] = useState<string | null>(null);
   const [newComment, setNewComment] = useState("");
+  const [replyingTo, setReplyingTo] = useState<{ noteId: string; comment: any } | null>(null);
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
+  const [touchEnd, setTouchEnd] = useState<{ x: number; y: number } | null>(null);
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState<{ comment: any; noteId: string } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
   // Form state
@@ -197,7 +202,7 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
       // Award points for uploading
       await supabase.rpc('update_user_points', {
         user_uuid: user?.id,
-        points_change: 10
+        points_change: 5
       });
 
       toast({
@@ -255,7 +260,7 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
       }
 
       // Update like/dislike counts
-      const pointsChange = reactionType === 'like' ? 2 : -1;
+      const pointsChange = reactionType === 'like' ? 1 : -1;
       await supabase.rpc('update_user_points', {
         user_uuid: user?.id,
         points_change: pointsChange
@@ -284,7 +289,7 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
       // Award points for commenting
       await supabase.rpc('update_user_points', {
         user_uuid: user?.id,
-        points_change: 3
+        points_change: 2
       });
 
       setNewComment("");
@@ -328,6 +333,103 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
       file: null,
       fileType: "pdf"
     });
+  };
+
+  // Swipe to reply functionality for comments
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent, comment: any, noteId: string) => {
+    setTouchEnd(null);
+    setTouchStart({
+      x: e.targetTouches[0].clientX,
+      y: e.targetTouches[0].clientY,
+    });
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd({
+      x: e.targetTouches[0].clientX,
+      y: e.targetTouches[0].clientY,
+    });
+  };
+
+  const onTouchEnd = (e: React.TouchEvent, comment: any, noteId: string) => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distanceX = touchStart.x - touchEnd.x;
+    const distanceY = touchStart.y - touchEnd.y;
+    const isLeftSwipe = distanceX > minSwipeDistance;
+    const isRightSwipe = distanceX < -minSwipeDistance;
+    const isVerticalSwipe = Math.abs(distanceY) > Math.abs(distanceX);
+
+    if ((isLeftSwipe || isRightSwipe) && !isVerticalSwipe) {
+      setReplyingTo({ noteId, comment });
+    }
+  };
+
+  const cancelReply = () => {
+    setReplyingTo(null);
+  };
+
+  // Long press to delete comment functionality
+  const handleLongPress = (comment: any, noteId: string) => {
+    if (comment.user_id === user?.id) {
+      setShowDeleteDialog({ comment, noteId });
+    }
+  };
+
+  const handleLongPressStart = (e: React.TouchEvent, comment: any, noteId: string) => {
+    e.preventDefault();
+    if (comment.user_id === user?.id) {
+      const timer = setTimeout(() => {
+        handleLongPress(comment, noteId);
+      }, 500); // 500ms long press
+      setLongPressTimer(timer);
+    }
+  };
+
+  const handleLongPressEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+  };
+
+  const deleteComment = async (commentId: string, noteId: string) => {
+    try {
+      // Remove from UI immediately (optimistic update)
+      setNotes(prev => prev.map(note => 
+        note.id === noteId 
+          ? { ...note, comments: note.comments.filter((c: any) => c.id !== commentId) }
+          : note
+      ));
+      
+      // Delete from database
+      const { error } = await supabase
+        .from('comments')
+        .delete()
+        .eq('id', commentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Comment deleted",
+        description: "Your comment has been deleted",
+      });
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      
+      // Refresh notes to restore if deletion failed
+      fetchNotes();
+      
+      toast({
+        title: "Delete failed",
+        description: "Failed to delete comment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setShowDeleteDialog(null);
+    }
   };
 
   const canDelete = (note: Note) => {
@@ -463,7 +565,9 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
                       )}
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent 
+                    onDoubleClick={() => handleReaction(note.id, 'like')}
+                  >
                     {note.file_url && (
                       <div className="mb-4">
                         <Button
@@ -477,65 +581,103 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
                       </div>
                     )}
                     
-                    <div className="flex items-center gap-4 mb-4">
-                      <Button
-                        variant={userReaction === 'like' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handleReaction(note.id, 'like')}
-                      >
-                        <ThumbsUp className="h-4 w-4 mr-1" />
-                        {getLikesCount(note)}
-                      </Button>
-                      <Button
-                        variant={userReaction === 'dislike' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handleReaction(note.id, 'dislike')}
-                      >
-                        <ThumbsDown className="h-4 w-4 mr-1" />
-                        {getDislikesCount(note)}
-                      </Button>
+                    <div className="flex items-center gap-2 sm:gap-3 mb-4">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setExpandedNote(expandedNote === note.id ? null : note.id)}
+                        className="h-7 px-2 text-xs"
                       >
-                        <MessageCircle className="h-4 w-4 mr-1" />
-                        {note.comments.length} Comments
+                        <MessageSquare className="h-3 w-3 mr-1" />
+                        {note.comments.length}
                       </Button>
+                      {/* Like Badge */}
+                      {getLikesCount(note) > 0 && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Heart className="h-3 w-3 fill-red-500 text-red-500" />
+                          <span>{getLikesCount(note)}</span>
+                        </div>
+                      )}
                     </div>
 
                     {expandedNote === note.id && (
                       <div className="border-t pt-4">
-                        <div className="space-y-3 mb-4">
+                        <div className="max-h-64 overflow-y-auto space-y-3 mb-4 pr-2">
                           {note.comments.map((comment) => (
-                            <div key={comment.id} className="flex gap-3">
-                              <Avatar className="h-8 w-8">
+                            <div key={comment.id} className="flex gap-2 sm:gap-3">
+                              <Avatar className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0">
                                 <AvatarImage src={comment.profiles.profile_picture_url} />
-                                <AvatarFallback>
+                                <AvatarFallback className="text-xs">
                                   {comment.profiles.full_name.split(' ').map((n: string) => n[0]).join('')}
                                 </AvatarFallback>
                               </Avatar>
-                              <div className="flex-1">
-                                <div className="bg-muted p-3 rounded-lg">
-                                  <p className="text-sm">{comment.content}</p>
-                                  <p className="text-xs text-muted-foreground mt-1">
+                              <div className="flex-1 min-w-0">
+                                <div 
+                                  className="bg-muted p-2 sm:p-3 rounded-lg relative"
+                                  onTouchStart={(e) => {
+                                    onTouchStart(e, comment, note.id);
+                                    handleLongPressStart(e, comment, note.id);
+                                  }}
+                                  onTouchMove={(e) => {
+                                    onTouchMove(e);
+                                    handleLongPressEnd();
+                                  }}
+                                  onTouchEnd={(e) => {
+                                    onTouchEnd(e, comment, note.id);
+                                    handleLongPressEnd();
+                                  }}
+                                >
+                                  <p className="text-xs sm:text-sm break-words line-clamp-3">{comment.content}</p>
+                                  <p className="text-xs text-muted-foreground mt-1 truncate">
                                     {comment.profiles.full_name} • {format(new Date(comment.created_at), 'MMM dd, yyyy')}
                                   </p>
+                                  {/* Like Badge */}
+                                  {comment.likes_count > 0 && (
+                                    <div className="absolute -bottom-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center shadow-lg">
+                                      <Heart className="h-2 w-2 fill-current" />
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>
                           ))}
                         </div>
                         
-                        <div className="flex gap-2">
+                        {/* Reply Preview */}
+                        {replyingTo && replyingTo.noteId === note.id && (
+                          <div className="mb-3 p-2 bg-muted/50 rounded-lg">
+                            <div className="flex items-start gap-2">
+                              <div className="flex-1">
+                                <p className="text-xs text-muted-foreground">Replying to {replyingTo.comment.profiles.full_name}</p>
+                                <p className="text-sm truncate">{replyingTo.comment.content}</p>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={cancelReply}
+                                className="h-6 w-6 p-0"
+                              >
+                                ×
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex gap-1 sm:gap-2">
                           <Input
                             placeholder="Add a comment..."
                             value={newComment}
                             onChange={(e) => setNewComment(e.target.value)}
                             onKeyPress={(e) => e.key === 'Enter' && handleAddComment(note.id)}
+                            className="text-sm h-8 sm:h-10"
                           />
-                          <Button onClick={() => handleAddComment(note.id)}>
-                            Comment
+                          <Button 
+                            onClick={() => handleAddComment(note.id)}
+                            className="h-8 sm:h-10 px-3 text-xs sm:text-sm"
+                          >
+                            <span className="hidden sm:inline">Comment</span>
+                            <span className="sm:hidden">+</span>
                           </Button>
                         </div>
                       </div>
@@ -557,6 +699,32 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg p-6 max-w-sm w-full">
+            <h3 className="text-lg font-semibold mb-2">Delete Comment</h3>
+            <p className="text-muted-foreground mb-4">
+              Are you sure you want to delete this comment? This action cannot be undone.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setShowDeleteDialog(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => deleteComment(showDeleteDialog.comment.id, showDeleteDialog.noteId)}
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { useNavigate } from "react-router-dom";
 
 interface AlumniProfile {
   id: string;
@@ -99,6 +100,7 @@ interface SuccessStory {
 export default function Alumni() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const [userProfile, setUserProfile] = useState<any>(null);
   const [alumni, setAlumni] = useState<AlumniProfile[]>([]);
@@ -110,6 +112,7 @@ export default function Alumni() {
   const [selectedIndustry, setSelectedIndustry] = useState("all");
   const [isCreateEventOpen, setIsCreateEventOpen] = useState(false);
   const [isCreateStoryOpen, setIsCreateStoryOpen] = useState(false);
+  const [selectedStory, setSelectedStory] = useState<SuccessStory | null>(null);
 
   // Form states
   const [eventForm, setEventForm] = useState({
@@ -235,6 +238,7 @@ export default function Alumni() {
       const userUniversityId = userProfile?.classes?.universities?.id;
       if (!userUniversityId) return;
 
+      // Try the full query first
       const { data, error } = await supabase
         .from('alumni_events')
         .select(`
@@ -247,15 +251,39 @@ export default function Alumni() {
         .limit(10);
 
       if (error) {
-        // If table doesn't exist yet, just set empty array
-        if (error.code === '42P01') {
-          console.log('Alumni events table not created yet, showing empty list');
-          setEvents([]);
-          return;
+        console.warn('Full alumni events query failed, trying simplified query:', error);
+        
+        // Fallback to simplified query without university_id filter
+        const { data: simpleData, error: simpleError } = await supabase
+          .from('alumni_events')
+          .select(`
+            *,
+            profiles(full_name, profile_picture_url)
+          `)
+          .gte('event_date', new Date().toISOString())
+          .order('event_date', { ascending: true })
+          .limit(10);
+
+        if (simpleError) {
+          // If table doesn't exist yet, just set empty array
+          if (simpleError.code === '42P01') {
+            console.log('Alumni events table not created yet, showing empty list');
+            setEvents([]);
+            return;
+          }
+          throw simpleError;
         }
-        throw error;
+        
+        // Filter by university on the client side if needed
+        const filteredData = simpleData?.filter(event => 
+          // You can add client-side filtering here if needed
+          true
+        ) || [];
+        
+        setEvents(filteredData);
+      } else {
+        setEvents(data || []);
       }
-      setEvents(data || []);
     } catch (error) {
       console.error('Error fetching events:', error);
       setEvents([]);
@@ -268,6 +296,7 @@ export default function Alumni() {
       const userUniversityId = userProfile?.classes?.universities?.id;
       if (!userUniversityId) return;
 
+      // Try the full query with complex join first
       const { data, error } = await supabase
         .from('alumni_success_stories')
         .select(`
@@ -280,15 +309,38 @@ export default function Alumni() {
         .limit(10);
 
       if (error) {
-        // If table doesn't exist yet, just set empty array
-        if (error.code === '42P01') {
-          console.log('Alumni success stories table not created yet, showing empty list');
-          setSuccessStories([]);
-          return;
+        console.warn('Full alumni success stories query failed, trying simplified query:', error);
+        
+        // Fallback to simplified query without complex join
+        const { data: simpleData, error: simpleError } = await supabase
+          .from('alumni_success_stories')
+          .select(`
+            *,
+            profiles(full_name, profile_picture_url)
+          `)
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (simpleError) {
+          // If table doesn't exist yet, just set empty array
+          if (simpleError.code === '42P01') {
+            console.log('Alumni success stories table not created yet, showing empty list');
+            setSuccessStories([]);
+            return;
+          }
+          throw simpleError;
         }
-        throw error;
+        
+        // Filter by university on the client side if needed
+        const filteredData = simpleData?.filter(story => 
+          // You can add client-side filtering here if needed
+          true
+        ) || [];
+        
+        setSuccessStories(filteredData);
+      } else {
+        setSuccessStories(data || []);
       }
-      setSuccessStories(data || []);
     } catch (error) {
       console.error('Error fetching success stories:', error);
       setSuccessStories([]);
@@ -460,26 +512,30 @@ export default function Alumni() {
         </div>
 
         <Tabs defaultValue="alumni" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
-            <TabsTrigger value="alumni" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-              <Users className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Alumni Directory</span>
-              <span className="sm:hidden">Alumni</span>
-            </TabsTrigger>
-            <TabsTrigger value="events" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-              <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
-              Events
-            </TabsTrigger>
-            <TabsTrigger value="stories" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-              <Star className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Success Stories</span>
-              <span className="sm:hidden">Stories</span>
-            </TabsTrigger>
-            <TabsTrigger value="mentorship" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-              <MessageCircle className="h-3 w-3 sm:h-4 sm:w-4" />
-              Mentorship
-            </TabsTrigger>
-          </TabsList>
+          <Card>
+            <CardContent className="p-2 sm:p-3">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+                <TabsTrigger value="alumni" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                  <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Alumni Directory</span>
+                  <span className="sm:hidden">Alumni</span>
+                </TabsTrigger>
+                <TabsTrigger value="events" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                  <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                  Events
+                </TabsTrigger>
+                <TabsTrigger value="stories" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                  <Star className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Success Stories</span>
+                  <span className="sm:hidden">Stories</span>
+                </TabsTrigger>
+                <TabsTrigger value="mentorship" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                  <MessageCircle className="h-3 w-3 sm:h-4 sm:w-4" />
+                  Mentorship
+                </TabsTrigger>
+              </TabsList>
+            </CardContent>
+          </Card>
 
           {/* Alumni Directory Tab */}
           <TabsContent value="alumni" className="space-y-6">
@@ -613,7 +669,7 @@ export default function Alumni() {
                     )}
                     
                     <div className="flex gap-2 pt-2">
-                      <Button size="sm" variant="outline" className="flex-1">
+                      <Button size="sm" variant="outline" className="flex-1" onClick={() => navigate(`/inbox/${alumnus.user_id}`)}>
                         <MessageCircle className="h-4 w-4 mr-2" />
                         Connect
                       </Button>
@@ -871,7 +927,7 @@ export default function Alumni() {
 
             <div className="space-y-6">
               {successStories.map((story) => (
-                <Card key={story.id} className="hover:shadow-lg transition-shadow">
+                <Card key={story.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setSelectedStory(story)}>
                   <CardHeader>
                     <div className="flex items-start gap-3">
                       <Avatar className="h-10 w-10">
@@ -898,7 +954,7 @@ export default function Alumni() {
                   </CardHeader>
                   
                   <CardContent className="pt-0">
-                    <p className="text-muted-foreground leading-relaxed">
+                    <p className="text-muted-foreground leading-relaxed line-clamp-3">
                       {story.story}
                     </p>
                   </CardContent>
@@ -946,6 +1002,36 @@ export default function Alumni() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Story Details Dialog */}
+        <Dialog open={!!selectedStory} onOpenChange={(open) => !open && setSelectedStory(null)}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{selectedStory?.title}</DialogTitle>
+              <DialogDescription>
+                {selectedStory && (
+                  <span>
+                    By {selectedStory.profiles.full_name} • {formatDistanceToNow(new Date(selectedStory.created_at), { addSuffix: true })}
+                  </span>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            {selectedStory && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  {getAchievementIcon(selectedStory.achievement_type)}
+                  <Badge variant="outline" className="text-xs">
+                    {selectedStory.achievement_type.replace(/_/g, ' ')}
+                  </Badge>
+                </div>
+                <p className="whitespace-pre-wrap text-sm text-muted-foreground">{selectedStory.story}</p>
+                <div>
+                  <Button variant="outline" onClick={() => setSelectedStory(null)}>Close</Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );

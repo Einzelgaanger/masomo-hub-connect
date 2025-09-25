@@ -1,4 +1,4 @@
-import { BookOpen, Upload, BarChart3, Users, Video, FileText } from "lucide-react";
+import { BookOpen, BarChart3 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
   Sidebar as SidebarComponent,
@@ -60,23 +60,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ profile }) => {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink to="/admin/content" className={getNavLinkClass}>
-                    <FileText className="h-5 w-5" />
-                    <span>Content Management</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink to="/tukio" className={getNavLinkClass}>
-                    <Video className="h-5 w-5" />
-                    <span>Tukio</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

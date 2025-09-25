@@ -13,12 +13,15 @@ import { NotesTab } from "@/components/unit/NotesTab";
 import { PastPapersTab } from "@/components/unit/PastPapersTab";
 import { AssignmentsTab } from "@/components/unit/AssignmentsTab";
 import { EventsTab } from "@/components/unit/EventsTab";
+import { useNotifications } from "@/hooks/useNotifications";
+import { NotificationBadge } from "@/components/ui/NotificationBadge";
 
 const UnitPage = () => {
   const { unitId } = useParams();
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { notifications } = useNotifications();
   const [profile, setProfile] = useState<any>(null);
   const [unit, setUnit] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -124,57 +127,80 @@ const UnitPage = () => {
   return (
     <AppLayout>
              {/* Unit Header */}
-             <div className="flex items-center justify-between mb-6">
-               <div className="flex items-center gap-4">
+             <div className="space-y-4 mb-6">
+               {/* Back Button */}
+               <div className="flex items-center">
                  <Button
-                   variant="outline"
-                   size="sm"
+                   variant="ghost"
+                   size="icon"
                    onClick={() => navigate("/units")}
-                   className="flex items-center gap-2"
+                   className="h-8 w-8"
                  >
                    <ArrowLeft className="h-4 w-4" />
-                   Back to Units
                  </Button>
-                 <div>
-                   <h1 className="text-3xl font-bold">{unit.name}</h1>
-                   <p className="text-muted-foreground">
-                     {unit.classes.course_name} - {unit.classes.universities.name}
-                   </p>
-                   {unit.description && (
-                     <p className="text-sm text-muted-foreground mt-2">{unit.description}</p>
-                   )}
-                 </div>
                </div>
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">
-                  Year {unit.classes.course_year}, Semester {unit.classes.semester}
-                </p>
-                {unit.classes.course_group && (
-                  <p className="text-sm text-muted-foreground">
-                    Group: {unit.classes.course_group}
-                  </p>
-                )}
-              </div>
-            </div>
+
+               {/* Unit Title and Info */}
+               <div className="space-y-3">
+                 <div>
+                   <h1 className="text-2xl sm:text-3xl font-bold mb-2">{unit.name}</h1>
+                   <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-sm text-muted-foreground">
+                     <span className="font-medium">{unit.classes.course_name}</span>
+                     <span className="hidden sm:inline">•</span>
+                     <span>{unit.classes.universities.name}</span>
+                     <span className="hidden sm:inline">•</span>
+                     <span>Year {unit.classes.course_year}, Sem {unit.classes.semester}</span>
+                     {unit.classes.course_group && (
+                       <>
+                         <span className="hidden sm:inline">•</span>
+                         <span>Group {unit.classes.course_group}</span>
+                       </>
+                     )}
+                   </div>
+                 </div>
+
+                 {unit.description && (
+                   <p className="text-sm text-muted-foreground leading-relaxed">
+                     {unit.description}
+                   </p>
+                 )}
+               </div>
+             </div>
 
             {/* Unit Tabs */}
             <Tabs defaultValue="notes" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="notes" className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Notes
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+                <TabsTrigger value="notes" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                  <div className="relative">
+                    <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <NotificationBadge count={notifications.unitTabs[unitId || '']?.notes || 0} />
+                  </div>
+                  <span className="hidden xs:inline">Notes</span>
+                  <span className="xs:hidden">Notes</span>
                 </TabsTrigger>
-                <TabsTrigger value="past-papers" className="flex items-center gap-2">
-                  <BookOpen className="h-4 w-4" />
-                  Past Papers
+                <TabsTrigger value="past-papers" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                  <div className="relative">
+                    <BookOpen className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <NotificationBadge count={notifications.unitTabs[unitId || '']?.pastPapers || 0} />
+                  </div>
+                  <span className="hidden xs:inline">Past Papers</span>
+                  <span className="xs:hidden">Papers</span>
                 </TabsTrigger>
-                <TabsTrigger value="assignments" className="flex items-center gap-2">
-                  <ClipboardList className="h-4 w-4" />
-                  Assignments
+                <TabsTrigger value="assignments" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                  <div className="relative">
+                    <ClipboardList className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <NotificationBadge count={notifications.unitTabs[unitId || '']?.assignments || 0} />
+                  </div>
+                  <span className="hidden xs:inline">Assignments</span>
+                  <span className="xs:hidden">Tasks</span>
                 </TabsTrigger>
-                <TabsTrigger value="events" className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Events
+                <TabsTrigger value="events" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                  <div className="relative">
+                    <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <NotificationBadge count={notifications.unitTabs[unitId || '']?.events || 0} />
+                  </div>
+                  <span className="hidden xs:inline">Events</span>
+                  <span className="xs:hidden">Events</span>
                 </TabsTrigger>
               </TabsList>
 

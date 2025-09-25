@@ -31,7 +31,7 @@ const Dashboard = () => {
       // Award points for daily visit
       await supabase.rpc('update_user_points', {
         user_uuid: user?.id,
-        points_change: 5
+        points_change: 2
       });
     } catch (error) {
       console.error('Error tracking daily visit:', error);

@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useNotifications } from "@/hooks/useNotifications";
+import { NotificationBadge } from "@/components/ui/NotificationBadge";
 import { 
   BookOpen, 
   Search, 
@@ -48,6 +50,7 @@ export default function Units() {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { notifications } = useNotifications();
   
   const [units, setUnits] = useState<Unit[]>([]);
   const [filteredUnits, setFilteredUnits] = useState<Unit[]>([]);
@@ -304,9 +307,12 @@ export default function Units() {
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle className="text-lg mb-2 line-clamp-2 group-hover:text-primary transition-colors">
-                        {unit.name}
-                      </CardTitle>
+                      <div className="flex items-center gap-2 mb-2">
+                        <CardTitle className="text-lg line-clamp-2 group-hover:text-primary transition-colors">
+                          {unit.name}
+                        </CardTitle>
+                        <NotificationBadge count={notifications.units[unit.id] || 0} />
+                      </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Badge variant="outline" className="text-xs">
                           Year {unit.classes.course_year}, Sem {unit.classes.semester}

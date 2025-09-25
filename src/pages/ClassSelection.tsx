@@ -270,147 +270,147 @@ const ClassSelection = () => {
         </div>
 
         {/* Class Selection Card */}
-        <div className="max-w-lg mx-auto w-full">
-          <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-sm">
+        <div className="max-w-md mx-auto w-full">
+          <Card className="backdrop-blur-sm bg-white/80 border-0 shadow-2xl">
             <CardHeader className="text-center pb-4">
-              <div className="space-y-3">
-                <div className="flex justify-center">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                    <GraduationCap className="h-6 w-6 text-white" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900 fredoka-bold">
-                    Select Your Class
-                  </h1>
-                  <p className="text-sm text-gray-600 fredoka-medium">
-                    Choose your university and course to continue
-                  </p>
-                </div>
+              <div className="space-y-2">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 fredoka-bold">
+                  Select Your Class
+                </h1>
+                <p className="text-sm text-gray-600 fredoka-medium">
+                  Choose your university and course to continue your academic journey
+                </p>
               </div>
             </CardHeader>
             
-            <CardContent className="px-5 pb-5 space-y-6">
+            <CardContent className="space-y-6">
               {/* Cascading Dropdowns */}
               <div className="space-y-4">
                 {/* Country Selection */}
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-gray-700 fredoka-medium flex items-center gap-2">
-                    <Globe className="h-4 w-4" />
+                  <label className="text-sm font-medium text-gray-700">
                     Country
-                  </Label>
-                  <Select value={selectedCountry} onValueChange={handleCountryChange}>
-                    <SelectTrigger className="h-10 border-2 border-gray-200 focus:border-blue-500 rounded-lg fredoka-medium">
-                      <SelectValue placeholder="Select your country" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {countries.map((country) => (
-                        <SelectItem key={country.id} value={country.id}>
-                          {country.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  </label>
+                  <div className="relative">
+                    <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Select value={selectedCountry} onValueChange={handleCountryChange}>
+                      <SelectTrigger className="pl-10 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                        <SelectValue placeholder="Select your country" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {countries.map((country) => (
+                          <SelectItem key={country.id} value={country.id}>
+                            {country.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 {/* University Selection */}
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-gray-700 fredoka-medium flex items-center gap-2">
-                    <Building className="h-4 w-4" />
+                  <label className="text-sm font-medium text-gray-700">
                     University
-                  </Label>
-                  <Select 
-                    value={selectedUniversity} 
-                    onValueChange={handleUniversityChange}
-                    disabled={!selectedCountry || loading}
-                  >
-                    <SelectTrigger className="h-10 border-2 border-gray-200 focus:border-blue-500 rounded-lg fredoka-medium">
-                      <SelectValue placeholder={selectedCountry ? "Select your university" : "Select country first"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {universities.map((university) => (
-                        <SelectItem key={university.id} value={university.id}>
-                          {university.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  </label>
+                  <div className="relative">
+                    <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Select 
+                      value={selectedUniversity} 
+                      onValueChange={handleUniversityChange}
+                      disabled={!selectedCountry || loading}
+                    >
+                      <SelectTrigger className="pl-10 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                        <SelectValue placeholder={selectedCountry ? "Select your university" : "Select country first"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {universities.map((university) => (
+                          <SelectItem key={university.id} value={university.id}>
+                            {university.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 {/* Class Selection */}
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-gray-700 fredoka-medium flex items-center gap-2">
-                    <BookOpen className="h-4 w-4" />
+                  <label className="text-sm font-medium text-gray-700">
                     Course/Class
-                  </Label>
-                  <Select 
-                    value={selectedClass} 
-                    onValueChange={setSelectedClass}
-                    disabled={!selectedUniversity || loading}
-                  >
-                    <SelectTrigger className="h-10 border-2 border-gray-200 focus:border-blue-500 rounded-lg fredoka-medium">
-                      <SelectValue placeholder={selectedUniversity ? "Select your class" : "Select university first"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {classes.map((classItem) => (
-                        <SelectItem key={classItem.id} value={classItem.id}>
-                          {classItem.course_name} - Year {classItem.course_year}, Sem {classItem.semester}, Group {classItem.course_group}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  </label>
+                  <div className="relative">
+                    <BookOpen className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Select 
+                      value={selectedClass} 
+                      onValueChange={setSelectedClass}
+                      disabled={!selectedUniversity || loading}
+                    >
+                      <SelectTrigger className="pl-10 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                        <SelectValue placeholder={selectedUniversity ? "Select your class" : "Select university first"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {classes.map((classItem) => (
+                          <SelectItem key={classItem.id} value={classItem.id}>
+                            {classItem.course_name} - Year {classItem.course_year}, Sem {classItem.semester}, Group {classItem.course_group}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 
               {/* Personal Information */}
               {selectedClass && (
                 <div className="space-y-4 pt-4 border-t border-gray-200">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-gray-700 fredoka-semibold">
-                    <Users className="h-4 w-4" />
-                    Personal Information
-                  </div>
-                  
                   <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-gray-700 fredoka-medium">
+                    <label className="text-sm font-medium text-gray-700">
                       Full Name
-                    </Label>
-                    <Input
-                      type="text"
-                      placeholder="Enter your full name"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="h-10 border-2 border-gray-200 focus:border-blue-500 rounded-lg fredoka-medium"
-                      required
-                    />
+                    </label>
+                    <div className="relative">
+                      <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <Input
+                        type="text"
+                        placeholder="Enter your full name"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className="pl-10 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
                   </div>
                   
                   <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-gray-700 fredoka-medium">
+                    <label className="text-sm font-medium text-gray-700">
                       Admission Number
-                    </Label>
-                    <Input
-                      type="text"
-                      placeholder="Enter your admission number"
-                      value={admissionNumber}
-                      onChange={(e) => setAdmissionNumber(e.target.value)}
-                      className="h-10 border-2 border-gray-200 focus:border-blue-500 rounded-lg fredoka-medium"
-                      required
-                    />
+                    </label>
+                    <div className="relative">
+                      <BookOpen className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <Input
+                        type="text"
+                        placeholder="Enter your admission number"
+                        value={admissionNumber}
+                        onChange={(e) => setAdmissionNumber(e.target.value)}
+                        className="pl-10 h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
                   </div>
 
                   {/* Selected Class Summary */}
-                  <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
-                    <h4 className="text-sm font-semibold text-blue-800 fredoka-semibold mb-2">
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 className="text-sm font-semibold text-blue-800 mb-2">
                       Selected Class:
                     </h4>
-                    <p className="text-sm text-blue-700 fredoka-medium">
+                    <p className="text-sm text-blue-700">
                       {getSelectedClassName()}
                     </p>
                   </div>
 
                   <Button 
                     onClick={handleSubmitApplication}
-                    className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white fredoka-semibold text-base rounded-lg transition-all duration-300 hover:scale-105" 
+                    className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white" 
                     disabled={submitting || !fullName || !admissionNumber}
                   >
                     {submitting ? (
@@ -428,7 +428,7 @@ const ClassSelection = () => {
               {loading && (
                 <div className="text-center py-4">
                   <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600" />
-                  <p className="text-sm text-gray-600 mt-2 fredoka-medium">Loading...</p>
+                  <p className="text-sm text-gray-600 mt-2">Loading...</p>
                 </div>
               )}
             </CardContent>

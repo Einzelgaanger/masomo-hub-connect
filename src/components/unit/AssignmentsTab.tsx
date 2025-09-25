@@ -193,7 +193,7 @@ export function AssignmentsTab({ unitId, profile }: AssignmentsTabProps) {
       // Award points for completing assignment
       await supabase.rpc('update_user_points', {
         user_uuid: user?.id,
-        points_change: 20
+        points_change: 10
       });
 
       toast({

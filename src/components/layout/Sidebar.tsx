@@ -18,6 +18,8 @@ import { Button } from "@/components/ui/button";
 import Logo from "@/components/ui/Logo";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useNotifications } from "@/hooks/useNotifications";
+import { NotificationBadge } from "@/components/ui/NotificationBadge";
 
 interface SidebarProps {
   profile: any;
@@ -26,6 +28,7 @@ interface SidebarProps {
 export function Sidebar({ profile }: SidebarProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { notifications } = useNotifications();
 
   const getNavLinkClass = ({ isActive }: { isActive: boolean }) =>
     isActive 
@@ -34,8 +37,14 @@ export function Sidebar({ profile }: SidebarProps) {
 
   const handleLogout = async () => {
     try {
+      // Clear any local storage/session data first
+      localStorage.removeItem('lastVisits');
+      
+      // Try to sign out, but don't fail if session is already invalid
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      if (error && error.message !== 'Auth session missing!') {
+        throw error;
+      }
       
       toast({
         title: "Logged Out",
@@ -45,27 +54,31 @@ export function Sidebar({ profile }: SidebarProps) {
       navigate('/login');
     } catch (error) {
       console.error('Error logging out:', error);
+      
+      // Even if signOut fails, clear local data and redirect
+      localStorage.removeItem('lastVisits');
+      navigate('/login');
+      
       toast({
-        title: "Error",
-        description: "Failed to log out. Please try again.",
-        variant: "destructive",
+        title: "Logged Out",
+        description: "You have been logged out.",
       });
     }
   };
 
   return (
-    <SidebarComponent className="w-64">
+    <SidebarComponent className="w-64 overflow-hidden">
       <SidebarHeader className="p-4">
         <div className="flex items-center justify-center">
           <Logo size="lg" showText={true} />
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="flex flex-col h-full">
+      <SidebarContent className="flex flex-col h-full overflow-hidden">
         {/* Main Navigation Section */}
-        <div className="flex-1">
+        <div className="flex-1 overflow-hidden">
           <SidebarGroup>
-            <SidebarGroupContent>
+            <SidebarGroupContent className="overflow-hidden">
               <SidebarMenu className="space-y-1">
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
@@ -78,7 +91,10 @@ export function Sidebar({ profile }: SidebarProps) {
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink to="/units" className={getNavLinkClass}>
-                      <MasomoIcon className="h-4 w-4" />
+                      <div className="relative">
+                        <MasomoIcon className="h-4 w-4" />
+                        <NotificationBadge count={notifications.masomo} />
+                      </div>
                       <span>Masomo</span>
                     </NavLink>
                   </SidebarMenuButton>
@@ -86,7 +102,10 @@ export function Sidebar({ profile }: SidebarProps) {
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink to="/ukumbi" className={getNavLinkClass}>
-                      <MessageCircle className="h-4 w-4" />
+                      <div className="relative">
+                        <MessageCircle className="h-4 w-4" />
+                        <NotificationBadge count={notifications.ukumbi} />
+                      </div>
                       <span>Ukumbi</span>
                     </NavLink>
                   </SidebarMenuButton>
@@ -94,7 +113,10 @@ export function Sidebar({ profile }: SidebarProps) {
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink to="/events" className={getNavLinkClass}>
-                      <Calendar className="h-4 w-4" />
+                      <div className="relative">
+                        <Calendar className="h-4 w-4" />
+                        <NotificationBadge count={notifications.tukio} />
+                      </div>
                       <span>Tukio</span>
                     </NavLink>
                   </SidebarMenuButton>
@@ -102,7 +124,10 @@ export function Sidebar({ profile }: SidebarProps) {
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink to="/ajira" className={getNavLinkClass}>
-                      <Briefcase className="h-4 w-4" />
+                      <div className="relative">
+                        <Briefcase className="h-4 w-4" />
+                        <NotificationBadge count={notifications.ajira} />
+                      </div>
                       <span>Ajira</span>
                     </NavLink>
                   </SidebarMenuButton>
@@ -110,7 +135,10 @@ export function Sidebar({ profile }: SidebarProps) {
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink to="/inbox" className={getNavLinkClass}>
-                      <Mail className="h-4 w-4" />
+                      <div className="relative">
+                        <Mail className="h-4 w-4" />
+                        <NotificationBadge count={notifications.inbox} />
+                      </div>
                       <span>Inbox</span>
                     </NavLink>
                   </SidebarMenuButton>
@@ -118,7 +146,10 @@ export function Sidebar({ profile }: SidebarProps) {
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink to="/alumni" className={getNavLinkClass}>
-                      <Users className="h-4 w-4" />
+                      <div className="relative">
+                        <Users className="h-4 w-4" />
+                        <NotificationBadge count={notifications.alumni} />
+                      </div>
                       <span>Alumni</span>
                     </NavLink>
                   </SidebarMenuButton>

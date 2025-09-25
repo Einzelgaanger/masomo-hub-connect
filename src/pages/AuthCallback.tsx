@@ -45,7 +45,7 @@ const AuthCallback = () => {
         // Check if user has pending applications
         const { data: applications, error: applicationError } = await supabase
           .from('applications' as any)
-          .select('id, status, class_id')
+          .select('id, status, class_id, created_at')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(1);
@@ -64,18 +64,41 @@ const AuthCallback = () => {
             navigate('/dashboard');
             return;
           } else if (latestApplication.status === 'pending') {
-            // Application is pending, redirect to status page
+            // Application is pending, redirect to status page (stuck state)
             navigate('/application-status');
             return;
           } else if (latestApplication.status === 'rejected') {
-            // Application was rejected, allow re-application
-            toast({
-              title: "Application Rejected",
-              description: "Your previous application was rejected. You can apply again with different information.",
-              variant: "destructive",
-            });
-            navigate('/class-selection');
-            return;
+            // Check rejection cooldown
+            const rejectionData = localStorage.getItem(`rejection_${user.id}`);
+            let shouldRedirectToRejected = false;
+
+            if (rejectionData) {
+              const { rejectedAt } = JSON.parse(rejectionData);
+              const rejectionTime = new Date(rejectedAt);
+              const now = new Date();
+              const timeDiff = now.getTime() - rejectionTime.getTime();
+              const daysDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
+              
+              // If less than 7 days have passed, redirect to rejected page
+              if (daysDiff < 7) {
+                shouldRedirectToRejected = true;
+              }
+            } else {
+              // If no rejection data in localStorage, create it
+              localStorage.setItem(`rejection_${user.id}`, JSON.stringify({
+                rejectedAt: latestApplication.created_at || new Date().toISOString()
+              }));
+              shouldRedirectToRejected = true;
+            }
+
+            if (shouldRedirectToRejected) {
+              navigate('/application-rejected');
+              return;
+            } else {
+              // Cooldown period has passed, allow re-application
+              navigate('/class-selection');
+              return;
+            }
           }
         }
 

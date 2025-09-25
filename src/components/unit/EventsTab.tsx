@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Calendar, Trash2, Clock, MapPin, ThumbsUp, ThumbsDown, MessageCircle } from "lucide-react";
+import { Plus, Calendar, Trash2, Clock, MapPin, Heart, HeartOff, MessageSquare } from "lucide-react";
 import { format, formatDistanceToNow, isAfter, isToday, isTomorrow, isYesterday } from "date-fns";
 
 interface Event {
@@ -288,7 +288,7 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
       }
 
       // Update like/dislike counts
-      const pointsChange = reactionType === 'like' ? 2 : -1;
+      const pointsChange = reactionType === 'like' ? 1 : -1;
       await supabase.rpc('update_user_points', {
         user_uuid: user?.id,
         points_change: pointsChange
@@ -317,7 +317,7 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
       // Award points for commenting
       await supabase.rpc('update_user_points', {
         user_uuid: user?.id,
-        points_change: 3
+        points_change: 2
       });
 
       setNewComment("");
@@ -466,7 +466,9 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
                       )}
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent 
+                    onDoubleClick={() => handleReaction(event.id, 'like')}
+                  >
                     <div className="mb-4">
                       <div className="flex flex-wrap items-center gap-4">
                         <div className="flex items-center gap-2">
@@ -498,65 +500,68 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-4 mb-4">
-                      <Button
-                        variant={getUserReaction(event) === 'like' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handleReaction(event.id, 'like')}
-                      >
-                        <ThumbsUp className="h-4 w-4 mr-1" />
-                        {getLikesCount(event)}
-                      </Button>
-                      <Button
-                        variant={getUserReaction(event) === 'dislike' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => handleReaction(event.id, 'dislike')}
-                      >
-                        <ThumbsDown className="h-4 w-4 mr-1" />
-                        {getDislikesCount(event)}
-                      </Button>
+                    <div className="flex items-center gap-2 sm:gap-3 mb-4">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setExpandedEvent(expandedEvent === event.id ? null : event.id)}
+                        className="h-7 px-2 text-xs"
                       >
-                        <MessageCircle className="h-4 w-4 mr-1" />
-                        {event.comments.length} Comments
+                        <MessageSquare className="h-3 w-3 mr-1" />
+                        {event.comments.length}
                       </Button>
+                      {/* Like Badge */}
+                      {getLikesCount(event) > 0 && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Heart className="h-3 w-3 fill-red-500 text-red-500" />
+                          <span>{getLikesCount(event)}</span>
+                        </div>
+                      )}
                     </div>
 
                     {expandedEvent === event.id && (
                       <div className="border-t pt-4">
-                        <div className="space-y-3 mb-4">
+                        <div className="max-h-64 overflow-y-auto space-y-3 mb-4 pr-2">
                           {event.comments.map((comment) => (
-                            <div key={comment.id} className="flex gap-3">
-                              <Avatar className="h-8 w-8">
+                            <div key={comment.id} className="flex gap-2 sm:gap-3">
+                              <Avatar className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0">
                                 <AvatarImage src={comment.profiles?.profile_picture_url} />
-                                <AvatarFallback>
+                                <AvatarFallback className="text-xs">
                                   {comment.profiles?.full_name?.split(' ').map((n: string) => n[0]).join('')}
                                 </AvatarFallback>
                               </Avatar>
-                              <div className="flex-1">
-                                <div className="bg-muted p-3 rounded-lg">
-                                  <p className="text-sm">{comment.content}</p>
-                                  <p className="text-xs text-muted-foreground mt-1">
+                              <div className="flex-1 min-w-0">
+                                <div className="bg-muted p-2 sm:p-3 rounded-lg relative">
+                                  <p className="text-xs sm:text-sm break-words line-clamp-3">{comment.content}</p>
+                                  <p className="text-xs text-muted-foreground mt-1 truncate">
                                     {comment.profiles?.full_name} • {format(new Date(comment.created_at), 'MMM dd, yyyy')}
                                   </p>
+                                  {/* Like Badge */}
+                                  {comment.likes_count > 0 && (
+                                    <div className="absolute -bottom-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center shadow-lg">
+                                      <Heart className="h-2 w-2 fill-current" />
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>
                           ))}
                         </div>
                         
-                        <div className="flex gap-2">
+                        <div className="flex gap-1 sm:gap-2">
                           <Input
                             placeholder="Add a comment..."
                             value={newComment}
                             onChange={(e) => setNewComment(e.target.value)}
                             onKeyPress={(e) => e.key === 'Enter' && handleAddComment(event.id)}
+                            className="text-sm h-8 sm:h-10"
                           />
-                          <Button onClick={() => handleAddComment(event.id)}>
-                            Comment
+                          <Button 
+                            onClick={() => handleAddComment(event.id)}
+                            className="h-8 sm:h-10 px-3 text-xs sm:text-sm"
+                          >
+                            <span className="hidden sm:inline">Comment</span>
+                            <span className="sm:hidden">+</span>
                           </Button>
                         </div>
                       </div>

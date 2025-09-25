@@ -31,6 +31,7 @@ interface Message {
   likes_count: number;
   created_at: string;
   user_id: string;
+  reply_to_message_id?: string | null;
   profiles: {
     full_name: string;
     profile_picture_url?: string;
@@ -53,8 +54,17 @@ export default function Ukumbi() {
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
+  const [touchEnd, setTouchEnd] = useState<{ x: number; y: number } | null>(null);
+  const [pendingMessages, setPendingMessages] = useState<Set<string>>(new Set());
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState<Message | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [fileDescription, setFileDescription] = useState('');
+  const [showFileUploadDialog, setShowFileUploadDialog] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -101,6 +111,7 @@ export default function Ukumbi() {
 
   const fetchMessages = async () => {
     try {
+      // First try the full query with relationships
       const { data, error } = await supabase
         .from('messages')
         .select(`
@@ -120,8 +131,48 @@ export default function Ukumbi() {
         .eq('university_id', userProfile?.classes?.university_id)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
-      setMessages(data || []);
+      if (error) {
+        console.warn('Full query failed, trying simplified query:', error);
+        // Fallback to simplified query without relationships
+        const { data: simpleData, error: simpleError } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('university_id', userProfile?.classes?.university_id)
+          .order('created_at', { ascending: true });
+
+        if (simpleError) throw simpleError;
+        
+        // Manually fetch profile data for each message
+        const messagesWithProfiles = await Promise.all(
+          simpleData.map(async (message) => {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select(`
+                full_name,
+                profile_picture_url,
+                character_id,
+                classes(course_name)
+              `)
+              .eq('user_id', message.user_id)
+              .single();
+
+            const { data: likes } = await supabase
+              .from('message_likes')
+              .select('user_id')
+              .eq('message_id', message.id);
+
+            return {
+              ...message,
+              profiles: profile,
+              message_likes: likes || []
+            };
+          })
+        );
+        
+        setMessages(messagesWithProfiles);
+      } else {
+        setMessages(data || []);
+      }
     } catch (error) {
       console.error('Error fetching messages:', error);
       toast({
@@ -209,34 +260,129 @@ export default function Ukumbi() {
     e.preventDefault();
     if (!newMessage.trim() || !userProfile?.classes?.university_id || sending) return;
 
+    const messageContent = newMessage.trim();
+    const tempId = `temp_${Date.now()}_${Math.random()}`;
+    
+    // Create optimistic message
+    const optimisticMessage: Message = {
+      id: tempId,
+      user_id: user?.id!,
+      university_id: userProfile.classes.university_id,
+      content: messageContent,
+      message_type: 'text',
+      media_url: null,
+      media_filename: null,
+      media_size: null,
+      likes_count: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      profiles: {
+        full_name: userProfile.full_name,
+        profile_picture_url: userProfile.profile_picture_url,
+        classes: {
+          course_name: userProfile.classes.course_name
+        }
+      },
+      message_likes: []
+    };
+
+    // Add optimistic message immediately
+    setMessages(prev => [...prev, optimisticMessage]);
+    setPendingMessages(prev => new Set([...prev, tempId]));
+    setNewMessage("");
+    setReplyingTo(null);
+    
+    // Scroll to bottom immediately
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+
     setSending(true);
     try {
-      const { error } = await supabase
+      // Try to insert with relationships first
+      const { data, error } = await supabase
         .from('messages')
         .insert({
           user_id: user?.id,
           university_id: userProfile.classes.university_id,
-          content: newMessage.trim(),
+          content: messageContent,
           message_type: 'text'
-        });
+        })
+        .select(`
+          *,
+          profiles(full_name, profile_picture_url, classes(course_name)),
+          message_likes(user_id)
+        `)
+        .single();
 
-      if (error) throw error;
-      setNewMessage("");
+      if (error) {
+        console.warn('Insert with relationships failed, trying simple insert:', error);
+        // Fallback to simple insert
+        const { data: simpleData, error: simpleError } = await supabase
+          .from('messages')
+          .insert({
+            user_id: user?.id,
+            university_id: userProfile.classes.university_id,
+            content: messageContent,
+            message_type: 'text'
+          })
+          .select('*')
+          .single();
+
+        if (simpleError) throw simpleError;
+
+        // Manually fetch profile data
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select(`
+            full_name,
+            profile_picture_url,
+            character_id,
+            classes(course_name)
+          `)
+          .eq('user_id', user?.id)
+          .single();
+
+        const messageWithProfile = {
+          ...simpleData,
+          profiles: profile,
+          message_likes: []
+        };
+
+        // Replace optimistic message with real message
+        setMessages(prev => prev.map(msg => 
+          msg.id === tempId ? messageWithProfile : msg
+        ));
+      } else {
+        // Replace optimistic message with real message
+        setMessages(prev => prev.map(msg => 
+          msg.id === tempId ? data : msg
+        ));
+      }
     } catch (error) {
       console.error('Error sending message:', error);
+      
+      // Remove failed message
+      setMessages(prev => prev.filter(msg => msg.id !== tempId));
+      
       toast({
         title: "Error",
         description: "Failed to send message",
         variant: "destructive",
       });
     } finally {
+      setPendingMessages(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(tempId);
+        return newSet;
+      });
       setSending(false);
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !userProfile?.classes?.university_id || uploading) return;
+    if (!file || !userProfile?.classes?.university_id) return;
 
     // Check file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
@@ -248,16 +394,69 @@ export default function Ukumbi() {
       return;
     }
 
+    setSelectedFile(file);
+    setFileDescription('');
+    setShowFileUploadDialog(true);
+  };
+
+  const handleFileUpload = async () => {
+    if (!selectedFile || !userProfile?.classes?.university_id || uploading) return;
+
+    const tempId = `temp_${Date.now()}_${Math.random()}`;
+    const messageType = selectedFile.type.startsWith('image/') ? 'image' : 'video';
+    const fileIcon = messageType === 'image' ? '📷' : '🎥';
+    const content = fileDescription.trim() 
+      ? `${fileIcon} ${selectedFile.name}\n\n${fileDescription.trim()}`
+      : `${fileIcon} ${selectedFile.name}`;
+    
+    // Create optimistic message for file upload
+    const optimisticMessage: Message = {
+      id: tempId,
+      user_id: user?.id!,
+      university_id: userProfile.classes.university_id,
+      content: content,
+      message_type: messageType,
+      media_url: null, // Will be updated when upload completes
+      media_filename: selectedFile.name,
+      media_size: selectedFile.size,
+      likes_count: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      reply_to_message_id: replyingTo?.id || null,
+      profiles: {
+        full_name: userProfile.full_name,
+        profile_picture_url: userProfile.profile_picture_url,
+        classes: {
+          course_name: userProfile.classes.course_name
+        }
+      },
+      message_likes: []
+    };
+
+    // Add optimistic message immediately
+    setMessages(prev => [...prev, optimisticMessage]);
+    setPendingMessages(prev => new Set([...prev, tempId]));
+    
+    // Close dialog and clear state
+    setShowFileUploadDialog(false);
+    setSelectedFile(null);
+    setFileDescription('');
+    
+    // Scroll to bottom immediately
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+
     setUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
+      const fileExt = selectedFile.name.split('.').pop();
       const fileName = `${user?.id}-${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
       // Upload file to storage
       const { error: uploadError } = await supabase.storage
         .from('ukumbi-media')
-        .upload(filePath, file);
+        .upload(filePath, selectedFile);
 
       if (uploadError) throw uploadError;
 
@@ -266,23 +465,32 @@ export default function Ukumbi() {
         .from('ukumbi-media')
         .getPublicUrl(filePath);
 
-      // Determine message type
-      const messageType = file.type.startsWith('image/') ? 'image' : 'video';
-
       // Insert message
-      const { error: messageError } = await supabase
+      const { data, error: messageError } = await supabase
         .from('messages')
         .insert({
           user_id: user?.id,
           university_id: userProfile.classes.university_id,
-          content: `${messageType === 'image' ? '📷' : '🎥'} ${file.name}`,
+          content: content,
           message_type: messageType,
           media_url: publicUrl,
-          media_filename: file.name,
-          media_size: file.size
-        });
+          media_filename: selectedFile.name,
+          media_size: selectedFile.size,
+          reply_to_message_id: replyingTo?.id || null
+        })
+        .select(`
+          *,
+          profiles(full_name, profile_picture_url, classes(course_name)),
+          message_likes(user_id)
+        `)
+        .single();
 
       if (messageError) throw messageError;
+
+      // Replace optimistic message with real message
+      setMessages(prev => prev.map(msg => 
+        msg.id === tempId ? data : msg
+      ));
 
       toast({
         title: "Media shared!",
@@ -290,12 +498,21 @@ export default function Ukumbi() {
       });
     } catch (error) {
       console.error('Error uploading file:', error);
+      
+      // Remove failed message
+      setMessages(prev => prev.filter(msg => msg.id !== tempId));
+      
       toast({
         title: "Upload failed",
         description: "Failed to share media",
         variant: "destructive",
       });
     } finally {
+      setPendingMessages(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(tempId);
+        return newSet;
+      });
       setUploading(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -365,6 +582,114 @@ export default function Ukumbi() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  // Swipe to reply functionality
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent, message: Message) => {
+    setTouchEnd(null);
+    setTouchStart({
+      x: e.targetTouches[0].clientX,
+      y: e.targetTouches[0].clientY,
+    });
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd({
+      x: e.targetTouches[0].clientX,
+      y: e.targetTouches[0].clientY,
+    });
+  };
+
+  const onTouchEnd = (e: React.TouchEvent, message: Message) => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distanceX = touchStart.x - touchEnd.x;
+    const distanceY = touchStart.y - touchEnd.y;
+    const isLeftSwipe = distanceX > minSwipeDistance;
+    const isRightSwipe = distanceX < -minSwipeDistance;
+    const isVerticalSwipe = Math.abs(distanceY) > Math.abs(distanceX);
+
+    if (isLeftSwipe && !isVerticalSwipe) {
+      // Swipe left to reply
+      setReplyingTo(message);
+    } else if (isRightSwipe && !isVerticalSwipe) {
+      // Swipe right to reply (alternative)
+      setReplyingTo(message);
+    }
+  };
+
+  const cancelReply = () => {
+    setReplyingTo(null);
+  };
+
+  // Long press to delete functionality
+  const handleLongPress = (message: Message) => {
+    if (message.user_id === user?.id) {
+      setShowDeleteDialog(message);
+    }
+  };
+
+  const handleLongPressStart = (e: React.TouchEvent, message: Message) => {
+    e.preventDefault();
+    if (message.user_id === user?.id) {
+      const timer = setTimeout(() => {
+        handleLongPress(message);
+      }, 500); // 500ms long press
+      setLongPressTimer(timer);
+    }
+  };
+
+  const handleLongPressEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+  };
+
+  const deleteMessage = async (messageId: string) => {
+    try {
+      // Remove from UI immediately (optimistic update)
+      setMessages(prev => prev.filter(msg => msg.id !== messageId));
+      
+      // Delete from database
+      const { error } = await supabase
+        .from('messages')
+        .delete()
+        .eq('id', messageId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Message deleted",
+        description: "Your message has been deleted",
+      });
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      
+      // Refresh messages to restore if deletion failed
+      if (userProfile?.classes?.university_id) {
+        fetchMessages();
+      }
+      
+      toast({
+        title: "Delete failed",
+        description: "Failed to delete message. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setShowDeleteDialog(null);
+    }
+  };
+
+  // Jumping dots loading component
+  const JumpingDots = () => (
+    <div className="flex items-center space-x-1">
+      <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+      <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+      <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+    </div>
+  );
+
   if (loading || !userProfile) {
     return (
       <AppLayout>
@@ -380,27 +705,10 @@ export default function Ukumbi() {
 
   return (
     <AppLayout>
-      <div className="flex flex-col h-full max-h-screen">
-        {/* Header */}
-        <Card className="mb-4">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <MessageCircle className="h-6 w-6 text-primary" />
-                <h1 className="text-xl font-bold">Ukumbi</h1>
-              </div>
-              <Badge variant="secondary" className="ml-auto">
-                <Users className="h-3 w-3 mr-1" />
-                University Chat
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Messages */}
-        <Card className="flex-1 overflow-hidden">
-          <CardContent className="p-4 h-full flex flex-col">
-            <div className="flex-1 overflow-y-auto space-y-4 mb-4">
+      {/* Messages Area - scrolls under fixed global header */}
+      <div className="flex-1 overflow-hidden flex flex-col">
+        <div className="flex-1 overflow-y-auto p-1 sm:p-4 space-y-4">
               {messages.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -444,17 +752,40 @@ export default function Ukumbi() {
 
                       {/* Message Content */}
                       <div
-                        className={`px-3 py-2 rounded-2xl ${
+                        className={`px-3 py-2 rounded-2xl relative ${
                           message.user_id === user?.id
                             ? 'bg-primary text-primary-foreground rounded-br-md'
                             : 'bg-muted rounded-bl-md'
                         }`}
+                        onDoubleClick={() => toggleLike(message.id)}
+                        onTouchStart={(e) => {
+                          onTouchStart(e, message);
+                          handleLongPressStart(e, message);
+                        }}
+                        onTouchMove={(e) => {
+                          onTouchMove(e);
+                          handleLongPressEnd();
+                        }}
+                        onTouchEnd={(e) => {
+                          onTouchEnd(e, message);
+                          handleLongPressEnd();
+                        }}
                       >
                         {message.message_type === 'text' ? (
-                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                            {pendingMessages.has(message.id) && (
+                              <JumpingDots />
+                            )}
+                          </div>
                         ) : (
                           <div className="space-y-2">
-                            <p className="text-sm">{message.content}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm">{message.content}</p>
+                              {pendingMessages.has(message.id) && (
+                                <JumpingDots />
+                              )}
+                            </div>
                             <div className="space-y-2">
                               {message.message_type === 'image' ? (
                                 <div className="relative group">
@@ -508,29 +839,13 @@ export default function Ukumbi() {
                             </div>
                           </div>
                         )}
-                      </div>
 
-                      {/* Like Button */}
-                      <div className={`flex items-center gap-1 ${
-                        message.user_id === user?.id ? 'justify-end' : 'justify-start'
-                      }`}>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 px-2"
-                          onClick={() => toggleLike(message.id)}
-                        >
-                          <Heart
-                            className={`h-3 w-3 ${
-                              message.message_likes.some(like => like.user_id === user?.id)
-                                ? 'fill-red-500 text-red-500'
-                                : ''
-                            }`}
-                          />
-                          {message.likes_count > 0 && (
-                            <span className="ml-1 text-xs">{message.likes_count}</span>
-                          )}
-                        </Button>
+                        {/* Like Badge */}
+                        {message.likes_count > 0 && (
+                          <div className="absolute -bottom-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center shadow-lg">
+                            <Heart className="h-2 w-2 fill-current" />
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -539,49 +854,170 @@ export default function Ukumbi() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Message Input */}
-            <form onSubmit={sendMessage} className="flex gap-1 sm:gap-2">
+        {/* Reply Preview */}
+        {replyingTo && (
+          <div className="flex-shrink-0 border-t bg-muted/50 p-3">
+            <div className="flex items-start gap-2">
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground">Replying to {replyingTo.profiles.full_name}</p>
+                <p className="text-sm truncate">{replyingTo.content}</p>
+              </div>
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={cancelReply}
+                className="h-6 w-6 p-0"
+              >
+                ×
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Message Input */}
+        <div className="flex-shrink-0 border-t bg-background p-4">
+          <form onSubmit={sendMessage} className="flex gap-1 sm:gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="h-9 w-9 sm:h-10 sm:w-10 p-0"
+            >
+              {uploading ? (
+                <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-primary"></div>
+              ) : (
+                <Paperclip className="h-3 w-3 sm:h-4 sm:w-4" />
+              )}
+            </Button>
+            <Input
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Type a message..."
+              className="flex-1 text-sm sm:text-base h-9 sm:h-10"
+              disabled={sending || !userProfile}
+            />
+            <Button type="submit" size="sm" disabled={sending || !newMessage.trim() || !userProfile} className="h-9 sm:h-10 px-3 sm:px-4">
+              {sending ? (
+                <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-white"></div>
+              ) : (
+                <Send className="h-3 w-3 sm:h-4 sm:w-4" />
+              )}
+            </Button>
+          </form>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,video/*"
+            onChange={handleFileSelect}
+            className="hidden"
+            title="Upload media file"
+          />
+        </div>
+      </div>
+
+      {/* File Upload Dialog */}
+      {showFileUploadDialog && selectedFile && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-semibold mb-4">Share File</h3>
+            
+            {/* File Info */}
+            <div className="mb-4 p-3 bg-muted rounded-lg">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">
+                  {selectedFile.type.startsWith('image/') ? '📷' : '🎥'}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{selectedFile.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Description Input */}
+            <div className="mb-4">
+              <label htmlFor="file-description" className="block text-sm font-medium mb-2">
+                Add a description (optional)
+              </label>
+              <textarea
+                id="file-description"
+                value={fileDescription}
+                onChange={(e) => setFileDescription(e.target.value)}
+                placeholder="Describe what this file is about..."
+                className="w-full p-3 border border-input rounded-lg resize-none"
+                rows={3}
+                maxLength={500}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {fileDescription.length}/500 characters
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowFileUploadDialog(false);
+                  setSelectedFile(null);
+                  setFileDescription('');
+                  if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                  }
+                }}
                 disabled={uploading}
-                className="h-9 w-9 sm:h-10 sm:w-10 p-0"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleFileUpload}
+                disabled={uploading}
               >
                 {uploading ? (
-                  <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-primary"></div>
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Uploading...
+                  </div>
                 ) : (
-                  <Paperclip className="h-3 w-3 sm:h-4 sm:w-4" />
+                  'Share'
                 )}
               </Button>
-              <Input
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type a message..."
-                className="flex-1 text-sm sm:text-base h-9 sm:h-10"
-                disabled={sending || !userProfile}
-              />
-              <Button type="submit" size="sm" disabled={sending || !newMessage.trim() || !userProfile} className="h-9 sm:h-10 px-3 sm:px-4">
-                {sending ? (
-                  <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-white"></div>
-                ) : (
-                  <Send className="h-3 w-3 sm:h-4 sm:w-4" />
-                )}
-              </Button>
-            </form>
+            </div>
+          </div>
+        </div>
+      )}
 
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,video/*"
-              onChange={handleFileUpload}
-              className="hidden"
-              title="Upload media file"
-            />
-          </CardContent>
-        </Card>
-      </div>
+      {/* Delete Confirmation Dialog */}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg p-6 max-w-sm w-full">
+            <h3 className="text-lg font-semibold mb-2">Delete Message</h3>
+            <p className="text-muted-foreground mb-4">
+              Are you sure you want to delete this message? This action cannot be undone.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setShowDeleteDialog(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => deleteMessage(showDeleteDialog.id)}
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 }
