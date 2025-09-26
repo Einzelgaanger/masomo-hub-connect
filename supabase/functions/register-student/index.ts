@@ -165,7 +165,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Edge Function error:', error);
     return new Response(JSON.stringify({ 
-      error: 'Internal server error: ' + error.message 
+      error: 'Internal server error: ' + ((error as Error)?.message || 'Unknown error') 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,

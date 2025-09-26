@@ -147,7 +147,9 @@ const App = () => (
                 <AdminConcerns />
               </AdminGuard>
             } />
-            <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/class-selection" element={<ClassSelection />} />
+          <Route path="/application-status" element={<ApplicationStatus />} />
             <Route path="/class-selection" element={<ClassSelection />} />
             <Route path="/application" element={<ApplicationForm />} />
             <Route path="/application-status" element={<ApplicationStatus />} />

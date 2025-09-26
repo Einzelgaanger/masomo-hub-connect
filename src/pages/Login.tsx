@@ -64,67 +64,8 @@ const Login = () => {
 
       if (error) throw error;
 
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, role, full_name')
-        .eq('user_id', data.user.id)
-        .single();
-
-      if (profileError) {
-        console.error('Profile error:', profileError);
-        toast({
-          title: "Account Not Found",
-          description: "Your account profile was not found. Please sign up first.",
-          variant: "destructive",
-        });
-        await supabase.auth.signOut();
-        return;
-      }
-
-      const { data: applicationData, error: applicationError } = await supabase
-        .from('applications' as any)
-        .select('id, status')
-        .eq('user_id', data.user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (applicationError && applicationError.code !== 'PGRST116') {
-        console.error('Application check error:', applicationError);
-      }
-
-      if (profileData.role === 'admin' || profileData.role === 'super_admin') {
-        toast({
-          title: "Welcome Back, Admin!",
-          description: "You have been signed in successfully.",
-        });
-        navigate('/admin');
-      } else if (applicationData && (applicationData as any).status === 'approved') {
-        toast({
-          title: "Welcome Back!",
-          description: "You have been signed in successfully.",
-        });
-        navigate('/dashboard');
-      } else if (applicationData && (applicationData as any).status === 'pending') {
-        toast({
-          title: "Application Pending",
-          description: "Your application is being reviewed. Please check back later.",
-        });
-        return;
-      } else if (applicationData && (applicationData as any).status === 'rejected') {
-        toast({
-          title: "Application Rejected",
-          description: "Your application was rejected. Please try again with correct details.",
-          variant: "destructive",
-        });
-        navigate('/class-selection');
-      } else {
-        toast({
-          title: "Complete Your Registration",
-          description: "Please complete your class selection and application.",
-        });
-        navigate('/class-selection');
-      }
+      // User successfully signed in, redirect to auth callback for processing
+      navigate('/auth/callback');
     } catch (error: any) {
       console.error('Sign in error:', error);
       toast({
@@ -178,25 +119,13 @@ const Login = () => {
         email: signupEmail,
         password: signupPassword,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?source=email`
+          emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       });
 
       if (error) throw error;
 
       if (data.user && !data.user.email_confirmed_at) {
-        const { error: emailError } = await supabase.functions.invoke('send-email', {
-          body: {
-            email: signupEmail,
-            type: 'email_confirmation',
-            name: signupEmail.split('@')[0]
-          }
-        });
-
-        if (emailError) {
-          console.error('Custom email sending failed:', emailError);
-        }
-
         toast({
           title: "Check Your Email!",
           description: "Please check your email and click the confirmation link to continue. Make sure to use your school email address.",
@@ -204,7 +133,7 @@ const Login = () => {
         
         setMode('signin');
       } else if (data.user && data.user.email_confirmed_at) {
-        navigate('/class-selection');
+        navigate('/auth/callback');
       }
     } catch (error: any) {
       console.error('Sign up error:', error);
@@ -252,7 +181,7 @@ const Login = () => {
               <p className="text-sm text-gray-600 fredoka-medium">
                 {mode === 'signin' 
                   ? 'Sign in to your account to continue learning'
-                  : 'Create your account to start your academic journey'
+                  : 'Create your account using your school email to start your academic journey'
                 }
               </p>
             </div>
@@ -324,20 +253,23 @@ const Login = () => {
               <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
                     <label htmlFor="signup-email" className="text-sm font-semibold text-gray-700 fredoka-medium">
-                      Email Address
+                      School Email Address
                     </label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                       <Input
                         id="signup-email"
                         type="email"
-                        placeholder="Enter your email"
+                        placeholder="Enter your school email"
                         value={signupEmail}
                         onChange={(e) => setSignupEmail(e.target.value)}
                         className="pl-10 h-10 border border-gray-200 focus:border-blue-500 rounded-lg fredoka-medium placeholder:text-gray-400 placeholder:text-sm placeholder:font-normal"
                         required
                       />
                     </div>
+                    <p className="text-xs text-amber-600 fredoka-medium">
+                      ⚠️ Please use your official school email address for account verification
+                    </p>
                   </div>
                   
                   <div className="space-y-2">
@@ -401,9 +333,8 @@ const Login = () => {
                   >
                     {loading ? "Creating Account..." : "Create Account"}
                   </Button>
-                </form>
-              </div>
-            )}
+                 </form>
+              )}
 
             <div className="text-center mt-8 mb-6">
               <p className="text-sm text-gray-600">
