@@ -201,7 +201,7 @@ export function ClassManagementSection() {
 
       if (error) throw error;
 
-      setApplications(data || []);
+      // setApplications(data || []);
     } catch (error) {
       console.error('Error fetching applications:', error);
       toast({
@@ -680,7 +680,7 @@ export function ClassManagementSection() {
     }
 
     try {
-      const { error } = await supabase.rpc('graduate_class', {
+      const { error } = await supabase.rpc('graduate_class' as any, {
         class_id_param: classId
       });
 
