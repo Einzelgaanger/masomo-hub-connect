@@ -1093,7 +1093,6 @@ export function ClassManagementSection() {
                                 <h4 className="font-semibold text-lg">{application.full_name}</h4>
                                 <div className="space-y-1 text-sm text-gray-600">
                                   <p><strong>Admission Number:</strong> {application.admission_number}</p>
-                                  <p><strong>User ID:</strong> {application.user_id}</p>
                                 </div>
                               </div>
                               <div className="flex gap-2">

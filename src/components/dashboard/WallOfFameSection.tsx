@@ -6,8 +6,25 @@ import { Button } from "@/components/ui/button";
 import { Trophy, Medal, Award, Building, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { getCharacterById } from "@/types/characters";
+import { CHARACTERS } from "@/data/characters";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+
+// Helper function to get character by points using new system
+const getCharacterByPoints = (points: number) => {
+  // Sort characters by points required and find the highest one the user can unlock
+  const availableCharacters = CHARACTERS
+    .filter(char => {
+      const pointsReq = char.unlockRequirements.find(req => req.type === 'points');
+      return pointsReq ? points >= pointsReq.value : true;
+    })
+    .sort((a, b) => {
+      const aPoints = a.unlockRequirements.find(req => req.type === 'points')?.value || 0;
+      const bPoints = b.unlockRequirements.find(req => req.type === 'points')?.value || 0;
+      return aPoints - bPoints;
+    });
+  
+  return availableCharacters[availableCharacters.length - 1] || CHARACTERS[0];
+};
 
 export function WallOfFameSection() {
   const { user } = useAuth();
@@ -40,7 +57,9 @@ export function WallOfFameSection() {
         }
 
         if (!simpleProfile.class_id) {
-          console.log('User has no class_id, cannot fetch wall of fame');
+          console.log('User has no class_id, showing global wall of fame');
+          // Switch to global view if user has no class
+          setViewMode('global');
           return;
         }
 
@@ -76,11 +95,9 @@ export function WallOfFameSection() {
                 course_year,
                 semester,
                 university_id,
-                universities!inner(
+                universities(
                   name,
-                  countries!inner(
-                    name
-                  )
+                  countries(name)
                 )
               `)
               .eq('id', profile.class_id)
@@ -92,24 +109,10 @@ export function WallOfFameSection() {
 
         setTopUsers(profilesWithClasses);
       } else {
-        // Global mode - try full query first, then fallback
+        // Global mode - use simplified query
         const { data, error } = await supabase
           .from('profiles')
-          .select(`
-            *,
-            classes!inner(
-              course_name,
-              course_year,
-              semester,
-              university_id,
-              universities!inner(
-                name,
-                countries!inner(
-                  name
-                )
-              )
-            )
-          `)
+          .select('*')
           .order('points', { ascending: false })
           .limit(30);
 
@@ -135,11 +138,9 @@ export function WallOfFameSection() {
                   course_year,
                   semester,
                   university_id,
-                  universities!inner(
+                  universities(
                     name,
-                    countries!inner(
-                      name
-                    )
+                    countries(name)
                   )
                 `)
                 .eq('id', profile.class_id)
@@ -181,6 +182,17 @@ export function WallOfFameSection() {
       default: return <span className="text-sm font-bold text-muted-foreground">#{position}</span>;
     }
   };
+
+  // Debug logging
+  useEffect(() => {
+    if (topUsers.length > 0) {
+      console.log('WallOfFameSection Data:', {
+        userCount: topUsers.length,
+        topUser: topUsers[0],
+        viewMode
+      });
+    }
+  }, [topUsers, viewMode]);
 
   if (loading) {
     return (
@@ -266,7 +278,7 @@ export function WallOfFameSection() {
                   {/* Character beside profile picture */}
                   <div className="absolute -bottom-0.5 -right-0.5 sm:-bottom-1 sm:-right-1 bg-white rounded-full p-0.5 shadow-sm border border-gray-200">
                     {(() => {
-                      const character = getCharacterById(profile.character_id || 'people');
+                      const character = getCharacterByPoints(profile.points || 0);
                       return (
                         <img 
                           src={character?.image || '/characters/people.png'} 
@@ -306,7 +318,7 @@ export function WallOfFameSection() {
                   </div>
                   <div className="flex items-center gap-1 mt-0.5 sm:mt-1">
                     {(() => {
-                      const character = getCharacterById(profile.character_id || 'people');
+                      const character = getCharacterByPoints(profile.points || 0);
                       return (
                         <span className="text-xs text-muted-foreground truncate">
                           {character?.name || 'Regular'}

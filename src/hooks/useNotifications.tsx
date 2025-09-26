@@ -120,13 +120,17 @@ export function useNotifications() {
 
       // 2. Fetch Ukumbi notifications
       const ukumbiLastVisit = lastVisits.ukumbi || new Date().toISOString();
-      const { count: ukumbiCount } = await supabase
-        .from('messages')
-        .select('*', { count: 'exact', head: true })
-        .eq('university_id', profile.classes?.university_id)
-        .neq('user_id', user.id) // Exclude user's own messages
-        .gt('created_at', ukumbiLastVisit);
-      newNotifications.ukumbi = ukumbiCount || 0;
+      if (profile.classes?.university_id) {
+        const { count: ukumbiCount } = await supabase
+          .from('messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('university_id', profile.classes.university_id)
+          .neq('user_id', user.id) // Exclude user's own messages
+          .gt('created_at', ukumbiLastVisit);
+        newNotifications.ukumbi = ukumbiCount || 0;
+      } else {
+        newNotifications.ukumbi = 0;
+      }
 
       // 3. Fetch Inbox notifications (unread messages)
       const { count: inboxCount } = await supabase

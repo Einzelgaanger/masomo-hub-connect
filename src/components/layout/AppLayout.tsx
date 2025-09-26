@@ -43,42 +43,27 @@ export function AppLayout({ children, showHeader = false, HeaderComponent }: App
     if (!user) return;
     
     try {
-      // First try the full query with inner join
-      const { data, error } = await supabase
+      // Use simple query to avoid complex join issues
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          classes!inner(
-            *,
-            universities(
-              *,
-              countries(*)
-            ),
-            units(*)
-          )
-        `)
+        .select('*')
         .eq('user_id', user.id)
         .single();
 
-      if (error) {
-        console.log('Full profile query failed, trying simple query:', error);
-        
-        // Fallback to simple query without inner join
-        const { data: simpleData, error: simpleError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        setProfile(null);
+        return;
+      }
 
-        if (simpleError) throw simpleError;
+      // If user has no class_id, set profile without class data
+      if (!profileData.class_id) {
+        setProfile(profileData);
+        return;
+      }
 
-        // If user has no class_id, set profile without class data
-        if (!simpleData.class_id) {
-          setProfile(simpleData);
-          return;
-        }
-
-        // Fetch class data separately
+      // Try to fetch class data separately (optional)
+      try {
         const { data: classData, error: classError } = await supabase
           .from('classes')
           .select(`
@@ -86,33 +71,29 @@ export function AppLayout({ children, showHeader = false, HeaderComponent }: App
             universities(
               *,
               countries(*)
-            ),
-            units(*)
+            )
           `)
-          .eq('id', simpleData.class_id)
+          .eq('id', profileData.class_id)
           .single();
 
         if (classError) {
-          console.error('Error fetching class data:', classError);
+          console.warn('Error fetching class data:', classError);
           // Set profile without class data if class fetch fails
-          setProfile(simpleData);
-          return;
+          setProfile(profileData);
+        } else {
+          // Combine profile and class data
+          setProfile({
+            ...profileData,
+            classes: classData
+          });
         }
-
-        setProfile({
-          ...simpleData,
-          classes: classData
-        });
-      } else {
-        setProfile(data);
+      } catch (classError) {
+        console.warn('Error fetching class data:', classError);
+        setProfile(profileData);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load profile data.",
-        variant: "destructive",
-      });
+      setProfile(null);
     } finally {
       setLoading(false);
     }

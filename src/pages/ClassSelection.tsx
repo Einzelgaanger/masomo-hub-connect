@@ -191,6 +191,7 @@ const ClassSelection = () => {
         .from('applications')
         .insert({
           user_id: user.id,
+          email: user.email,
           class_id: selectedClass,
           full_name: fullName.trim(),
           admission_number: admissionNumber.trim(),

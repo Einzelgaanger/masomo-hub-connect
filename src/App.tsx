@@ -61,7 +61,12 @@ const App = () => (
         <Sonner />
         <div className="min-h-screen overflow-x-hidden">
           <ErrorBoundary>
-            <BrowserRouter>
+            <BrowserRouter
+              future={{
+                v7_startTransition: true,
+                v7_relativeSplatPath: true
+              }}
+            >
               <ProfileGuard>
                 <Routes>
             <Route path="/" element={<Index />} />

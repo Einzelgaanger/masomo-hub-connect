@@ -97,53 +97,31 @@ export default function Units() {
 
   const fetchUnits = async () => {
     try {
-      // First try the full query with inner join
-      const { data, error } = await supabase
+      // Use simple query to avoid complex join issues
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select(`
-          classes!inner(
-            id,
-            course_name,
-            course_year,
-            semester,
-            course_group,
-            universities(
-              name,
-              countries(name)
-            ),
-            units(
-              id,
-              name,
-              description,
-              created_at
-            )
-          )
-        `)
+        .select('class_id')
         .eq('user_id', user?.id)
         .single();
 
-      if (error) {
-        console.log('Full profile query failed, trying simple query:', error);
-        
-        // Fallback to simple query without inner join
-        const { data: simpleData, error: simpleError } = await supabase
-          .from('profiles')
-          .select('class_id')
-          .eq('user_id', user?.id)
-          .single();
+      if (profileError) {
+        console.error('Error fetching user profile:', profileError);
+        setUnits([]);
+        return;
+      }
 
-        if (simpleError) throw simpleError;
+      if (!profileData.class_id) {
+        console.log('User has no class_id, cannot fetch units');
+        setUnits([]);
+        return;
+      }
 
-        if (!simpleData.class_id) {
-          console.log('User has no class_id, cannot fetch units');
-          setUnits([]);
-          return;
-        }
-
-        // Fetch class data separately
-        const { data: classData, error: classError } = await supabase
-          .from('classes')
-          .select(`
+      // Fetch units separately with simpler query
+      const { data: unitsData, error: unitsError } = await supabase
+        .from('units')
+        .select(`
+          *,
+          classes(
             id,
             course_name,
             course_year,
@@ -152,90 +130,30 @@ export default function Units() {
             universities(
               name,
               countries(name)
-            ),
-            units(
-              id,
-              name,
-              description,
-              created_at
             )
-          `)
-          .eq('id', simpleData.class_id)
-          .single();
+          )
+        `)
+        .eq('class_id', profileData.class_id);
 
-        if (classError) {
-          console.error('Error fetching class data:', classError);
-          setUnits([]);
-          return;
-        }
-
-        // Process the class data
-        if (classData?.units) {
-          // Add class information to each unit and fetch additional stats
-          const unitsWithStats = await Promise.all(
-            classData.units.map(async (unit: any) => {
-              // Fetch additional unit stats here if needed
-              return {
-                ...unit,
-                class_name: classData.course_name,
-                class_year: classData.course_year,
-                class_semester: classData.semester,
-                class_group: classData.course_group,
-                university_name: classData.universities?.name,
-                country_name: classData.universities?.countries?.name
-              };
-            })
-          );
-          setUnits(unitsWithStats);
-        } else {
-          setUnits([]);
-        }
+      if (unitsError) {
+        console.error('Error fetching units:', unitsError);
+        setUnits([]);
         return;
       }
 
-      if (data?.classes?.units) {
-        // Add class information to each unit and fetch additional stats
-        const unitsWithStats = await Promise.all(
-          data.classes.units.map(async (unit: any) => {
-            // Fetch uploads count
-            const { count: uploadsCount } = await supabase
-              .from('uploads')
-              .select('*', { count: 'exact', head: true })
-              .eq('unit_id', unit.id);
+      // Process the units data
+      const unitsWithStats = (unitsData || []).map(unit => ({
+        ...unit,
+        classes: unit.classes,
+        uploads_count: 0,
+        assignments_count: 0,
+        events_count: 0
+      }));
 
-            // Fetch assignments count
-            const { count: assignmentsCount } = await supabase
-              .from('assignments')
-              .select('*', { count: 'exact', head: true })
-              .eq('unit_id', unit.id);
-
-            // Fetch events count
-            const { count: eventsCount } = await supabase
-              .from('events')
-              .select('*', { count: 'exact', head: true })
-              .eq('unit_id', unit.id);
-
-            return {
-              ...unit,
-              classes: data.classes,
-              uploads_count: uploadsCount || 0,
-              assignments_count: assignmentsCount || 0,
-              events_count: eventsCount || 0
-            };
-          })
-        );
-
-        setUnits(unitsWithStats);
-      } else {
-        setUnits([]);
-      }
+      setUnits(unitsWithStats);
     } catch (error) {
       console.error('Error fetching units:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load units.",
-        variant: "destructive",
-      });
+      setUnits([]);
     } finally {
       setLoading(false);
     }
@@ -244,7 +162,7 @@ export default function Units() {
   const filterUnits = () => {
     let filtered = units;
 
-    // Filter by search query
+    // Search filter
     if (searchQuery) {
       filtered = filtered.filter(unit =>
         unit.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -252,31 +170,27 @@ export default function Units() {
       );
     }
 
-    // Filter by semester
+    // Semester filter
     if (selectedSemester !== "all") {
-      filtered = filtered.filter(unit =>
-        unit.classes.semester.toString() === selectedSemester
-      );
+      filtered = filtered.filter(unit => unit.classes.semester === parseInt(selectedSemester));
     }
 
-    // Filter by year
+    // Year filter
     if (selectedYear !== "all") {
-      filtered = filtered.filter(unit =>
-        unit.classes.course_year.toString() === selectedYear
-      );
+      filtered = filtered.filter(unit => unit.classes.course_year === parseInt(selectedYear));
     }
 
     setFilteredUnits(filtered);
   };
 
   const getUniqueYears = () => {
-    const years = Array.from(new Set(units.map(unit => unit.classes.course_year)));
-    return years.sort((a, b) => b - a); // Sort descending (newest first)
+    const years = [...new Set(units.map(unit => unit.classes.course_year))];
+    return years.sort((a, b) => b - a);
   };
 
   const getUniqueSemesters = () => {
-    const semesters = Array.from(new Set(units.map(unit => unit.classes.semester)));
-    return semesters.sort((a, b) => a - b); // Sort ascending
+    const semesters = [...new Set(units.map(unit => unit.classes.semester))];
+    return semesters.sort((a, b) => a - b);
   };
 
   const getTotalContent = (unit: Unit) => {
@@ -304,7 +218,7 @@ export default function Units() {
               My Units
             </h1>
             <p className="text-muted-foreground mt-2">
-              All your units from {units[0]?.classes?.universities?.name} • {units[0]?.classes?.universities?.countries?.name}
+              {units.length > 0 ? `All your units from ${units[0]?.classes?.universities?.name} • ${units[0]?.classes?.universities?.countries?.name}` : 'No units available'}
             </p>
           </div>
           
@@ -312,9 +226,11 @@ export default function Units() {
             <Badge variant="secondary" className="text-sm">
               {units.length} Units
             </Badge>
-            <Badge variant="outline" className="text-sm">
-              {units[0]?.classes?.course_name} - Year {units[0]?.classes?.course_year}
-            </Badge>
+            {units.length > 0 && (
+              <Badge variant="outline" className="text-sm">
+                {units[0]?.classes?.course_name} - Year {units[0]?.classes?.course_year}
+              </Badge>
+            )}
           </div>
         </div>
 
@@ -379,18 +295,18 @@ export default function Units() {
         )}
 
         {/* Filters */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Filter className="h-5 w-5" />
-              Filter Units
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
+        {units.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Filter className="h-5 w-5" />
+                Filter Units
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     placeholder="Search units..."
                     value={searchQuery}
@@ -398,65 +314,37 @@ export default function Units() {
                     className="pl-10"
                   />
                 </div>
-              </div>
-              
-              <div className="flex gap-2">
                 <select
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(e.target.value)}
-                  className="px-3 py-2 border border-input bg-background rounded-md text-sm"
-                  title="Filter by year"
-                  aria-label="Filter by year"
+                  className="px-3 py-2 border border-input rounded-md bg-background"
                 >
                   <option value="all">All Years</option>
                   {getUniqueYears().map(year => (
-                    <option key={year} value={year.toString()}>
-                      Year {year}
-                    </option>
+                    <option key={year} value={year}>Year {year}</option>
                   ))}
                 </select>
-                
                 <select
                   value={selectedSemester}
                   onChange={(e) => setSelectedSemester(e.target.value)}
-                  className="px-3 py-2 border border-input bg-background rounded-md text-sm"
-                  title="Filter by semester"
-                  aria-label="Filter by semester"
+                  className="px-3 py-2 border border-input rounded-md bg-background"
                 >
                   <option value="all">All Semesters</option>
                   {getUniqueSemesters().map(semester => (
-                    <option key={semester} value={semester.toString()}>
-                      Semester {semester}
-                    </option>
+                    <option key={semester} value={semester}>Semester {semester}</option>
                   ))}
                 </select>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Units Grid */}
-        {filteredUnits.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <BookOpen className="h-16 w-16 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">
-                {searchQuery || selectedSemester !== "all" || selectedYear !== "all" 
-                  ? "No units found" 
-                  : "No units available"}
-              </h3>
-              <p className="text-muted-foreground text-center">
-                {searchQuery || selectedSemester !== "all" || selectedYear !== "all"
-                  ? "Try adjusting your filters to see more units."
-                  : "You don't have any units assigned yet. Contact your admin if this is unexpected."}
-              </p>
             </CardContent>
           </Card>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        )}
+
+        {/* Units Grid */}
+        {filteredUnits.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredUnits.map((unit) => (
-              <Card 
-                key={unit.id} 
+              <Card
+                key={unit.id}
                 className="hover:shadow-lg transition-shadow cursor-pointer group"
                 onClick={() => navigate(`/unit/${unit.id}`)}
               >
@@ -507,12 +395,11 @@ export default function Units() {
                   
                   {/* Footer */}
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>
-                      Created {format(new Date(unit.created_at), 'MMM dd, yyyy')}
-                    </span>
-                    <span className="font-medium text-primary">
-                      {getTotalContent(unit)} items
-                    </span>
+                    <span>Created {format(new Date(unit.created_at), 'MMM dd, yyyy')}</span>
+                    <div className="flex items-center gap-1">
+                      <Users className="h-3 w-3" />
+                      <span>{getTotalContent(unit)} total</span>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -520,36 +407,15 @@ export default function Units() {
           </div>
         )}
 
-        {/* Summary Stats */}
-        {filteredUnits.length > 0 && (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-center">
-                <div>
-                  <div className="text-2xl font-bold text-primary">
-                    {filteredUnits.length}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Units</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-primary">
-                    {filteredUnits.reduce((sum, unit) => sum + unit.uploads_count, 0)}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Notes</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-primary">
-                    {filteredUnits.reduce((sum, unit) => sum + unit.assignments_count, 0)}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Assignments</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-primary">
-                    {filteredUnits.reduce((sum, unit) => sum + unit.events_count, 0)}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Events</div>
-                </div>
-              </div>
+        {/* No Results */}
+        {units.length > 0 && filteredUnits.length === 0 && (
+          <Card className="text-center py-12">
+            <CardContent>
+              <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No units found</h3>
+              <p className="text-muted-foreground">
+                Try adjusting your search or filter criteria.
+              </p>
             </CardContent>
           </Card>
         )}
@@ -654,6 +520,7 @@ function ApplicationForm({ onClose, onSuccess }: ApplicationFormProps) {
         .from('applications')
         .insert({
           user_id: user.id,
+          email: user.email,
           class_id: selectedClass,
           full_name: fullName.trim(),
           admission_number: admissionNumber.trim(),

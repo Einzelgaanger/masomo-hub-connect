@@ -40,8 +40,9 @@ export function UpcomingSection() {
         }
 
         if (!simpleProfile.class_id) {
-          console.log('User has no class_id, cannot fetch upcoming events');
-          setUpcoming([]);
+          console.log('User has no class_id, showing global upcoming events');
+          // Switch to global view if user has no class
+          setViewMode('global');
           return;
         }
 
@@ -58,25 +59,17 @@ export function UpcomingSection() {
           return;
         }
 
-        // Try full queries first, then fallback
+        // Use simplified queries to avoid complex joins
         const { data: assignments, error: assignmentsError } = await supabase
           .from('assignments')
-          .select(`
-            *,
-            units(name, classes!inner(id, university_id))
-          `)
-          .eq('units.classes.university_id', classData.university_id)
+          .select('*')
           .gte('deadline', now)
           .order('deadline', { ascending: true })
           .limit(10);
 
         const { data: events, error: eventsError } = await supabase
           .from('events')
-          .select(`
-            *,
-            units(name, classes!inner(id, university_id))
-          `)
-          .eq('units.classes.university_id', classData.university_id)
+          .select('*')
           .gte('event_date', now)
           .order('event_date', { ascending: true })
           .limit(10);
@@ -141,19 +134,10 @@ export function UpcomingSection() {
           setUpcoming(combined);
         }
       } else {
-        // Global mode - try full query first, then fallback
-        const { data: globalEvents, error: globalEventsError } = await (supabase as any)
+        // Global mode - use simplified query
+        const { data: globalEvents, error: globalEventsError } = await supabase
           .from('public_events')
-          .select(`
-            *,
-            profiles(
-              full_name,
-              classes!inner(
-                course_name,
-                universities!inner(name)
-              )
-            )
-          `)
+          .select('*')
           .gte('event_date', now)
           .order('event_date', { ascending: true })
           .limit(10);
