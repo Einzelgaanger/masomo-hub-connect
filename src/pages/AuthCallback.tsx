@@ -33,22 +33,28 @@ const AuthCallback = () => {
         }
 
         if (!existingProfile) {
-          // Create a basic profile for Google OAuth users
+          // Create a basic profile for Google OAuth users using upsert
           const { error: createError } = await supabase
             .from('profiles')
-            .insert({
+            .upsert({
               user_id: user.id,
               full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
               email: user.email || '',
               role: 'student',
               points: 0,
               rank: 'bronze'
+            }, {
+              onConflict: 'user_id'
             });
 
           if (createError) {
-            console.error('Error creating profile:', createError);
+            console.error('Error creating/updating profile:', createError);
             // Still redirect to dashboard, profile creation will be handled elsewhere
+          } else {
+            console.log('Profile created/updated successfully');
           }
+        } else {
+          console.log('Profile already exists, continuing...');
         }
 
         // Redirect to dashboard after successful authentication

@@ -162,10 +162,10 @@ const ApplicationForm = () => {
         .from('applications' as any)
         .insert({
           user_id: currentUser.id,
+          email: currentUser.email,
           class_id: classDetails.id,
           full_name: fullName.trim(),
           admission_number: admissionNumber.trim(),
-          email: currentUser.email, // Include email for admin verification
           status: 'pending'
         });
 

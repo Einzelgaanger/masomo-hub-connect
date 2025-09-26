@@ -191,14 +191,14 @@ export default function Ukumbi() {
 
         if (simpleError) throw simpleError;
 
-        // If user has no class_id, redirect to class selection
+        // If user has no class_id, redirect to Masomo to apply for class
         if (!simpleData.class_id) {
           toast({
             title: "Class Required",
-            description: "Please select a class to access the chat room.",
+            description: "Please apply for a class first to access the chat room.",
             variant: "destructive",
           });
-          window.location.href = '/class-selection';
+          window.location.href = '/units';
           return;
         }
 
@@ -219,11 +219,55 @@ export default function Ukumbi() {
           return;
         }
 
+        // Check if user has units in this class
+        const { data: unitsData, error: unitsError } = await supabase
+          .from('units')
+          .select('id')
+          .eq('class_id', simpleData.class_id)
+          .limit(1);
+
+        if (unitsError) {
+          console.error('Error fetching units:', unitsError);
+        }
+
+        // If user has no units, redirect to Masomo to apply for class
+        if (!unitsData || unitsData.length === 0) {
+          toast({
+            title: "No Units Available",
+            description: "Please apply for a class first to access the chat room.",
+            variant: "destructive",
+          });
+          window.location.href = '/units';
+          return;
+        }
+
         setUserProfile({
           ...simpleData,
           classes: classData
         });
       } else {
+        // Check if user has units in this class
+        const { data: unitsData, error: unitsError } = await supabase
+          .from('units')
+          .select('id')
+          .eq('class_id', data.classes.id)
+          .limit(1);
+
+        if (unitsError) {
+          console.error('Error fetching units:', unitsError);
+        }
+
+        // If user has no units, redirect to Masomo to apply for class
+        if (!unitsData || unitsData.length === 0) {
+          toast({
+            title: "No Units Available",
+            description: "Please apply for a class first to access the chat room.",
+            variant: "destructive",
+          });
+          window.location.href = '/units';
+          return;
+        }
+
         setUserProfile(data);
       }
     } catch (error) {

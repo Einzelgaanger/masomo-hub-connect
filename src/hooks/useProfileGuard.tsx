@@ -39,9 +39,16 @@ export const useProfileGuard = () => {
           .eq('user_id', user.id)
           .maybeSingle();
 
-        // If profile doesn't exist or there's an error accessing it
-        if (!profile || error) {
-          console.log('Profile not found or deleted, logging out user:', user.id);
+        // If profile doesn't exist, wait a bit for profile creation
+        if (!profile) {
+          console.log('Profile not found, waiting for profile creation...');
+          // Don't immediately log out, give time for profile creation
+          return;
+        }
+
+        // If there's an error accessing the profile (not just missing)
+        if (error && error.code !== 'PGRST116') {
+          console.log('Error accessing profile, logging out user:', user.id);
           
           // Prevent multiple logout attempts
           if (isNavigatingRef.current) return;
@@ -49,8 +56,8 @@ export const useProfileGuard = () => {
           
           // Show notification
           toast({
-            title: "Account Deactivated",
-            description: "Your account has been deactivated. You have been logged out.",
+            title: "Account Error",
+            description: "There was an error accessing your account. Please try again.",
             variant: "destructive",
           });
 
@@ -73,14 +80,17 @@ export const useProfileGuard = () => {
       }
     };
 
-    // Check immediately
-    checkProfileExists();
+    // Wait a bit before checking to allow profile creation
+    const initialDelay = setTimeout(() => {
+      checkProfileExists();
+    }, 2000); // Wait 2 seconds
 
     // Set up periodic checking (every 30 seconds)
     checkIntervalRef.current = setInterval(checkProfileExists, 30000);
 
     // Cleanup function
     return () => {
+      clearTimeout(initialDelay);
       if (checkIntervalRef.current) {
         clearInterval(checkIntervalRef.current);
         checkIntervalRef.current = null;

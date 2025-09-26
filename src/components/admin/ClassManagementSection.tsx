@@ -186,6 +186,7 @@ export function ClassManagementSection() {
         .select(`
           id,
           user_id,
+          email,
           full_name,
           admission_number,
           status,
@@ -314,7 +315,7 @@ export function ClassManagementSection() {
               .insert({
                 user_id: application.user_id,
                 full_name: application.full_name,
-                email: '', // Email will be updated from user profile
+                email: application.email || '', // Use email from application
                 admission_number: application.admission_number,
                 class_id: application.class_id,
                 role: 'student',
@@ -1106,6 +1107,7 @@ export function ClassManagementSection() {
                                 </div>
                                 <h4 className="font-semibold text-lg">{application.full_name}</h4>
                                 <div className="space-y-1 text-sm text-gray-600">
+                                  <p><strong>Email:</strong> {application.email || 'Not provided'}</p>
                                   <p><strong>Admission Number:</strong> {application.admission_number}</p>
                                 </div>
                               </div>
