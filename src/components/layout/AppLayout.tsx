@@ -66,13 +66,7 @@ export function AppLayout({ children, showHeader = false, HeaderComponent }: App
       try {
         const { data: classData, error: classError } = await supabase
           .from('classes')
-          .select(`
-            *,
-            universities(
-              *,
-              countries(*)
-            )
-          `)
+          .select('*')
           .eq('id', profileData.class_id)
           .single();
 

@@ -210,7 +210,7 @@ export default function Alumni() {
             course_year,
             semester,
             university_id,
-            universities(name, countries(name))
+            universities(name)
           )
         `)
         .eq('graduation_class.university_id', userUniversityId)

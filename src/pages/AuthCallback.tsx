@@ -19,6 +19,38 @@ const AuthCallback = () => {
           return;
         }
 
+        // Check if user has a profile, create one if they don't
+        const { data: existingProfile, error: profileError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (profileError) {
+          console.error('Error checking profile:', profileError);
+          navigate('/login');
+          return;
+        }
+
+        if (!existingProfile) {
+          // Create a basic profile for Google OAuth users
+          const { error: createError } = await supabase
+            .from('profiles')
+            .insert({
+              user_id: user.id,
+              full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+              email: user.email || '',
+              role: 'student',
+              points: 0,
+              rank: 'bronze'
+            });
+
+          if (createError) {
+            console.error('Error creating profile:', createError);
+            // Still redirect to dashboard, profile creation will be handled elsewhere
+          }
+        }
+
         // Redirect to dashboard after successful authentication
         console.log('Authentication successful, redirecting to dashboard');
         navigate('/dashboard');

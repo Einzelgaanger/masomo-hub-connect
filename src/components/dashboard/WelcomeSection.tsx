@@ -49,8 +49,8 @@ export function WelcomeSection() {
         .eq('visit_date', today)
         .maybeSingle();
 
-      // If no visit today, streak is 0
-      if (!todayVisit) {
+      // If there's an error or no visit today, streak is 0
+      if (todayError || !todayVisit) {
         setStreak(0);
         return;
       }

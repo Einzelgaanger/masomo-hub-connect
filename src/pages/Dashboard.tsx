@@ -19,7 +19,7 @@ const Dashboard = () => {
 
   const trackDailyVisit = async () => {
     try {
-      await supabase
+      const { error: visitError } = await supabase
         .from('daily_visits')
         .upsert({
           user_id: user?.id,
@@ -28,11 +28,20 @@ const Dashboard = () => {
           onConflict: 'user_id,visit_date'
         });
 
+      if (visitError) {
+        console.warn('Daily visits table not available:', visitError);
+        return;
+      }
+
       // Award points for daily visit
-      await supabase.rpc('update_user_points', {
+      const { error: pointsError } = await supabase.rpc('update_user_points', {
         user_uuid: user?.id,
         points_change: 2
       });
+
+      if (pointsError) {
+        console.warn('Points update not available:', pointsError);
+      }
     } catch (error) {
       console.error('Error tracking daily visit:', error);
     }

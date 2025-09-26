@@ -53,7 +53,7 @@ export const useApplicationStatus = () => {
         .from('profiles')
         .select('id, role, class_id')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (profile && !profileError && profile.class_id) {
         // User has a profile with a class assigned, they are approved
