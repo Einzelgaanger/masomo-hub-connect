@@ -18,11 +18,13 @@ const ApplicationStatusGuard = ({ children }: ApplicationStatusGuardProps) => {
   const [checkingStatus, setCheckingStatus] = useState(false);
   const lastCheckRef = useRef<string | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isNavigatingRef = useRef<boolean>(false);
 
   useEffect(() => {
     // If user is null (logged out), don't check application status and clear any stale state
     if (!user) {
       lastCheckRef.current = null;
+      isNavigatingRef.current = false;
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
@@ -57,6 +59,9 @@ const ApplicationStatusGuard = ({ children }: ApplicationStatusGuardProps) => {
 
     // Add a small delay to prevent flash during initial load
     timeoutRef.current = setTimeout(() => {
+      // Prevent multiple navigation calls
+      if (isNavigatingRef.current) return;
+      
       if (status === 'approved') {
         // User is approved and has a class assigned
         // Only redirect to dashboard if they're on an invalid page (not on any main app page)
@@ -70,10 +75,12 @@ const ApplicationStatusGuard = ({ children }: ApplicationStatusGuardProps) => {
         
         if (!isValidPath && currentPath !== '/') {
           // Only redirect if they're on an invalid page
+          isNavigatingRef.current = true;
           navigate('/dashboard');
         }
       } else if (status === 'pending') {
         // Application is pending - redirect to status page
+        isNavigatingRef.current = true;
         navigate('/application-status');
       } else if (status === 'rejected') {
         // Check if rejection cooldown is active
@@ -100,11 +107,13 @@ const ApplicationStatusGuard = ({ children }: ApplicationStatusGuardProps) => {
         }
 
         if (shouldRedirectToRejected) {
+          isNavigatingRef.current = true;
           navigate('/application-rejected');
         }
       } else if (!hasApplication) {
         // No profile and no applications - redirect to class selection
         if (currentPath !== '/class-selection') {
+          isNavigatingRef.current = true;
           navigate('/class-selection');
         }
       }
@@ -115,6 +124,7 @@ const ApplicationStatusGuard = ({ children }: ApplicationStatusGuardProps) => {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
+      isNavigatingRef.current = false;
     };
   }, [user, authLoading, statusLoading, status, hasApplication, location.pathname, navigate]);
 

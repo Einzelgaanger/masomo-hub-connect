@@ -10,6 +10,7 @@ export const useProfileGuard = () => {
   const { toast } = useToast();
   const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastCheckRef = useRef<string | null>(null);
+  const isNavigatingRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (!user) {
@@ -19,6 +20,7 @@ export const useProfileGuard = () => {
         checkIntervalRef.current = null;
       }
       lastCheckRef.current = null;
+      isNavigatingRef.current = false;
       return;
     }
 
@@ -40,6 +42,10 @@ export const useProfileGuard = () => {
         // If profile doesn't exist or there's an error accessing it
         if (!profile || error) {
           console.log('Profile not found or deleted, logging out user:', user.id);
+          
+          // Prevent multiple logout attempts
+          if (isNavigatingRef.current) return;
+          isNavigatingRef.current = true;
           
           // Show notification
           toast({

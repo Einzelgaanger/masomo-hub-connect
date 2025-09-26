@@ -8,6 +8,7 @@ import SecurityProvider from "@/components/SecurityProvider";
 import ApplicationStatusGuard from "@/components/ApplicationStatusGuard";
 import AdminGuard from "@/components/AdminGuard";
 import ProfileGuard from "@/components/ProfileGuard";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { FloatingConcernsButton } from "@/components/ui/FloatingConcernsButton";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -60,13 +61,9 @@ const App = () => (
           <Toaster />
           <Sonner />
           <div className="min-h-screen overflow-x-hidden">
-            <BrowserRouter
-              future={{
-                v7_startTransition: true,
-                v7_relativeSplatPath: true,
-              }}
-            >
-              <Routes>
+            <ErrorBoundary>
+              <BrowserRouter>
+                <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -178,11 +175,12 @@ const App = () => (
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-          
-          {/* Floating Concerns Button - appears on all pages */}
-          <FloatingConcernsButton />
+                </Routes>
+              </BrowserRouter>
+              
+              {/* Floating Concerns Button - appears on all pages */}
+              <FloatingConcernsButton />
+            </ErrorBoundary>
         </div>
         </TooltipProvider>
         </ProfileGuard>
