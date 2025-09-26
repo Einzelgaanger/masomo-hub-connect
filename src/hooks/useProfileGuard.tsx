@@ -37,7 +37,7 @@ export const useProfileGuard = () => {
           .from('profiles')
           .select('id')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         // If profile doesn't exist or there's an error accessing it
         if (!profile || error) {
