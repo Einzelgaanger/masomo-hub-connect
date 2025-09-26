@@ -95,7 +95,7 @@ const AdminLogin = () => {
 
         {/* Admin Access Card */}
         <div className="max-w-sm mx-auto w-full">
-          <Card className="border-0 shadow-2xl bg-white/90 backdrop-blur-sm">
+          <Card className="border-2 border-orange-200 shadow-2xl bg-white/90 backdrop-blur-sm">
             <CardHeader className="text-center pb-4">
               <div className="space-y-3">
                 <div className="flex justify-center">
