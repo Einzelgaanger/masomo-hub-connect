@@ -180,9 +180,28 @@ export function ClassManagementSection() {
   const fetchApplications = async (classId: string) => {
     setLoadingApplications(true);
     try {
-      // Temporarily disable applications until types are updated
-      console.log('Applications feature temporarily disabled - types not yet updated');
-      setApplications([]);
+      const { data, error } = await supabase
+        .from('applications')
+        .select(`
+          id,
+          user_id,
+          full_name,
+          admission_number,
+          email,
+          status,
+          created_at,
+          updated_at,
+          approved_at,
+          rejected_at,
+          rejection_reason,
+          class_id
+        `)
+        .eq('class_id', classId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setApplications(data || []);
     } catch (error) {
       console.error('Error fetching applications:', error);
       toast({
@@ -211,15 +230,6 @@ export function ClassManagementSection() {
 
       // Admin authentication verified via sessionStorage
 
-      // Applications feature temporarily disabled
-      toast({
-        title: "Feature Unavailable",
-        description: "Application management is being updated.",
-        variant: "destructive",
-      });
-      return;
-
-
       // Map action to correct status values
       const status = action === 'approve' ? 'approved' : 'rejected';
       
@@ -231,25 +241,39 @@ export function ClassManagementSection() {
 
       if (action === 'approve') {
         updateData.approved_at = new Date().toISOString();
-        // Don't set approved_by since we don't have a real admin user in auth system
       } else {
         updateData.rejected_at = new Date().toISOString();
-        // Don't set rejected_by since we don't have a real admin user in auth system
         updateData.rejection_reason = 'Application rejected by admin';
       }
 
-      // Applications update temporarily disabled
-      return;
+      // Update the application in the database
+      const { error: updateError } = await supabase
+        .from('applications')
+        .update(updateData)
+        .eq('id', applicationId);
+
+      if (updateError) throw updateError;
 
 
       // If approved, create or update the student profile
       if (action === 'approve') {
         try {
+          // Get the application details first
+          const { data: application } = await supabase
+            .from('applications')
+            .select('user_id, full_name, email, admission_number, class_id')
+            .eq('id', applicationId)
+            .single();
+
+          if (!application) {
+            throw new Error('Application not found');
+          }
+
           // Check if profile already exists
           const { data: existingProfile } = await supabase
             .from('profiles')
             .select('id')
-              .eq('user_id', 'temp-disabled')
+            .eq('user_id', application.user_id)
             .single();
 
           if (!existingProfile) {
@@ -257,11 +281,11 @@ export function ClassManagementSection() {
             const { error: profileError } = await supabase
               .from('profiles')
               .insert({
-                user_id: 'temp-disabled',
-                full_name: 'temp',
-                email: 'temp@temp.com',
-                admission_number: 'temp',
-                class_id: 'temp-disabled',
+                user_id: application.user_id,
+                full_name: application.full_name,
+                email: application.email,
+                admission_number: application.admission_number,
+                class_id: application.class_id,
                 role: 'student',
                 points: 0,
                 rank: 'bronze',
@@ -277,10 +301,10 @@ export function ClassManagementSection() {
             const { error: updateProfileError } = await supabase
               .from('profiles')
               .update({
-                class_id: 'temp-disabled',
+                class_id: application.class_id,
                 created_from_application: true
               })
-              .eq('user_id', 'temp-disabled');
+              .eq('user_id', application.user_id);
 
             if (updateProfileError) {
               console.error('Profile update error:', updateProfileError);

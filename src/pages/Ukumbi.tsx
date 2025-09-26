@@ -12,286 +12,21 @@ import {
   Send, 
   Heart, 
   Image, 
-  Video, 
   Download, 
   Eye,
   Users,
   MessageCircle,
   Paperclip,
-  Trash2,
-  Volume2,
-  VolumeX
+  Trash2
 } from "lucide-react";
 import { format } from "date-fns";
 
-// TikTok-style Video Player Component
-function VideoPlayer({ src, filename, message }: { src: string; filename: string; message: any }) {
-  const [isDownloaded, setIsDownloaded] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState(0);
-  const [videoRef, setVideoRef] = useState<HTMLVideoElement | null>(null);
-  const [showFullscreen, setShowFullscreen] = useState(false);
-  const [isMuted, setIsMuted] = useState(true); // Start muted by default
-
-  const downloadVideo = async () => {
-    if (isDownloaded) return;
-    
-    setIsDownloading(true);
-    setDownloadProgress(0);
-    
-    try {
-      const response = await fetch(src);
-      const contentLength = response.headers.get('content-length');
-      const total = parseInt(contentLength || '0', 10);
-      let loaded = 0;
-
-      const reader = response.body?.getReader();
-      const chunks: Uint8Array[] = [];
-
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          
-          if (done) break;
-          
-          chunks.push(value);
-          loaded += value.length;
-          
-          // Update progress
-          if (total > 0) {
-            const progress = Math.round((loaded / total) * 100);
-            setDownloadProgress(progress);
-          }
-        }
-      }
-
-      // Create blob from chunks
-      const blob = new Blob(chunks);
-      
-      // Create object URL for the video
-      const videoUrl = URL.createObjectURL(blob);
-      
-      if (videoRef) {
-        videoRef.src = videoUrl;
-        videoRef.load(); // Force reload with downloaded content
-        setIsDownloaded(true);
-      }
-    } catch (error) {
-      console.error('Error downloading video:', error);
-    } finally {
-      setIsDownloading(false);
-      setDownloadProgress(0);
-    }
-  };
-
-  const togglePlay = () => {
-    if (!videoRef || !isDownloaded) return;
-    
-    if (videoRef.paused) {
-      videoRef.play();
-    } else {
-      videoRef.pause();
-    }
-  };
-
-  const toggleMute = () => {
-    if (!videoRef) return;
-    const newMutedState = !videoRef.muted;
-    videoRef.muted = newMutedState;
-    setIsMuted(newMutedState);
-  };
-
-  const openFullscreen = () => {
-    if (isDownloaded) {
-      setShowFullscreen(true);
-    } else {
-      downloadVideo().then(() => {
-        setShowFullscreen(true);
-      });
-    }
-  };
-
-  const closeFullscreen = () => {
-    setShowFullscreen(false);
-    // Pause video when closing
-    if (videoRef) {
-      videoRef.pause();
-    }
-  };
-
-  return (
-    <>
-      {/* Preview thumbnail - click to open fullscreen */}
-      <div 
-        className="relative w-full aspect-video bg-black cursor-pointer"
-        onClick={openFullscreen}
-      >
-        <video
-          ref={setVideoRef}
-          className="w-full h-full object-cover border-0 outline-none rounded-none shadow-none"
-          preload="none"
-          onLoadedData={() => {
-            if (videoRef) {
-              videoRef.style.display = 'block';
-            }
-          }}
-        />
-        
-        {/* Download overlay - shows first */}
-        {!isDownloaded && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/80">
-            <div className="flex flex-col items-center gap-3">
-              <Button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  downloadVideo();
-                }}
-                disabled={isDownloading}
-                className="bg-white/60 hover:bg-white/70 text-black rounded-full w-16 h-16 p-0 shadow-lg border border-white/20"
-              >
-                {isDownloading ? (
-                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-black border-t-transparent"></div>
-                ) : (
-                  <Download className="h-6 w-6" />
-                )}
-              </Button>
-              
-              {/* Progress percentage */}
-              {isDownloading && (
-                <div className="text-white text-sm font-medium">
-                  {downloadProgress}%
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-        
-        {/* Play button - only shows after download */}
-        {isDownloaded && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Button
-              onClick={(e) => {
-                e.stopPropagation();
-                togglePlay();
-              }}
-              className="bg-white/60 hover:bg-white/70 rounded-full w-16 h-16 p-0 shadow-lg border border-white/20"
-            >
-              <Video className="h-6 w-6 text-gray-800" />
-            </Button>
-          </div>
-        )}
-        
-        {/* Mute button - only shows after download */}
-        {isDownloaded && (
-          <div className="absolute top-4 right-4">
-            <Button
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleMute();
-              }}
-              className="bg-black/50 hover:bg-black/70 text-white border-0 rounded-full w-8 h-8 p-0"
-            >
-              {isMuted ? (
-                <VolumeX className="h-4 w-4" />
-              ) : (
-                <Volume2 className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-        )}
-      </div>
-
-      {/* TikTok-style Fullscreen Modal */}
-      {showFullscreen && (
-        <div className="fixed inset-0 z-50 bg-black flex flex-col">
-          {/* Close button */}
-          <div className="absolute top-4 left-4 z-10">
-            <Button
-              onClick={closeFullscreen}
-              className="bg-black/50 hover:bg-black/70 text-white border-0 rounded-full w-10 h-10 p-0"
-            >
-              ✕
-            </Button>
-          </div>
-
-          {/* Video takes most of screen */}
-          <div className="flex-1 flex items-center justify-center relative">
-            <video
-              src={videoRef?.src || src}
-              className="w-full h-full object-cover border-0 outline-none rounded-none shadow-none"
-              autoPlay
-              loop
-              muted={isMuted}
-              controls={false}
-              onLoadedData={() => {
-                const fullscreenVideo = document.querySelector('.fixed video') as HTMLVideoElement;
-                if (fullscreenVideo) {
-                  fullscreenVideo.play();
-                }
-              }}
-            />
-            
-            {/* Play button overlay for fullscreen (when paused) */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <Button
-                className="bg-white/60 hover:bg-white/70 rounded-full w-20 h-20 p-0 shadow-lg border border-white/20 pointer-events-auto"
-              >
-                <Video className="h-8 w-8 text-gray-800" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Description at bottom - TikTok style */}
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-6">
-            <div className="flex items-start gap-3">
-              <Avatar className="h-10 w-10 border-2 border-white/20">
-                <AvatarImage src={message.profiles?.profile_picture_url} />
-                <AvatarFallback className="text-xs bg-white/20 text-white">
-                  {message.profiles?.full_name?.split(' ').map((n: string) => n[0]).join('')}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <p className="text-white font-medium text-sm mb-1">
-                  {message.profiles?.full_name}
-                </p>
-                <p className="text-white/90 text-sm leading-relaxed">
-                  {message.content}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Mute button for fullscreen */}
-          <div className="absolute top-4 right-4 z-10">
-            <Button
-              onClick={() => {
-                const fullscreenVideo = document.querySelector('.fixed video') as HTMLVideoElement;
-                if (fullscreenVideo) {
-                  const newMutedState = !fullscreenVideo.muted;
-                  fullscreenVideo.muted = newMutedState;
-                  setIsMuted(newMutedState);
-                }
-              }}
-              className="bg-black/50 hover:bg-black/70 text-white border-0 rounded-full w-10 h-10 p-0"
-            >
-              {isMuted ? (
-                <VolumeX className="h-5 w-5" />
-              ) : (
-                <Volume2 className="h-5 w-5" />
-              )}
-            </Button>
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
 
 
 interface Message {
   id: string;
   content: string;
-  message_type: 'text' | 'image' | 'video';
+  message_type: 'text' | 'image';
   media_url?: string;
   media_filename?: string;
   media_size?: number;
@@ -431,6 +166,7 @@ export default function Ukumbi() {
 
   const fetchUserProfile = async () => {
     try {
+      // First try the full query with inner join
       const { data, error } = await supabase
         .from('profiles')
         .select(`
@@ -443,10 +179,60 @@ export default function Ukumbi() {
         .eq('user_id', user?.id)
         .single();
 
-      if (error) throw error;
-      setUserProfile(data);
+      if (error) {
+        console.log('Full profile query failed, trying simple query:', error);
+        
+        // Fallback to simple query without inner join
+        const { data: simpleData, error: simpleError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', user?.id)
+          .single();
+
+        if (simpleError) throw simpleError;
+
+        // If user has no class_id, redirect to class selection
+        if (!simpleData.class_id) {
+          toast({
+            title: "Class Required",
+            description: "Please select a class to access the chat room.",
+            variant: "destructive",
+          });
+          window.location.href = '/class-selection';
+          return;
+        }
+
+        // Fetch class data separately
+        const { data: classData, error: classError } = await supabase
+          .from('classes')
+          .select('course_name, university_id')
+          .eq('id', simpleData.class_id)
+          .single();
+
+        if (classError) {
+          console.error('Error fetching class data:', classError);
+          toast({
+            title: "Error",
+            description: "Failed to load class information.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        setUserProfile({
+          ...simpleData,
+          classes: classData
+        });
+      } else {
+        setUserProfile(data);
+      }
     } catch (error) {
       console.error('Error fetching user profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load profile. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -728,11 +514,21 @@ export default function Ukumbi() {
     const file = e.target.files?.[0];
     if (!file || !userProfile?.classes?.university_id) return;
 
-    // Check file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
+    // Only allow images
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Only image files are allowed in chat",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check file size (max 5MB for images)
+    if (file.size > 5 * 1024 * 1024) {
       toast({
         title: "File too large",
-        description: "Please select a file smaller than 10MB",
+        description: "Please select an image smaller than 5MB",
         variant: "destructive",
       });
       return;
@@ -747,8 +543,8 @@ export default function Ukumbi() {
     if (!selectedFile || !userProfile?.classes?.university_id || uploading) return;
 
     const tempId = `temp_${Date.now()}_${Math.random()}`;
-    const messageType = selectedFile.type.startsWith('image/') ? 'image' : 'video';
-    const fileIcon = messageType === 'image' ? '📷' : '🎥';
+    const messageType = 'image'; // Only images allowed
+    const fileIcon = '📷';
     const content = fileDescription.trim() 
       ? `${fileIcon} ${fileDescription.trim()}`
       : `${fileIcon}`;
@@ -810,16 +606,16 @@ export default function Ukumbi() {
         ? `${originalName.substring(0, 17)}...${fileExt}` 
         : originalName;
 
-      // Upload file to storage
+      // Upload image to storage
       const { error: uploadError } = await supabase.storage
-        .from('ukumbi-media')
+        .from('ukumbi-images')
         .upload(filePath, selectedFile);
 
       if (uploadError) throw uploadError;
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('ukumbi-media')
+        .from('ukumbi-images')
         .getPublicUrl(filePath);
 
       // Insert message
@@ -1166,16 +962,9 @@ export default function Ukumbi() {
                         ) : (
                           <div className="space-y-3">
                             {/* Media display - NO BORDERS */}
-                            {message.message_type === 'image' ? (
+                            {message.message_type === 'image' && (
                               <ImagePlayer 
                                 src={message.media_url}
-                                message={message}
-                              />
-                            ) : (
-                              /* TikTok-style video preview - NO BORDERS, DOWNLOAD FIRST */
-                              <VideoPlayer 
-                                src={message.media_url}
-                                filename={message.media_filename || 'video'}
                                 message={message}
                               />
                             )}
@@ -1268,10 +1057,10 @@ export default function Ukumbi() {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*,video/*"
+            accept="image/*"
             onChange={handleFileSelect}
             className="hidden"
-            title="Upload media file"
+            title="Upload image file"
           />
         </div>
       </div>

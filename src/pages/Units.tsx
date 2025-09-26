@@ -71,6 +71,7 @@ export default function Units() {
 
   const fetchUnits = async () => {
     try {
+      // First try the full query with inner join
       const { data, error } = await supabase
         .from('profiles')
         .select(`
@@ -95,7 +96,76 @@ export default function Units() {
         .eq('user_id', user?.id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.log('Full profile query failed, trying simple query:', error);
+        
+        // Fallback to simple query without inner join
+        const { data: simpleData, error: simpleError } = await supabase
+          .from('profiles')
+          .select('class_id')
+          .eq('user_id', user?.id)
+          .single();
+
+        if (simpleError) throw simpleError;
+
+        if (!simpleData.class_id) {
+          console.log('User has no class_id, cannot fetch units');
+          setUnits([]);
+          return;
+        }
+
+        // Fetch class data separately
+        const { data: classData, error: classError } = await supabase
+          .from('classes')
+          .select(`
+            id,
+            course_name,
+            course_year,
+            semester,
+            course_group,
+            universities(
+              name,
+              countries(name)
+            ),
+            units(
+              id,
+              name,
+              description,
+              created_at
+            )
+          `)
+          .eq('id', simpleData.class_id)
+          .single();
+
+        if (classError) {
+          console.error('Error fetching class data:', classError);
+          setUnits([]);
+          return;
+        }
+
+        // Process the class data
+        if (classData?.units) {
+          // Add class information to each unit and fetch additional stats
+          const unitsWithStats = await Promise.all(
+            classData.units.map(async (unit: any) => {
+              // Fetch additional unit stats here if needed
+              return {
+                ...unit,
+                class_name: classData.course_name,
+                class_year: classData.course_year,
+                class_semester: classData.semester,
+                class_group: classData.course_group,
+                university_name: classData.universities?.name,
+                country_name: classData.universities?.countries?.name
+              };
+            })
+          );
+          setUnits(unitsWithStats);
+        } else {
+          setUnits([]);
+        }
+        return;
+      }
 
       if (data?.classes?.units) {
         // Add class information to each unit and fetch additional stats

@@ -27,165 +27,70 @@ export function WallOfFameSection() {
 
       if (viewMode === 'university') {
         // First get the current user's university with fallback
-        const { data: userProfile, error: profileError } = await supabase
+        // Use simple query to avoid inner join issues
+        const { data: simpleProfile, error: simpleError } = await supabase
           .from('profiles')
-          .select(`
-            classes!inner(
-              university_id
-            )
-          `)
+          .select('class_id')
           .eq('user_id', user?.id)
           .single();
 
-        if (profileError || !userProfile) {
-          console.warn('Full profile query failed, trying simple query:', profileError);
-          const { data: simpleProfile, error: simpleError } = await supabase
-            .from('profiles')
-            .select('class_id')
-            .eq('user_id', user?.id)
-            .single();
-
-          if (simpleError || !simpleProfile) {
-            console.error('Error fetching user profile:', simpleError);
-            return;
-          }
-
-          // Get university_id from class_id
-          const { data: classData, error: classError } = await supabase
-            .from('classes')
-            .select('university_id')
-            .eq('id', simpleProfile.class_id)
-            .single();
-
-          if (classError || !classData) {
-            console.error('Error fetching class data:', classError);
-            return;
-          }
-
-          // Try full query first, then fallback
-          const { data, error } = await supabase
-            .from('profiles')
-            .select(`
-              *,
-              classes!inner(
-                course_name,
-                course_year,
-                semester,
-                university_id,
-                universities!inner(
-                  name,
-                  countries!inner(
-                    name
-                  )
-                )
-              )
-            `)
-            .eq('classes.university_id', classData.university_id)
-            .order('points', { ascending: false })
-            .limit(30);
-
-          if (error) {
-            console.warn('Full query failed, trying simplified query:', error);
-            const { data: simpleData, error: simpleError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('class_id', simpleProfile.class_id)
-              .order('points', { ascending: false })
-              .limit(30);
-
-            if (simpleError) throw simpleError;
-
-            // Manually fetch class and university data for each profile
-            const profilesWithClasses = await Promise.all(
-              (simpleData || []).map(async (profile) => {
-                const { data: classInfo } = await supabase
-                  .from('classes')
-                  .select(`
-                    course_name,
-                    course_year,
-                    semester,
-                    university_id,
-                    universities!inner(
-                      name,
-                      countries!inner(
-                        name
-                      )
-                    )
-                  `)
-                  .eq('id', profile.class_id)
-                  .single();
-
-                return { ...profile, classes: classInfo };
-              })
-            );
-
-            setTopUsers(profilesWithClasses);
-          } else {
-            setTopUsers(data || []);
-          }
-        } else {
-          // Try full query first, then fallback
-          const { data, error } = await supabase
-            .from('profiles')
-            .select(`
-              *,
-              classes!inner(
-                course_name,
-                course_year,
-                semester,
-                university_id,
-                universities!inner(
-                  name,
-                  countries!inner(
-                    name
-                  )
-                )
-              )
-            `)
-            .eq('classes.university_id', userProfile.classes.university_id)
-            .order('points', { ascending: false })
-            .limit(30);
-
-          if (error) {
-            console.warn('Full query failed, trying simplified query:', error);
-            const { data: simpleData, error: simpleError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('class_id', userProfile.class_id)
-              .order('points', { ascending: false })
-              .limit(30);
-
-            if (simpleError) throw simpleError;
-
-            // Manually fetch class and university data for each profile
-            const profilesWithClasses = await Promise.all(
-              (simpleData || []).map(async (profile) => {
-                const { data: classInfo } = await supabase
-                  .from('classes')
-                  .select(`
-                    course_name,
-                    course_year,
-                    semester,
-                    university_id,
-                    universities!inner(
-                      name,
-                      countries!inner(
-                        name
-                      )
-                    )
-                  `)
-                  .eq('id', profile.class_id)
-                  .single();
-
-                return { ...profile, classes: classInfo };
-              })
-            );
-
-            setTopUsers(profilesWithClasses);
-          } else {
-            setTopUsers(data || []);
-          }
+        if (simpleError || !simpleProfile) {
+          console.error('Error fetching user profile:', simpleError);
+          return;
         }
+
+        if (!simpleProfile.class_id) {
+          console.log('User has no class_id, cannot fetch wall of fame');
+          return;
+        }
+
+        // Get university_id from class_id
+        const { data: classData, error: classError } = await supabase
+          .from('classes')
+          .select('university_id')
+          .eq('id', simpleProfile.class_id)
+          .single();
+
+        if (classError || !classData) {
+          console.error('Error fetching class data:', classError);
+          return;
+        }
+
+        // Use simplified query to avoid inner join issues
+        const { data: simpleData, error: simpleError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('class_id', simpleProfile.class_id)
+          .order('points', { ascending: false })
+          .limit(30);
+
+        if (simpleError) throw simpleError;
+
+        // Manually fetch class and university data for each profile
+        const profilesWithClasses = await Promise.all(
+          (simpleData || []).map(async (profile) => {
+            const { data: classInfo } = await supabase
+              .from('classes')
+              .select(`
+                course_name,
+                course_year,
+                semester,
+                university_id,
+                universities!inner(
+                  name,
+                  countries!inner(
+                    name
+                  )
+                )
+              `)
+              .eq('id', profile.class_id)
+              .single();
+
+            return { ...profile, classes: classInfo };
+          })
+        );
+
+        setTopUsers(profilesWithClasses);
       } else {
         // Global mode - try full query first, then fallback
         const { data, error } = await supabase

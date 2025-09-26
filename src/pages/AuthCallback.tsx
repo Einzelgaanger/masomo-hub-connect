@@ -33,8 +33,11 @@ const AuthCallback = () => {
           .eq('user_id', user.id)
           .single();
 
+        console.log('Profile check result:', { profile, profileError });
+
         if (profile && !profileError && profile.class_id) {
           // User already has a profile with a class assigned, redirect to dashboard
+          console.log('User has profile with class_id, redirecting to dashboard');
           // Only show welcome message if this is a fresh login (not a page refresh)
           const isFreshLogin = sessionStorage.getItem('fresh_login') === 'true';
           if (isFreshLogin) {
@@ -46,9 +49,6 @@ const AuthCallback = () => {
           }
           navigate('/dashboard');
           return;
-        } else if (profile && !profileError && !profile.class_id) {
-          // User has a profile but no class assigned, check applications
-          console.log('User has profile but no class assigned, checking applications...');
         }
 
         // Check if user has pending applications
@@ -59,9 +59,12 @@ const AuthCallback = () => {
           .order('created_at', { ascending: false })
           .limit(1);
 
+        console.log('Applications check result:', { applications, applicationError });
+
         if (applicationError) {
           console.error('Error checking applications:', applicationError);
           // If we can't check applications, send them to class selection
+          console.log('Error checking applications, redirecting to class selection');
           navigate('/class-selection');
           return;
         }
@@ -111,7 +114,8 @@ const AuthCallback = () => {
           }
         }
 
-        // No profile and no applications - new user, send to class selection
+        // User has profile but no class_id, or no profile at all - send to class selection
+        console.log('User needs to select a class, redirecting to class selection...');
         navigate('/class-selection');
 
       } catch (error) {

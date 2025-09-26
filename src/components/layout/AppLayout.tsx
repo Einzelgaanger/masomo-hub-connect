@@ -43,11 +43,12 @@ export function AppLayout({ children, showHeader = false, HeaderComponent }: App
     if (!user) return;
     
     try {
+      // First try the full query with inner join
       const { data, error } = await supabase
         .from('profiles')
         .select(`
           *,
-          classes(
+          classes!inner(
             *,
             universities(
               *,
@@ -59,8 +60,52 @@ export function AppLayout({ children, showHeader = false, HeaderComponent }: App
         .eq('user_id', user.id)
         .single();
 
-      if (error) throw error;
-      setProfile(data);
+      if (error) {
+        console.log('Full profile query failed, trying simple query:', error);
+        
+        // Fallback to simple query without inner join
+        const { data: simpleData, error: simpleError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (simpleError) throw simpleError;
+
+        // If user has no class_id, set profile without class data
+        if (!simpleData.class_id) {
+          setProfile(simpleData);
+          return;
+        }
+
+        // Fetch class data separately
+        const { data: classData, error: classError } = await supabase
+          .from('classes')
+          .select(`
+            *,
+            universities(
+              *,
+              countries(*)
+            ),
+            units(*)
+          `)
+          .eq('id', simpleData.class_id)
+          .single();
+
+        if (classError) {
+          console.error('Error fetching class data:', classError);
+          // Set profile without class data if class fetch fails
+          setProfile(simpleData);
+          return;
+        }
+
+        setProfile({
+          ...simpleData,
+          classes: classData
+        });
+      } else {
+        setProfile(data);
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
       toast({

@@ -26,208 +26,119 @@ export function UpcomingSection() {
 
       if (viewMode === 'university') {
         // First get the current user's university with fallback
-        const { data: userProfile, error: profileError } = await supabase
+        // Use simple query to avoid inner join issues
+        const { data: simpleProfile, error: simpleError } = await supabase
           .from('profiles')
-          .select(`
-            classes!inner(
-              university_id
-            )
-          `)
+          .select('class_id')
           .eq('user_id', user?.id)
           .single();
 
-        if (profileError || !userProfile) {
-          console.warn('Full profile query failed, trying simple query:', profileError);
-          const { data: simpleProfile, error: simpleError } = await supabase
-            .from('profiles')
-            .select('class_id')
-            .eq('user_id', user?.id)
-            .single();
+        if (simpleError || !simpleProfile) {
+          console.error('Error fetching user profile:', simpleError);
+          setUpcoming([]);
+          return;
+        }
 
-          if (simpleError || !simpleProfile) {
-            console.error('Error fetching user profile:', simpleError);
-            setUpcoming([]);
-            return;
-          }
+        if (!simpleProfile.class_id) {
+          console.log('User has no class_id, cannot fetch upcoming events');
+          setUpcoming([]);
+          return;
+        }
 
-          // Get university_id from class_id
-          const { data: classData, error: classError } = await supabase
-            .from('classes')
-            .select('university_id')
-            .eq('id', simpleProfile.class_id)
-            .single();
+        // Get university_id from class_id
+        const { data: classData, error: classError } = await supabase
+          .from('classes')
+          .select('university_id')
+          .eq('id', simpleProfile.class_id)
+          .single();
 
-          if (classError || !classData) {
-            console.error('Error fetching class data:', classError);
-            setUpcoming([]);
-            return;
-          }
+        if (classError || !classData) {
+          console.error('Error fetching class data:', classError);
+          setUpcoming([]);
+          return;
+        }
 
-          // Try full queries first, then fallback
-          const { data: assignments, error: assignmentsError } = await supabase
+        // Try full queries first, then fallback
+        const { data: assignments, error: assignmentsError } = await supabase
+          .from('assignments')
+          .select(`
+            *,
+            units(name, classes!inner(id, university_id))
+          `)
+          .eq('units.classes.university_id', classData.university_id)
+          .gte('deadline', now)
+          .order('deadline', { ascending: true })
+          .limit(10);
+
+        const { data: events, error: eventsError } = await supabase
+          .from('events')
+          .select(`
+            *,
+            units(name, classes!inner(id, university_id))
+          `)
+          .eq('units.classes.university_id', classData.university_id)
+          .gte('event_date', now)
+          .order('event_date', { ascending: true })
+          .limit(10);
+
+        if (assignmentsError || eventsError) {
+          console.warn('Full queries failed, trying simplified queries:', { assignmentsError, eventsError });
+          
+          // Simplified queries
+          const { data: simpleAssignments } = await supabase
             .from('assignments')
-            .select(`
-              *,
-              units(name, classes!inner(id, university_id))
-            `)
-            .eq('units.classes.university_id', classData.university_id)
+            .select('*')
             .gte('deadline', now)
             .order('deadline', { ascending: true })
             .limit(10);
 
-          const { data: events, error: eventsError } = await supabase
+          const { data: simpleEvents } = await supabase
             .from('events')
-            .select(`
-              *,
-              units(name, classes!inner(id, university_id))
-            `)
-            .eq('units.classes.university_id', classData.university_id)
+            .select('*')
             .gte('event_date', now)
             .order('event_date', { ascending: true })
             .limit(10);
 
-          if (assignmentsError || eventsError) {
-            console.warn('Full queries failed, trying simplified queries:', { assignmentsError, eventsError });
-            
-            // Simplified queries - get assignments and events by unit_id
-            const { data: simpleAssignments } = await supabase
-              .from('assignments')
-              .select('*')
-              .gte('deadline', now)
-              .order('deadline', { ascending: true })
-              .limit(10);
+          // Manually fetch unit data for each item
+          const assignmentsWithUnits = await Promise.all(
+            (simpleAssignments || []).map(async (assignment) => {
+              const { data: unitData } = await supabase
+                .from('units')
+                .select('name')
+                .eq('id', assignment.unit_id)
+                .single();
+              return { ...assignment, units: unitData };
+            })
+          );
 
-            const { data: simpleEvents } = await supabase
-              .from('events')
-              .select('*')
-              .gte('event_date', now)
-              .order('event_date', { ascending: true })
-              .limit(10);
+          const eventsWithUnits = await Promise.all(
+            (simpleEvents || []).map(async (event) => {
+              const { data: unitData } = await supabase
+                .from('units')
+                .select('name')
+                .eq('id', event.unit_id)
+                .single();
+              return { ...event, units: unitData };
+            })
+          );
 
-            // Manually fetch unit data for each item
-            const assignmentsWithUnits = await Promise.all(
-              (simpleAssignments || []).map(async (assignment) => {
-                const { data: unitData } = await supabase
-                  .from('units')
-                  .select('name')
-                  .eq('id', assignment.unit_id)
-                  .single();
-                return { ...assignment, units: unitData };
-              })
-            );
+          // Combine and sort by date
+          const combined = [
+            ...assignmentsWithUnits.map(item => ({ ...item, type: 'assignment', date: item.deadline })),
+            ...eventsWithUnits.map(item => ({ ...item, type: 'event', date: item.event_date }))
+          ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+           .slice(0, 10);
 
-            const eventsWithUnits = await Promise.all(
-              (simpleEvents || []).map(async (event) => {
-                const { data: unitData } = await supabase
-                  .from('units')
-                  .select('name')
-                  .eq('id', event.unit_id)
-                  .single();
-                return { ...event, units: unitData };
-              })
-            );
-
-            // Combine and sort by date
-            const combined = [
-              ...assignmentsWithUnits.map(item => ({ ...item, type: 'assignment', date: item.deadline })),
-              ...eventsWithUnits.map(item => ({ ...item, type: 'event', date: item.event_date }))
-            ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-             .slice(0, 10);
-
-            setUpcoming(combined);
-          } else {
-            // Combine and sort by date
-            const combined = [
-              ...(assignments || []).map(item => ({ ...item, type: 'assignment', date: item.deadline })),
-              ...(events || []).map(item => ({ ...item, type: 'event', date: item.event_date }))
-            ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-             .slice(0, 10);
-
-            setUpcoming(combined);
-          }
+          setUpcoming(combined);
         } else {
-          // Try full queries first, then fallback
-          const { data: assignments, error: assignmentsError } = await supabase
-            .from('assignments')
-            .select(`
-              *,
-              units(name, classes!inner(id, university_id))
-            `)
-            .eq('units.classes.university_id', userProfile.classes.university_id)
-            .gte('deadline', now)
-            .order('deadline', { ascending: true })
-            .limit(10);
+          // Combine and sort by date
+          const combined = [
+            ...(assignments || []).map(item => ({ ...item, type: 'assignment', date: item.deadline })),
+            ...(events || []).map(item => ({ ...item, type: 'event', date: item.event_date }))
+          ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+           .slice(0, 10);
 
-          const { data: events, error: eventsError } = await supabase
-            .from('events')
-            .select(`
-              *,
-              units(name, classes!inner(id, university_id))
-            `)
-            .eq('units.classes.university_id', userProfile.classes.university_id)
-            .gte('event_date', now)
-            .order('event_date', { ascending: true })
-            .limit(10);
-
-          if (assignmentsError || eventsError) {
-            console.warn('Full queries failed, trying simplified queries:', { assignmentsError, eventsError });
-            
-            // Simplified queries
-            const { data: simpleAssignments } = await supabase
-              .from('assignments')
-              .select('*')
-              .gte('deadline', now)
-              .order('deadline', { ascending: true })
-              .limit(10);
-
-            const { data: simpleEvents } = await supabase
-              .from('events')
-              .select('*')
-              .gte('event_date', now)
-              .order('event_date', { ascending: true })
-              .limit(10);
-
-            // Manually fetch unit data for each item
-            const assignmentsWithUnits = await Promise.all(
-              (simpleAssignments || []).map(async (assignment) => {
-                const { data: unitData } = await supabase
-                  .from('units')
-                  .select('name')
-                  .eq('id', assignment.unit_id)
-                  .single();
-                return { ...assignment, units: unitData };
-              })
-            );
-
-            const eventsWithUnits = await Promise.all(
-              (simpleEvents || []).map(async (event) => {
-                const { data: unitData } = await supabase
-                  .from('units')
-                  .select('name')
-                  .eq('id', event.unit_id)
-                  .single();
-                return { ...event, units: unitData };
-              })
-            );
-
-            // Combine and sort by date
-            const combined = [
-              ...assignmentsWithUnits.map(item => ({ ...item, type: 'assignment', date: item.deadline })),
-              ...eventsWithUnits.map(item => ({ ...item, type: 'event', date: item.event_date }))
-            ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-             .slice(0, 10);
-
-            setUpcoming(combined);
-          } else {
-            // Combine and sort by date
-            const combined = [
-              ...(assignments || []).map(item => ({ ...item, type: 'assignment', date: item.deadline })),
-              ...(events || []).map(item => ({ ...item, type: 'event', date: item.event_date }))
-            ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-             .slice(0, 10);
-
-            setUpcoming(combined);
-          }
+          setUpcoming(combined);
         }
       } else {
         // Global mode - try full query first, then fallback
@@ -248,46 +159,17 @@ export function UpcomingSection() {
           .limit(10);
 
         if (globalEventsError) {
-          console.warn('Full global events query failed, trying simplified query:', globalEventsError);
-          
-          // Simplified global events query
-          const { data: simpleGlobalEvents, error: simpleGlobalError } = await (supabase as any)
+          console.warn('Full global query failed, trying simplified query:', globalEventsError);
+          const { data: simpleGlobalEvents } = await supabase
             .from('public_events')
             .select('*')
             .gte('event_date', now)
             .order('event_date', { ascending: true })
             .limit(10);
 
-          if (simpleGlobalError) {
-            console.error('Error fetching global events:', simpleGlobalError);
-            setUpcoming([]);
-            return;
-          }
-
-          // Transform global events to match the expected format
-          const transformedEvents = (simpleGlobalEvents || []).map(item => ({
-            ...item,
-            type: 'global_event',
-            title: item.title,
-            date: item.event_date,
-            description: item.description,
-            location: item.location,
-            profiles: null // Will be null for simplified query
-          }));
-
-          setUpcoming(transformedEvents);
+          setUpcoming((simpleGlobalEvents || []).map(item => ({ ...item, type: 'event', date: item.event_date })));
         } else {
-          // Transform global events to match the expected format
-          const transformedEvents = (globalEvents || []).map(item => ({
-            ...item,
-            type: 'global_event',
-            title: item.title,
-            date: item.event_date,
-            description: item.description,
-            location: item.location
-          }));
-
-          setUpcoming(transformedEvents);
+          setUpcoming((globalEvents || []).map(item => ({ ...item, type: 'event', date: item.event_date })));
         }
       }
     } catch (error) {
@@ -298,22 +180,35 @@ export function UpcomingSection() {
     }
   };
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'assignment': return 'bg-blue-500';
-      case 'event': return 'bg-green-500';
-      case 'global_event': return 'bg-purple-500';
-      default: return 'bg-gray-500';
+  const getItemIcon = (item: any) => {
+    switch (item.type) {
+      case 'assignment':
+        return <FileText className="h-4 w-4" />;
+      case 'event':
+        return <Calendar className="h-4 w-4" />;
+      default:
+        return <Calendar className="h-4 w-4" />;
     }
   };
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'assignment': return FileText;
-      case 'event': return Calendar;
-      case 'global_event': return Globe;
-      default: return Calendar;
-    }
+  const getItemColor = (item: any) => {
+    const daysUntil = Math.ceil((new Date(item.date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysUntil <= 1) return 'bg-red-100 text-red-800 border-red-200';
+    if (daysUntil <= 3) return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    if (daysUntil <= 7) return 'bg-blue-100 text-blue-800 border-blue-200';
+    return 'bg-green-100 text-green-800 border-green-200';
+  };
+
+  const formatItemDate = (date: string) => {
+    const itemDate = new Date(date);
+    const now = new Date();
+    const daysUntil = Math.ceil((itemDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysUntil === 0) return 'Today';
+    if (daysUntil === 1) return 'Tomorrow';
+    if (daysUntil < 7) return `In ${daysUntil} days`;
+    return formatDistanceToNow(itemDate, { addSuffix: true });
   };
 
   if (loading) {
@@ -321,18 +216,13 @@ export function UpcomingSection() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
+            <Calendar className="h-5 w-5" />
             Upcoming
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="animate-pulse">
-                <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-muted rounded w-1/2"></div>
-              </div>
-            ))}
+          <div className="flex items-center justify-center h-32">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         </CardContent>
       </Card>
@@ -342,29 +232,28 @@ export function UpcomingSection() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-primary" />
+            <Calendar className="h-5 w-5" />
             Upcoming
           </CardTitle>
-          <div className="flex gap-1 w-full sm:w-auto">
+          <div className="flex gap-1">
             <Button
               variant={viewMode === 'university' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setViewMode('university')}
-              className="flex items-center gap-1 flex-1 sm:flex-none"
+              className="h-8 px-3"
             >
-              <Building className="h-3 w-3" />
-              <span className="hidden xs:inline">My Uni</span>
-              <span className="xs:hidden">Uni</span>
+              <Building className="h-3 w-3 mr-1" />
+              University
             </Button>
             <Button
               variant={viewMode === 'global' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setViewMode('global')}
-              className="flex items-center gap-1 flex-1 sm:flex-none"
+              className="h-8 px-3"
             >
-              <Globe className="h-3 w-3" />
+              <Globe className="h-3 w-3 mr-1" />
               Global
             </Button>
           </div>
@@ -372,54 +261,51 @@ export function UpcomingSection() {
       </CardHeader>
       <CardContent>
         {upcoming.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No upcoming items</p>
+          <div className="text-center py-8">
+            <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">No upcoming items</p>
           </div>
         ) : (
-          <div className="max-h-[300px] overflow-y-auto space-y-3 pr-2">
-            {upcoming.map((item) => {
-              const Icon = getTypeIcon(item.type);
-              const isOverdue = isAfter(new Date(), new Date(item.date));
-              
-              return (
-                <div key={`${item.type}-${item.id}`} className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className={`p-1.5 sm:p-2 rounded-lg ${getTypeColor(item.type)} text-white flex-shrink-0`}>
-                    <Icon className="h-3 w-3 sm:h-4 sm:w-4" />
+          <div className="space-y-3">
+            {upcoming.map((item, index) => (
+              <div
+                key={index}
+                className={`p-3 rounded-lg border ${getItemColor(item)} transition-colors hover:shadow-sm`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 mt-0.5">
+                    {getItemIcon(item)}
                   </div>
-                  
                   <div className="flex-1 min-w-0">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
-                      <h4 className="font-medium text-xs sm:text-sm truncate">{item.title}</h4>
-                      <Badge variant={isOverdue ? "destructive" : "secondary"} className="text-xs w-fit">
-                        {item.type === 'assignment' ? 'Assignment' : 
-                         item.type === 'event' ? 'Event' : 
-                         item.type === 'global_event' ? 'Global Event' : item.type}
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className="font-medium text-sm truncate">
+                        {item.title || item.name}
+                      </h4>
+                      <Badge variant="secondary" className="text-xs">
+                        {item.type === 'assignment' ? 'Assignment' : 'Event'}
                       </Badge>
                     </div>
-                    
-                    <p className="text-xs text-muted-foreground mb-1 sm:mb-2 truncate">
-                      {item.type === 'global_event' 
-                        ? `${item.profiles?.classes?.course_name} • ${item.profiles?.classes?.universities?.name}`
-                        : item.units?.name}
-                    </p>
-                    
-                    {item.type === 'global_event' && item.location && (
-                      <p className="text-xs text-muted-foreground mb-1 sm:mb-2 truncate">
-                        📍 {item.location}
+                    {item.description && (
+                      <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                        {item.description}
                       </p>
                     )}
-                    
-                    <div className="flex items-center gap-1 text-xs">
-                      <Clock className="h-3 w-3 flex-shrink-0" />
-                      <span className={isOverdue ? "text-destructive" : "text-muted-foreground"}>
-                        {isOverdue ? 'Overdue' : formatDistanceToNow(new Date(item.date), { addSuffix: true })}
-                      </span>
+                    <div className="flex items-center gap-4 text-xs">
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span>{formatItemDate(item.date)}</span>
+                      </div>
+                      {item.units?.name && (
+                        <div className="flex items-center gap-1">
+                          <FileText className="h-3 w-3" />
+                          <span className="truncate">{item.units.name}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
       </CardContent>

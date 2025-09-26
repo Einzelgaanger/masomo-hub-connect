@@ -16,7 +16,9 @@ import {
   Search,
   User,
   ArrowLeft,
-  MoreHorizontal
+  MoreHorizontal,
+  Paperclip,
+  Image
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -38,6 +40,9 @@ interface Message {
   content: string;
   is_read: boolean;
   created_at: string;
+  media_url?: string;
+  media_filename?: string;
+  media_type?: 'image';
   profiles: {
     full_name: string;
     profile_picture_url: string;
@@ -60,9 +65,14 @@ const Inbox = () => {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchingUsers, setSearchingUsers] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [fileDescription, setFileDescription] = useState('');
+  const [showFileUploadDialog, setShowFileUploadDialog] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user) {
@@ -103,22 +113,76 @@ const Inbox = () => {
 
   const fetchUserProfile = async () => {
     try {
+      // First try the full query with inner join
       const { data, error } = await supabase
         .from('profiles')
         .select(`
           *,
-          classes (
+          classes!inner(
             *,
-            universities (*)
+            universities(*)
           )
         `)
         .eq('user_id', user?.id)
         .single();
 
-      if (error) throw error;
-      setUserProfile(data);
+      if (error) {
+        console.log('Full profile query failed, trying simple query:', error);
+        
+        // Fallback to simple query without inner join
+        const { data: simpleData, error: simpleError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', user?.id)
+          .single();
+
+        if (simpleError) throw simpleError;
+
+        // If user has no class_id, redirect to class selection
+        if (!simpleData.class_id) {
+          toast({
+            title: "Class Required",
+            description: "Please select a class to access messages.",
+            variant: "destructive",
+          });
+          window.location.href = '/class-selection';
+          return;
+        }
+
+        // Fetch class data separately
+        const { data: classData, error: classError } = await supabase
+          .from('classes')
+          .select(`
+            *,
+            universities(*)
+          `)
+          .eq('id', simpleData.class_id)
+          .single();
+
+        if (classError) {
+          console.error('Error fetching class data:', classError);
+          toast({
+            title: "Error",
+            description: "Failed to load class information.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        setUserProfile({
+          ...simpleData,
+          classes: classData
+        });
+      } else {
+        setUserProfile(data);
+      }
     } catch (error) {
       console.error('Error fetching user profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load profile. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -292,6 +356,100 @@ const Inbox = () => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedConversation) return;
+
+    // Only allow images
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Only image files are allowed in messages",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check file size (max 5MB for images)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedFile(file);
+    setFileDescription('');
+    setShowFileUploadDialog(true);
+  };
+
+  const handleFileUpload = async () => {
+    if (!selectedFile || !selectedConversation || !user || uploading) return;
+
+    setUploading(true);
+    try {
+      const fileExt = selectedFile.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+      
+      // Upload image to storage
+      const { error: uploadError } = await supabase.storage
+        .from('inbox-images')
+        .upload(filePath, selectedFile);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('inbox-images')
+        .getPublicUrl(filePath);
+
+      // Create message content
+      const content = fileDescription.trim() 
+        ? `📷 ${fileDescription.trim()}`
+        : '📷';
+
+      // Insert message with image
+      const { error: messageError } = await supabase
+        .from('direct_messages')
+        .insert({
+          sender_id: user.id,
+          receiver_id: selectedConversation,
+          content: content,
+          media_url: publicUrl,
+          media_filename: selectedFile.name,
+          media_type: 'image'
+        });
+
+      if (messageError) throw messageError;
+
+      // Close dialog and clear state
+      setShowFileUploadDialog(false);
+      setSelectedFile(null);
+      setFileDescription('');
+      
+      // Refresh messages
+      fetchMessages(selectedConversation);
+      fetchConversations();
+
+      toast({
+        title: "Image sent",
+        description: "Your image has been sent successfully",
+      });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send image",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -487,6 +645,17 @@ const Inbox = () => {
                               ? 'bg-primary text-primary-foreground' 
                               : 'bg-muted'
                           }`}>
+                            {/* Image display */}
+                            {message.media_url && message.media_type === 'image' && (
+                              <div className="mb-2">
+                                <img 
+                                  src={message.media_url} 
+                                  alt={message.media_filename || 'Image'}
+                                  className="max-w-xs max-h-64 rounded-lg object-cover cursor-pointer"
+                                  onClick={() => window.open(message.media_url, '_blank')}
+                                />
+                              </div>
+                            )}
                             <p className="text-sm">{message.content}</p>
                             <p className={`text-xs mt-1 ${
                               isOwnMessage ? 'text-primary-foreground/70' : 'text-muted-foreground'
@@ -505,6 +674,20 @@ const Inbox = () => {
               {/* Message Input */}
               <div className="p-4 border-t bg-background">
                 <div className="flex items-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="h-10 w-10 p-0"
+                  >
+                    {uploading ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                    ) : (
+                      <Paperclip className="h-4 w-4" />
+                    )}
+                  </Button>
                   <Textarea
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
@@ -525,6 +708,15 @@ const Inbox = () => {
                     )}
                   </Button>
                 </div>
+                
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  title="Upload image file"
+                />
               </div>
             </>
           ) : (
@@ -540,6 +732,60 @@ const Inbox = () => {
           )}
         </div>
       </div>
+
+      {/* File Upload Dialog */}
+      {showFileUploadDialog && selectedFile && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg p-6 w-full max-w-md">
+            <div className="flex items-center gap-2 mb-4">
+              <Image className="h-5 w-5" />
+              <h3 className="text-lg font-semibold">Send Image</h3>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <img 
+                  src={URL.createObjectURL(selectedFile)} 
+                  alt="Preview" 
+                  className="w-full h-48 object-cover rounded-lg"
+                />
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium">Add a caption (optional)</label>
+                <Textarea
+                  value={fileDescription}
+                  onChange={(e) => setFileDescription(e.target.value)}
+                  placeholder="Describe your image..."
+                  className="mt-1"
+                  rows={2}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-6">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowFileUploadDialog(false);
+                  setSelectedFile(null);
+                  setFileDescription('');
+                }}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleFileUpload} 
+                disabled={uploading}
+                className="flex-1"
+              >
+                {uploading ? "Sending..." : "Send Image"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 };

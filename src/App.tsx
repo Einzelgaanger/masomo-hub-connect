@@ -56,13 +56,13 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <SecurityProvider>
       <AuthProvider>
-        <ProfileGuard>
-          <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <div className="min-h-screen overflow-x-hidden">
-            <ErrorBoundary>
-              <BrowserRouter>
+        <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <div className="min-h-screen overflow-x-hidden">
+          <ErrorBoundary>
+            <BrowserRouter>
+              <ProfileGuard>
                 <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
@@ -176,14 +176,14 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
                 </Routes>
-              </BrowserRouter>
-              
-              {/* Floating Concerns Button - appears on all pages */}
-              <FloatingConcernsButton />
-            </ErrorBoundary>
+                
+                {/* Floating Concerns Button - appears on all pages */}
+                <FloatingConcernsButton />
+              </ProfileGuard>
+            </BrowserRouter>
+          </ErrorBoundary>
         </div>
         </TooltipProvider>
-        </ProfileGuard>
       </AuthProvider>
     </SecurityProvider>
   </QueryClientProvider>
