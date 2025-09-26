@@ -88,7 +88,12 @@ export function WallOfFameSection() {
         // Manually fetch class and university data for each profile
         const profilesWithClasses = await Promise.all(
           (simpleData || []).map(async (profile) => {
-            const { data: classInfo } = await supabase
+            if (!profile.class_id) {
+              console.log('Profile has no class_id:', profile.id, profile.full_name);
+              return { ...profile, classes: null };
+            }
+
+            const { data: classInfo, error: classError } = await supabase
               .from('classes')
               .select(`
                 course_name,
@@ -102,6 +107,10 @@ export function WallOfFameSection() {
               `)
               .eq('id', profile.class_id)
               .single();
+
+            if (classError) {
+              console.warn('Error fetching class info for profile:', profile.id, classError);
+            }
 
             return { ...profile, classes: classInfo };
           })
@@ -129,9 +138,12 @@ export function WallOfFameSection() {
           // Manually fetch class and university data for each profile
           const profilesWithClasses = await Promise.all(
             (simpleData || []).map(async (profile) => {
-              if (!profile.class_id) return profile;
+              if (!profile.class_id) {
+                console.log('Global profile has no class_id:', profile.id, profile.full_name);
+                return { ...profile, classes: null };
+              }
               
-              const { data: classInfo } = await supabase
+              const { data: classInfo, error: classError } = await supabase
                 .from('classes')
                 .select(`
                   course_name,
@@ -146,13 +158,48 @@ export function WallOfFameSection() {
                 .eq('id', profile.class_id)
                 .single();
 
+              if (classError) {
+                console.warn('Error fetching class info for global profile:', profile.id, classError);
+              }
+
               return { ...profile, classes: classInfo };
             })
           );
 
           setTopUsers(profilesWithClasses);
         } else {
-          setTopUsers(data || []);
+          // Manually fetch class and university data for each profile
+          const profilesWithClasses = await Promise.all(
+            (data || []).map(async (profile) => {
+              if (!profile.class_id) {
+                console.log('Global profile has no class_id:', profile.id, profile.full_name);
+                return { ...profile, classes: null };
+              }
+              
+              const { data: classInfo, error: classError } = await supabase
+                .from('classes')
+                .select(`
+                  course_name,
+                  course_year,
+                  semester,
+                  university_id,
+                  universities(
+                    name,
+                    countries(name)
+                  )
+                `)
+                .eq('id', profile.class_id)
+                .single();
+
+              if (classError) {
+                console.warn('Error fetching class info for global profile:', profile.id, classError);
+              }
+
+              return { ...profile, classes: classInfo };
+            })
+          );
+
+          setTopUsers(profilesWithClasses);
         }
       }
     } catch (error) {
@@ -188,8 +235,20 @@ export function WallOfFameSection() {
     if (topUsers.length > 0) {
       console.log('WallOfFameSection Data:', {
         userCount: topUsers.length,
-        topUser: topUsers[0],
-        viewMode
+        viewMode,
+        sampleUsers: topUsers.slice(0, 3).map(user => ({
+          id: user.id,
+          name: user.full_name,
+          points: user.points,
+          rank: user.rank,
+          class_id: user.class_id,
+          hasClassData: !!user.classes,
+          classInfo: user.classes ? {
+            course_name: user.classes.course_name,
+            university: user.classes.universities?.name,
+            country: user.classes.universities?.countries?.name
+          } : null
+        }))
       });
     }
   }, [topUsers, viewMode]);
@@ -292,36 +351,38 @@ export function WallOfFameSection() {
                 
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-xs sm:text-sm truncate">
-                    {profile.full_name}
+                    {profile.full_name || 'Unknown User'}
                     {profile.user_id === user?.id && (
                       <span className="text-primary text-xs ml-1 sm:ml-2">(You)</span>
                     )}
                   </p>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                    <Badge className={`text-xs w-fit ${getRankColor(profile.rank)} text-white`}>
-                      {profile.rank}
+                    <Badge className={`text-xs w-fit ${getRankColor(profile.rank || 'bronze')} text-white`}>
+                      {profile.rank || 'bronze'}
                     </Badge>
-                    <span className="text-xs text-muted-foreground truncate">
-                      {profile.classes?.course_name} - Year {profile.classes?.course_year}
-                      {viewMode === 'global' && profile.classes?.universities?.name && (
-                        <span className="block sm:inline sm:ml-1 text-xs text-muted-foreground">
-                          <span className="sm:hidden">• </span>
-                          {profile.classes.universities.name}
-                          {profile.classes.universities.countries?.name && (
-                            <span className="ml-1">
-                              ({profile.classes.universities.countries.name})
-                            </span>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {profile.classes?.course_name ? (
+                        <>
+                          <div>{profile.classes.course_name}</div>
+                          {viewMode === 'global' && profile.classes?.universities?.name && (
+                            <div className="text-muted-foreground/80">
+                              {profile.classes.universities.name}
+                            </div>
                           )}
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground/70">
+                          {viewMode === 'global' ? 'No course assigned' : 'Course not found'}
                         </span>
                       )}
-                    </span>
+                    </div>
                   </div>
                   <div className="flex items-center gap-1 mt-0.5 sm:mt-1">
                     {(() => {
                       const character = getCharacterByPoints(profile.points || 0);
                       return (
                         <span className="text-xs text-muted-foreground truncate">
-                          {character?.name || 'Regular'}
+                          {character?.name || 'Regular'} • {profile.points || 0} pts
                         </span>
                       );
                     })()}

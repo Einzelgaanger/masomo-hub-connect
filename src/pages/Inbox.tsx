@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { PrivacySelector } from "@/components/ui/PrivacySelector";
 import { 
   MessageCircle, 
   Send, 
@@ -40,9 +41,6 @@ interface Message {
   content: string;
   is_read: boolean;
   created_at: string;
-  media_url?: string;
-  media_filename?: string;
-  media_type?: 'image';
   profiles: {
     full_name: string;
     profile_picture_url: string;
@@ -64,6 +62,7 @@ const Inbox = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchingUsers, setSearchingUsers] = useState(false);
+  const [userPrivacy, setUserPrivacy] = useState<'private' | 'uni' | 'public'>('uni');
   const [userProfile, setUserProfile] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -81,6 +80,8 @@ const Inbox = () => {
       if (conversationId) {
         fetchMessages(conversationId);
       }
+      const cleanup = setupGlobalRealtimeSubscription();
+      return cleanup;
     }
   }, [user, conversationId]);
 
@@ -90,6 +91,17 @@ const Inbox = () => {
       setupRealtimeSubscription();
     }
   }, [selectedConversation]);
+
+  // Sync selectedConversation with URL changes
+  useEffect(() => {
+    if (conversationId) {
+      setSelectedConversation(conversationId);
+    } else {
+      setSelectedConversation(null);
+      // Clear messages when no conversation is selected
+      setMessages([]);
+    }
+  }, [conversationId]);
 
   useEffect(() => {
     scrollToBottom();
@@ -173,8 +185,10 @@ const Inbox = () => {
           ...simpleData,
           classes: classData
         });
+        setUserPrivacy(simpleData.privacy_level || 'uni');
       } else {
         setUserProfile(data);
+        setUserPrivacy(data.privacy_level || 'uni');
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -189,14 +203,22 @@ const Inbox = () => {
   const searchUsers = async (query: string) => {
     if (!userProfile?.classes?.university_id) return;
 
+    // If user is private, they can't search anyone
+    if (userPrivacy === 'private') {
+      setSearchResults([]);
+      return;
+    }
+
     setSearchingUsers(true);
     try {
-      const { data, error } = await supabase
+      let queryBuilder = supabase
         .from('profiles')
         .select(`
           user_id,
           full_name,
+          email,
           profile_picture_url,
+          privacy_level,
           classes!inner (
             university_id,
             course_name,
@@ -205,10 +227,21 @@ const Inbox = () => {
             )
           )
         `)
-        .eq('classes.university_id', userProfile.classes.university_id)
         .neq('user_id', user?.id)
-        .ilike('full_name', `%${query}%`)
-        .limit(10);
+        .or(`full_name.ilike.%${query}%,email.ilike.%${query}%`);
+
+      // Apply privacy filters based on user's privacy level
+      if (userPrivacy === 'uni') {
+        // Uni users can only see people from their university with uni/public status
+        queryBuilder = queryBuilder
+          .eq('classes.university_id', userProfile.classes.university_id)
+          .in('privacy_level', ['uni', 'public']);
+      } else if (userPrivacy === 'public') {
+        // Public users can see everyone with uni/public status
+        queryBuilder = queryBuilder.in('privacy_level', ['uni', 'public']);
+      }
+
+      const { data, error } = await queryBuilder.limit(10);
 
       if (error) throw error;
       setSearchResults(data || []);
@@ -266,16 +299,39 @@ const Inbox = () => {
 
   const fetchMessages = async (participantId: string) => {
     try {
-      const { data, error } = await supabase
+      // First fetch messages without foreign key join
+      const { data: messagesData, error: messagesError } = await supabase
         .from('direct_messages')
-        .select(`
-          *,
-          profiles!direct_messages_sender_id_fkey(full_name, profile_picture_url)
-        `)
+        .select('*')
         .or(`and(sender_id.eq.${user?.id},receiver_id.eq.${participantId}),and(sender_id.eq.${participantId},receiver_id.eq.${user?.id})`)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
+      if (messagesError) throw messagesError;
+
+      if (!messagesData || messagesData.length === 0) {
+        setMessages([]);
+        return;
+      }
+
+      // Get unique sender IDs to fetch their profiles
+      const senderIds = [...new Set(messagesData.map(msg => msg.sender_id))];
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, profile_picture_url')
+        .in('user_id', senderIds);
+
+      if (profilesError) {
+        console.warn('Error fetching profiles:', profilesError);
+      }
+
+      // Combine messages with profile data
+      const messagesWithProfiles = messagesData.map(message => {
+        const profile = profilesData?.find(p => p.user_id === message.sender_id);
+        return {
+          ...message,
+          profiles: profile || { full_name: 'Unknown User', profile_picture_url: null }
+        };
+      });
 
       // Mark messages as read
       await supabase
@@ -285,7 +341,7 @@ const Inbox = () => {
         .eq('sender_id', participantId)
         .eq('is_read', false);
 
-      setMessages(data || []);
+      setMessages(messagesWithProfiles);
     } catch (error) {
       console.error('Error fetching messages:', error);
       toast({
@@ -312,7 +368,34 @@ const Inbox = () => {
         (payload) => {
           if (payload.new.sender_id === user?.id || payload.new.receiver_id === user?.id) {
             fetchMessages(selectedConversation);
+            // Refresh conversations to update unread counts
+            fetchConversations();
           }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  };
+
+  const setupGlobalRealtimeSubscription = () => {
+    if (!user) return;
+
+    const subscription = supabase
+      .channel('global_direct_messages')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'direct_messages',
+          filter: `receiver_id.eq.${user.id}`
+        },
+        (payload) => {
+          // Refresh conversations to update unread counts
+          fetchConversations();
         }
       )
       .subscribe();
@@ -414,16 +497,13 @@ const Inbox = () => {
         ? `📷 ${fileDescription.trim()}`
         : '📷';
 
-      // Insert message with image
+      // Insert message with image URL in content
       const { error: messageError } = await supabase
         .from('direct_messages')
         .insert({
           sender_id: user.id,
           receiver_id: selectedConversation,
-          content: content,
-          media_url: publicUrl,
-          media_filename: selectedFile.name,
-          media_type: 'image'
+          content: `${content}\n\n📎 Image: ${publicUrl}`
         });
 
       if (messageError) throw messageError;
@@ -485,13 +565,24 @@ const Inbox = () => {
               <MessageCircle className="h-6 w-6" />
               <h1 className="text-xl font-bold">Inbox</h1>
             </div>
+            
+            {/* Privacy Selector */}
+            <div className="mb-4">
+              <PrivacySelector
+                currentPrivacy={userPrivacy}
+                onPrivacyChange={setUserPrivacy}
+                className="justify-center"
+              />
+            </div>
+            
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search conversations or find new people..."
+                placeholder={userPrivacy === 'private' ? "Search disabled (Private mode)" : "Search by name or email..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
+                disabled={userPrivacy === 'private'}
               />
             </div>
           </div>
@@ -542,7 +633,14 @@ const Inbox = () => {
                             </span>
                           </div>
                           <p className="text-sm text-muted-foreground truncate">
-                            {conversation.last_message}
+                            {(() => {
+                              // Hide Supabase URLs from last message preview
+                              if (conversation.last_message.includes('📎 Image:')) {
+                                const textContent = conversation.last_message.replace(/\n\n📎 Image: https?:\/\/[^\s\n]+/, '').trim();
+                                return textContent && textContent !== '📷' ? textContent : '📷 Image';
+                              }
+                              return conversation.last_message;
+                            })()}
                           </p>
                         </div>
                       </div>
@@ -574,7 +672,10 @@ const Inbox = () => {
                             </Avatar>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between">
-                                <p className="font-medium truncate">{user.full_name}</p>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium truncate">{user.full_name}</p>
+                                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                                </div>
                                 <Button size="sm" variant="outline" className="h-6 px-2 text-xs">
                                   Message
                                 </Button>
@@ -645,18 +746,36 @@ const Inbox = () => {
                               ? 'bg-primary text-primary-foreground' 
                               : 'bg-muted'
                           }`}>
-                            {/* Image display */}
-                            {message.media_url && message.media_type === 'image' && (
+                            {/* Image display - check if content contains image URL */}
+                            {message.content.includes('📎 Image:') && (
                               <div className="mb-2">
-                                <img 
-                                  src={message.media_url} 
-                                  alt={message.media_filename || 'Image'}
-                                  className="max-w-xs max-h-64 rounded-lg object-cover cursor-pointer"
-                                  onClick={() => window.open(message.media_url, '_blank')}
-                                />
+                                {(() => {
+                                  const imageUrlMatch = message.content.match(/📎 Image: (https?:\/\/[^\s\n]+)/);
+                                  const imageUrl = imageUrlMatch ? imageUrlMatch[1] : null;
+                                  // Remove the entire image URL part from content
+                                  const textContent = message.content.replace(/\n\n📎 Image: https?:\/\/[^\s\n]+/, '').trim();
+                                  
+                                  return (
+                                    <>
+                                      {imageUrl && (
+                                        <img 
+                                          src={imageUrl} 
+                                          alt="Shared image"
+                                          className="max-w-xs max-h-64 rounded-lg object-cover cursor-pointer"
+                                          onClick={() => window.open(imageUrl, '_blank')}
+                                        />
+                                      )}
+                                      {textContent && textContent !== '📷' && textContent.length > 0 && (
+                                        <p className="text-sm mt-2">{textContent}</p>
+                                      )}
+                                    </>
+                                  );
+                                })()}
                               </div>
                             )}
-                            <p className="text-sm">{message.content}</p>
+                            {!message.content.includes('📎 Image:') && (
+                              <p className="text-sm">{message.content}</p>
+                            )}
                             <p className={`text-xs mt-1 ${
                               isOwnMessage ? 'text-primary-foreground/70' : 'text-muted-foreground'
                             }`}>

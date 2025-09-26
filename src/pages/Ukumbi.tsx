@@ -104,11 +104,10 @@ function ImagePlayer({ src, message }: { src: string; message: any }) {
                 fallback={message.profiles?.full_name?.split(' ').map((n: string) => n[0]).join('')}
                 alt={message.profiles?.full_name}
                 className="h-10 w-10 border-2 border-white/20"
+                name={message.profiles?.full_name}
+                course={message.profiles?.classes?.course_name}
               />
               <div className="flex-1">
-                <p className="text-white font-medium text-sm mb-1">
-                  {message.profiles?.full_name}
-                </p>
                 <p className="text-white/90 text-sm leading-relaxed">
                   {message.content}
                 </p>
@@ -224,15 +223,20 @@ export default function Ukumbi() {
         }
 
         // Check if user has units in this class (optional check)
-        const { data: unitsData, error: unitsError } = await supabase
-          .from('units')
-          .select('id')
-          .eq('class_id', simpleData.class_id)
-          .limit(1);
+        let unitsData = null;
+        if (simpleData.class_id) {
+          const { data, error: unitsError } = await supabase
+            .from('units')
+            .select('id')
+            .eq('class_id', simpleData.class_id)
+            .limit(1);
 
-        if (unitsError) {
-          console.warn('Error fetching units (non-critical):', unitsError);
-          // Don't block access if units check fails - just log the warning
+          if (unitsError) {
+            console.warn('Error fetching units (non-critical):', unitsError);
+            // Don't block access if units check fails - just log the warning
+          } else {
+            unitsData = data;
+          }
         }
 
         // Only redirect if we successfully checked units and found none
@@ -257,15 +261,20 @@ export default function Ukumbi() {
         console.log('User classes:', data.classes);
         
         // Check if user has units in this class (optional check)
-        const { data: unitsData, error: unitsError } = await supabase
-          .from('units')
-          .select('id')
-          .eq('class_id', data.classes.id)
-          .limit(1);
+        let unitsData = null;
+        if (data.classes?.id) {
+          const { data, error: unitsError } = await supabase
+            .from('units')
+            .select('id')
+            .eq('class_id', data.classes.id)
+            .limit(1);
 
-        if (unitsError) {
-          console.warn('Error fetching units (non-critical):', unitsError);
-          // Don't block access if units check fails - just log the warning
+          if (unitsError) {
+            console.warn('Error fetching units (non-critical):', unitsError);
+            // Don't block access if units check fails - just log the warning
+          } else {
+            unitsData = data;
+          }
         }
 
         // Only redirect if we successfully checked units and found none
@@ -949,6 +958,8 @@ export default function Ukumbi() {
                       fallback={message.profiles.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
                       alt={message.profiles.full_name}
                       className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0"
+                      name={message.profiles.full_name}
+                      course={message.profiles.classes.course_name}
                     />
 
                     <div
@@ -956,19 +967,10 @@ export default function Ukumbi() {
                         message.user_id === user?.id ? 'items-end' : 'items-start'
                       } flex flex-col group`}
                     >
-                      {/* Message Header */}
+                      {/* Message Header - Only timestamp now */}
                       <div className={`flex items-center gap-2 text-xs text-muted-foreground ${
                         message.user_id === user?.id ? 'flex-row-reverse' : 'flex-row'
                       }`}>
-                        <button
-                          onClick={() => navigate(`/profile/${message.user_id}`)}
-                          className="font-medium hover:underline cursor-pointer"
-                        >
-                          {message.profiles.full_name}
-                        </button>
-                        <span>•</span>
-                        <span>{message.profiles.classes.course_name}</span>
-                        <span>•</span>
                         <span>{format(new Date(message.created_at), 'HH:mm')}</span>
                       </div>
 

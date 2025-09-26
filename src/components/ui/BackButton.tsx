@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 interface BackButtonProps {
@@ -15,8 +15,16 @@ const BackButton = ({
   size = "icon"
 }: BackButtonProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleBack = () => {
+    // Special handling for inbox chat routes
+    if (location.pathname.startsWith('/inbox/')) {
+      // If we're in a specific chat, go back to inbox overview
+      navigate('/inbox');
+      return;
+    }
+
     // Check if there's history to go back to
     if (window.history.length > 1) {
       // Go back to the previous page

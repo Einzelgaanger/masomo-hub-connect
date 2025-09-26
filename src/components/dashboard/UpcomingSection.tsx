@@ -67,12 +67,26 @@ export function UpcomingSection() {
           .order('deadline', { ascending: true })
           .limit(10);
 
-        const { data: events, error: eventsError } = await supabase
+        // For university mode, get both unit events and university-specific public events
+        const { data: unitEvents, error: unitEventsError } = await supabase
           .from('events')
           .select('*')
           .gte('event_date', now)
           .order('event_date', { ascending: true })
           .limit(10);
+
+        // Get university-specific public events (visibility = 'university')
+        const { data: universityEvents, error: universityEventsError } = await supabase
+          .from('public_events')
+          .select('*')
+          .eq('visibility', 'university')
+          .gte('event_date', now)
+          .order('event_date', { ascending: true })
+          .limit(10);
+
+        // Combine unit events and university events
+        const events = [...(unitEvents || []), ...(universityEvents || [])];
+        const eventsError = unitEventsError || universityEventsError;
 
         if (assignmentsError || eventsError) {
           console.warn('Full queries failed, trying simplified queries:', { assignmentsError, eventsError });
@@ -85,12 +99,22 @@ export function UpcomingSection() {
             .order('deadline', { ascending: true })
             .limit(10);
 
-          const { data: simpleEvents } = await supabase
+          const { data: simpleUnitEvents } = await supabase
             .from('events')
             .select('*')
             .gte('event_date', now)
             .order('event_date', { ascending: true })
             .limit(10);
+
+          const { data: simpleUniversityEvents } = await supabase
+            .from('public_events')
+            .select('*')
+            .eq('visibility', 'university')
+            .gte('event_date', now)
+            .order('event_date', { ascending: true })
+            .limit(10);
+
+          const simpleEvents = [...(simpleUnitEvents || []), ...(simpleUniversityEvents || [])];
 
           // Manually fetch unit data for each item
           const assignmentsWithUnits = await Promise.all(
@@ -134,10 +158,11 @@ export function UpcomingSection() {
           setUpcoming(combined);
         }
       } else {
-        // Global mode - use simplified query
+        // Global mode - only show events with 'global' visibility
         const { data: globalEvents, error: globalEventsError } = await supabase
           .from('public_events')
           .select('*')
+          .eq('visibility', 'global')
           .gte('event_date', now)
           .order('event_date', { ascending: true })
           .limit(10);
@@ -147,6 +172,7 @@ export function UpcomingSection() {
           const { data: simpleGlobalEvents } = await supabase
             .from('public_events')
             .select('*')
+            .eq('visibility', 'global')
             .gte('event_date', now)
             .order('event_date', { ascending: true })
             .limit(10);

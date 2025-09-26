@@ -119,16 +119,55 @@ export function useNotifications() {
       }
 
       // 2. Fetch Ukumbi notifications
-      const ukumbiLastVisit = lastVisits.ukumbi || new Date().toISOString();
+      // Use a default timestamp of 24 hours ago if no last visit is recorded
+      const defaultLastVisit = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const ukumbiLastVisit = lastVisits.ukumbi || defaultLastVisit;
+      console.log('Ukumbi notification debug:', {
+        hasClasses: !!profile.classes,
+        universityId: profile.classes?.university_id,
+        userId: user.id,
+        ukumbiLastVisit,
+        lastVisits
+      });
+      
       if (profile.classes?.university_id) {
-        const { count: ukumbiCount } = await supabase
+        // First, let's check if the messages table exists and has the right structure
+        const { data: sampleMessages, error: sampleError } = await supabase
+          .from('messages')
+          .select('*')
+          .limit(1);
+        
+        console.log('Messages table sample:', { sampleMessages, sampleError });
+        
+        const { count: ukumbiCount, error: ukumbiError } = await supabase
           .from('messages')
           .select('*', { count: 'exact', head: true })
           .eq('university_id', profile.classes.university_id)
           .neq('user_id', user.id) // Exclude user's own messages
           .gt('created_at', ukumbiLastVisit);
-        newNotifications.ukumbi = ukumbiCount || 0;
+        
+        // Also try a simpler query to see if there are any messages at all
+        const { count: totalMessages, error: totalError } = await supabase
+          .from('messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('university_id', profile.classes.university_id);
+        
+        console.log('Total messages in university:', { totalMessages, totalError });
+        
+        // For testing: show all messages from other users (not just recent ones)
+        const { count: allOtherMessages, error: allOtherError } = await supabase
+          .from('messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('university_id', profile.classes.university_id)
+          .neq('user_id', user.id);
+        
+        console.log('All messages from other users:', { allOtherMessages, allOtherError });
+        console.log('Ukumbi query result (recent):', { ukumbiCount, ukumbiError });
+        
+        // Use all other messages for now (for testing)
+        newNotifications.ukumbi = allOtherMessages || 0;
       } else {
+        console.log('No university_id found for Ukumbi notifications');
         newNotifications.ukumbi = 0;
       }
 
@@ -202,6 +241,7 @@ export function useNotifications() {
       }
       */
 
+      console.log('Final notifications state:', newNotifications);
       setNotifications(newNotifications);
     } catch (error) {
       console.error('Error fetching notifications:', error);

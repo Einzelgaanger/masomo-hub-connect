@@ -112,7 +112,10 @@ export function Sidebar({ profile }: SidebarProps) {
                     >
                       <div className="relative">
                         <MasomoIcon className="h-4 w-4" />
-                        <NotificationBadge count={notifications.masomo} />
+                        <NotificationBadge 
+                          count={notifications.masomo} 
+                          onClick={() => navigate('/units')}
+                        />
                       </div>
                       <span>Masomo</span>
                     </NavLink>
@@ -127,7 +130,10 @@ export function Sidebar({ profile }: SidebarProps) {
                     >
                       <div className="relative">
                         <MessageCircle className="h-4 w-4" />
-                        <NotificationBadge count={notifications.ukumbi} />
+                        <NotificationBadge 
+                          count={notifications.ukumbi} 
+                          onClick={() => navigate('/ukumbi')}
+                        />
                       </div>
                       <span>Ukumbi</span>
                     </NavLink>
@@ -142,7 +148,10 @@ export function Sidebar({ profile }: SidebarProps) {
                     >
                       <div className="relative">
                         <Calendar className="h-4 w-4" />
-                        <NotificationBadge count={notifications.tukio} />
+                        <NotificationBadge 
+                          count={notifications.tukio} 
+                          onClick={() => navigate('/events')}
+                        />
                       </div>
                       <span>Tukio</span>
                     </NavLink>
@@ -157,7 +166,10 @@ export function Sidebar({ profile }: SidebarProps) {
                     >
                       <div className="relative">
                         <Briefcase className="h-4 w-4" />
-                        <NotificationBadge count={notifications.ajira} />
+                        <NotificationBadge 
+                          count={notifications.ajira} 
+                          onClick={() => navigate('/ajira')}
+                        />
                       </div>
                       <span>Ajira</span>
                     </NavLink>
@@ -172,7 +184,10 @@ export function Sidebar({ profile }: SidebarProps) {
                     >
                       <div className="relative">
                         <Mail className="h-4 w-4" />
-                        <NotificationBadge count={notifications.inbox} />
+                        <NotificationBadge 
+                          count={notifications.inbox} 
+                          onClick={() => navigate('/inbox')}
+                        />
                       </div>
                       <span>Inbox</span>
                     </NavLink>
@@ -187,7 +202,10 @@ export function Sidebar({ profile }: SidebarProps) {
                     >
                       <div className="relative">
                         <Users className="h-4 w-4" />
-                        <NotificationBadge count={notifications.alumni} />
+                        <NotificationBadge 
+                          count={notifications.alumni} 
+                          onClick={() => navigate('/alumni')}
+                        />
                       </div>
                       <span>Alumni</span>
                     </NavLink>

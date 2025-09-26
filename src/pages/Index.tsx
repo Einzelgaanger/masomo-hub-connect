@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { Link, Navigate } from "react-router-dom";
-import { GraduationCap, BookOpen, Users, Trophy, ArrowRight, Shield, Star, Zap, Target, MessageCircle, Upload, Calendar, TrendingUp, Award, Sparkles, Play, Facebook, Twitter, Instagram, Linkedin } from "lucide-react";
+import { GraduationCap, BookOpen, Users, Trophy, ArrowRight, Shield, Star, Zap, Target, MessageCircle, Upload, Calendar, TrendingUp, Award, Sparkles, Play, Facebook, Twitter, Instagram, Linkedin, LogIn } from "lucide-react";
 import Logo from "@/components/ui/Logo";
 import { CHARACTERS } from "@/data/characters";
 
@@ -69,17 +69,25 @@ const Index = () => {
               Share, learn, and grow together with your classmates.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-8 sm:mb-12 animate-slide-up animation-delay-400 px-4">
-          <Link to="/login?mode=signup">
-            <Button size="lg" className="w-full sm:w-auto gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg fredoka-semibold">
-              Start Learning <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
-            </Button>
-          </Link>
-          <Link to="/login?mode=signin">
+              <Link to="/login?mode=signup">
+                <Button size="lg" className="w-full sm:w-auto gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg fredoka-semibold">
+                  Start Learning <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
+                </Button>
+              </Link>
+              <Link to="/login?mode=signin">
                 <Button size="lg" variant="outline" className="w-full sm:w-auto gap-2 border-2 border-gray-300 hover:scale-105 hover:border-gray-300 hover:text-gray-700 hover:bg-transparent transition-transform duration-200 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg fredoka-medium">
                   <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
                   Sign In
                 </Button>
               </Link>
+              {import.meta.env.DEV && (
+                <Link to="/mylogin">
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto gap-2 border-2 border-green-300 hover:scale-105 hover:border-green-400 hover:text-green-700 hover:bg-green-50 transition-transform duration-200 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg fredoka-medium">
+                    <LogIn className="h-4 w-4 sm:h-5 sm:w-5" />
+                    My Login
+                  </Button>
+                </Link>
+              )}
             </div>
 
             {/* Stats - Mobile Optimized */}

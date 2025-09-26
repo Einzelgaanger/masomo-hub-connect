@@ -161,7 +161,10 @@ const UnitPage = () => {
                   >
                     <div className="relative">
                       <FileText className="h-4 w-4" />
-                      <NotificationBadge count={notifications.unitTabs[unitId || '']?.notes || 0} />
+                      <NotificationBadge 
+                        count={notifications.unitTabs[unitId || '']?.notes || 0} 
+                        onClick={() => setActiveTab('notes')}
+                      />
                     </div>
                     <span>Notes</span>
                   </TabsTrigger>
@@ -171,7 +174,10 @@ const UnitPage = () => {
                   >
                     <div className="relative">
                       <BookOpen className="h-4 w-4" />
-                      <NotificationBadge count={notifications.unitTabs[unitId || '']?.pastPapers || 0} />
+                      <NotificationBadge 
+                        count={notifications.unitTabs[unitId || '']?.pastPapers || 0} 
+                        onClick={() => setActiveTab('past-papers')}
+                      />
                     </div>
                     <span>Past Papers</span>
                   </TabsTrigger>
@@ -181,7 +187,10 @@ const UnitPage = () => {
                   >
                     <div className="relative">
                       <ClipboardList className="h-4 w-4" />
-                      <NotificationBadge count={notifications.unitTabs[unitId || '']?.assignments || 0} />
+                      <NotificationBadge 
+                        count={notifications.unitTabs[unitId || '']?.assignments || 0} 
+                        onClick={() => setActiveTab('assignments')}
+                      />
                     </div>
                     <span>Assignments</span>
                   </TabsTrigger>
@@ -191,7 +200,10 @@ const UnitPage = () => {
                   >
                     <div className="relative">
                       <Calendar className="h-4 w-4" />
-                      <NotificationBadge count={notifications.unitTabs[unitId || '']?.events || 0} />
+                      <NotificationBadge 
+                        count={notifications.unitTabs[unitId || '']?.events || 0} 
+                        onClick={() => setActiveTab('events')}
+                      />
                     </div>
                     <span>Events</span>
                   </TabsTrigger>
