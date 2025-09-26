@@ -180,14 +180,14 @@ export function ClassManagementSection() {
   const fetchApplications = async (classId: string) => {
     setLoadingApplications(true);
     try {
-      const { data, error } = await supabase
+      // Try to fetch from applications table first
+      let { data, error } = await supabase
         .from('applications')
         .select(`
           id,
           user_id,
           full_name,
           admission_number,
-          email,
           status,
           created_at,
           updated_at,
@@ -199,16 +199,33 @@ export function ClassManagementSection() {
         .eq('class_id', classId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      // If applications table doesn't exist, try admin_applications_view
+      if (error && error.code === 'PGRST116') {
+        const { data: viewData, error: viewError } = await supabase
+          .from('admin_applications_view')
+          .select('*')
+          .eq('class_id', classId)
+          .order('created_at', { ascending: false });
+        
+        if (viewError) throw viewError;
+        data = viewData;
+      } else if (error) {
+        throw error;
+      }
 
-      // setApplications(data || []);
+      setApplications(data || []);
     } catch (error) {
       console.error('Error fetching applications:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch applications.",
-        variant: "destructive",
-      });
+      // Don't show error toast for missing table, just log it
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'PGRST116') {
+        console.log('Applications table not found, skipping applications fetch');
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to fetch applications.",
+          variant: "destructive",
+        });
+      }
       setApplications([]);
     } finally {
       setLoadingApplications(false);
@@ -261,7 +278,7 @@ export function ClassManagementSection() {
           // Get the application details first
           const { data: application } = await supabase
             .from('applications')
-            .select('user_id, full_name, email, admission_number, class_id')
+            .select('user_id, full_name, admission_number, class_id')
             .eq('id', applicationId)
             .single();
 
@@ -283,7 +300,7 @@ export function ClassManagementSection() {
               .insert({
                 user_id: application.user_id,
                 full_name: application.full_name,
-                email: application.email,
+                email: '', // Email will be updated from user profile
                 admission_number: application.admission_number,
                 class_id: application.class_id,
                 role: 'student',
@@ -1075,7 +1092,6 @@ export function ClassManagementSection() {
                                 </div>
                                 <h4 className="font-semibold text-lg">{application.full_name}</h4>
                                 <div className="space-y-1 text-sm text-gray-600">
-                                  <p><strong>Email:</strong> {application.email || 'Not provided'}</p>
                                   <p><strong>Admission Number:</strong> {application.admission_number}</p>
                                   <p><strong>User ID:</strong> {application.user_id}</p>
                                 </div>

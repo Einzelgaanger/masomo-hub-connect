@@ -58,16 +58,42 @@ export default function Units() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSemester, setSelectedSemester] = useState("all");
   const [selectedYear, setSelectedYear] = useState("all");
+  const [application, setApplication] = useState<any>(null);
+  const [showApplicationForm, setShowApplicationForm] = useState(false);
 
   useEffect(() => {
     if (user) {
       fetchUnits();
+      fetchApplicationStatus();
     }
   }, [user]);
 
   useEffect(() => {
     filterUnits();
   }, [units, searchQuery, selectedSemester, selectedYear]);
+
+  const fetchApplicationStatus = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('applications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching application status:', error);
+        return;
+      }
+
+      setApplication(data);
+    } catch (error) {
+      console.error('Error fetching application status:', error);
+    }
+  };
 
   const fetchUnits = async () => {
     try {
@@ -292,6 +318,66 @@ export default function Units() {
           </div>
         </div>
 
+        {/* Application Status */}
+        {application && (
+          <Card className="border-l-4 border-l-blue-500">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 rounded-full">
+                    <GraduationCap className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">Application Status</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {application.status === 'pending' && 'Your application is under review'}
+                      {application.status === 'approved' && 'Your application has been approved!'}
+                      {application.status === 'rejected' && 'Your application was not approved'}
+                    </p>
+                  </div>
+                </div>
+                <Badge 
+                  variant={application.status === 'approved' ? 'default' : 
+                          application.status === 'pending' ? 'secondary' : 'destructive'}
+                  className="text-sm"
+                >
+                  {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
+                </Badge>
+              </div>
+              {application.status === 'rejected' && application.rejection_reason && (
+                <div className="mt-3 p-3 bg-red-50 rounded-md">
+                  <p className="text-sm text-red-700">
+                    <strong>Reason:</strong> {application.rejection_reason}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* No Units - Apply Button */}
+        {units.length === 0 && !application && (
+          <Card className="text-center py-12">
+            <CardContent>
+              <div className="max-w-md mx-auto">
+                <div className="p-4 bg-blue-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                  <GraduationCap className="h-8 w-8 text-blue-600" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">No Units Yet</h3>
+                <p className="text-muted-foreground mb-6">
+                  You need to apply for your class to access units and course materials.
+                </p>
+                <Button 
+                  onClick={() => setShowApplicationForm(true)}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Apply for Your Class
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Filters */}
         <Card>
           <CardHeader>
@@ -467,7 +553,253 @@ export default function Units() {
             </CardContent>
           </Card>
         )}
+
+        {/* Application Form Modal */}
+        {showApplicationForm && (
+          <ApplicationForm 
+            onClose={() => setShowApplicationForm(false)}
+            onSuccess={() => {
+              setShowApplicationForm(false);
+              fetchApplicationStatus();
+            }}
+          />
+        )}
       </div>
     </AppLayout>
+  );
+}
+
+// Application Form Component
+interface ApplicationFormProps {
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+function ApplicationForm({ onClose, onSuccess }: ApplicationFormProps) {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [countries, setCountries] = useState<any[]>([]);
+  const [universities, setUniversities] = useState<any[]>([]);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [selectedCountry, setSelectedCountry] = useState('');
+  const [selectedUniversity, setSelectedUniversity] = useState('');
+  const [selectedClass, setSelectedClass] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [admissionNumber, setAdmissionNumber] = useState('');
+
+  useEffect(() => {
+    fetchCountries();
+  }, []);
+
+  const fetchCountries = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('countries')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      setCountries(data || []);
+    } catch (error) {
+      console.error('Error fetching countries:', error);
+    }
+  };
+
+  const fetchUniversities = async (countryId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('universities')
+        .select('*')
+        .eq('country_id', countryId)
+        .order('name');
+      
+      if (error) throw error;
+      setUniversities(data || []);
+    } catch (error) {
+      console.error('Error fetching universities:', error);
+    }
+  };
+
+  const fetchClasses = async (universityId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('classes')
+        .select('*')
+        .eq('university_id', universityId)
+        .order('course_name');
+      
+      if (error) throw error;
+      setClasses(data || []);
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user || !selectedClass || !fullName.trim() || !admissionNumber.trim()) {
+      toast({
+        title: "Error",
+        description: "Please fill in all fields and select your class.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('applications')
+        .insert({
+          user_id: user.id,
+          class_id: selectedClass,
+          full_name: fullName.trim(),
+          admission_number: admissionNumber.trim(),
+          status: 'pending'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Application Submitted!",
+        description: "Your application has been sent to the admin for approval. You will be notified once it's reviewed.",
+      });
+
+      onSuccess();
+    } catch (error: any) {
+      console.error('Error submitting application:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to submit application. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Apply for Your Class</CardTitle>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              ✕
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Full Name</label>
+                <Input
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Enter your full name"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Admission Number</label>
+                <Input
+                  value={admissionNumber}
+                  onChange={(e) => setAdmissionNumber(e.target.value)}
+                  placeholder="Enter your admission number"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Country</label>
+              <select
+                value={selectedCountry}
+                onChange={(e) => {
+                  setSelectedCountry(e.target.value);
+                  setSelectedUniversity('');
+                  setSelectedClass('');
+                  if (e.target.value) {
+                    fetchUniversities(e.target.value);
+                  }
+                }}
+                className="w-full p-2 border border-gray-300 rounded-md"
+                required
+              >
+                <option value="">Select Country</option>
+                {countries.map((country) => (
+                  <option key={country.id} value={country.id}>
+                    {country.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">University</label>
+              <select
+                value={selectedUniversity}
+                onChange={(e) => {
+                  setSelectedUniversity(e.target.value);
+                  setSelectedClass('');
+                  if (e.target.value) {
+                    fetchClasses(e.target.value);
+                  }
+                }}
+                className="w-full p-2 border border-gray-300 rounded-md"
+                required
+                disabled={!selectedCountry}
+              >
+                <option value="">Select University</option>
+                {universities.map((university) => (
+                  <option key={university.id} value={university.id}>
+                    {university.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Class</label>
+              <select
+                value={selectedClass}
+                onChange={(e) => setSelectedClass(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md"
+                required
+                disabled={!selectedUniversity}
+              >
+                <option value="">Select Class</option>
+                {classes.map((cls) => (
+                  <option key={cls.id} value={cls.id}>
+                    {cls.course_name} - Year {cls.course_year}, Sem {cls.semester} ({cls.course_group})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={loading}
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+              >
+                {loading ? "Submitting..." : "Submit Application"}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

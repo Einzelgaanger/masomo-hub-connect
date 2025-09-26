@@ -151,14 +151,9 @@ export const logSecurityEvent = (event: string, details: any, level: keyof typeo
   
   // In production, send to logging service
   if (process.env.NODE_ENV === 'production') {
-    // Send to security monitoring service
-    fetch('/api/security/log', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(logEntry),
-    }).catch(() => {
-      // Silent fail for logging
-    });
+    // Send to security monitoring service (only if endpoint exists)
+    // For now, just log to console in production
+    console.log(`[SECURITY ${level}]`, logEntry);
   }
 };
 

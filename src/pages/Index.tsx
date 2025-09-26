@@ -223,7 +223,7 @@ const Index = () => {
                     <div className="bg-white rounded-lg p-3 shadow-md border border-gray-100">
                       <h3 className="text-sm font-semibold text-gray-800 fredoka-semibold mb-1">{character.name}</h3>
                       <p className="text-xs text-gray-500 fredoka-medium">
-                        {character.unlockRequirements.find(req => req.type === 'points')?.value || 0} pts
+                        Rank #{character.rank} • {character.unlockRequirements.find(req => req.type === 'points')?.value || 0} pts
                       </p>
                       <Badge 
                         variant="outline" 
@@ -257,7 +257,7 @@ const Index = () => {
                     <div className="bg-white rounded-lg p-3 shadow-md border border-gray-100">
                       <h3 className="text-sm font-semibold text-gray-800 fredoka-semibold mb-1">{character.name}</h3>
                       <p className="text-xs text-gray-500 fredoka-medium">
-                        {character.unlockRequirements.find(req => req.type === 'points')?.value || 0} pts
+                        Rank #{character.rank} • {character.unlockRequirements.find(req => req.type === 'points')?.value || 0} pts
                       </p>
                       <Badge 
                         variant="outline" 

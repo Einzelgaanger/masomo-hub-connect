@@ -33,13 +33,12 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
   const currentCharacter = getCharacterByPoints(currentPoints);
   const currentCharacterData = CHARACTERS.find(c => c.id === currentCharacterId) || currentCharacter;
 
-  const sortedCharacters = CHARACTERS.sort((a, b) => {
-    const aPoints = a.unlockRequirements.find(req => req.type === 'points')?.value || 0;
-    const bPoints = b.unlockRequirements.find(req => req.type === 'points')?.value || 0;
-    return aPoints - bPoints;
-  });
+  const sortedCharacters = CHARACTERS.sort((a, b) => a.rank - b.rank);
 
-  const unlockedCount = CHARACTERS.filter(char => char.pointsRequired <= currentPoints).length;
+  const unlockedCount = CHARACTERS.filter(char => {
+    const pointsReq = char.unlockRequirements.find(req => req.type === 'points');
+    return pointsReq ? currentPoints >= pointsReq.value : true;
+  }).length;
   const totalCount = CHARACTERS.length;
 
   return (
@@ -73,7 +72,8 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
       {/* Characters Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {sortedCharacters.map((character) => {
-          const isUnlocked = character.pointsRequired <= currentPoints;
+          const pointsReq = character.unlockRequirements.find(req => req.type === 'points');
+          const isUnlocked = pointsReq ? currentPoints >= pointsReq.value : true;
           const isCurrentCharacter = character.id === currentCharacterData.id;
           
           return (
@@ -92,50 +92,35 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
         })}
       </div>
 
-      {/* Progress to Next Character */}
-      {currentCharacterData && currentCharacterData.rank < CHARACTERS.length && (
+      {/* Character Progress */}
+      {currentCharacterData && (
         <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Progress to Next Character</h3>
-          {(() => {
-            const nextCharacter = CHARACTERS.find(c => c.rank === currentCharacterData.rank + 1);
-            if (!nextCharacter) return null;
-            
-            const pointsNeeded = nextCharacter.pointsRequired - currentPoints;
-            const progress = (currentPoints / nextCharacter.pointsRequired) * 100;
-            
-            return (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={nextCharacter.image}
-                      alt={nextCharacter.name}
-                      className="w-12 h-12 object-contain rounded-lg border-2 border-gray-300 grayscale"
-                    />
-                    <div>
-                      <div className="font-semibold text-gray-900">{nextCharacter.name}</div>
-                      <div className="text-sm text-gray-600">{nextCharacter.category} • {nextCharacter.pointsRequired.toLocaleString()} points</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-blue-600">{pointsNeeded.toLocaleString()}</div>
-                    <div className="text-sm text-gray-600">points needed</div>
-                  </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Current Character</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <img
+                  src={currentCharacterData.image}
+                  alt={currentCharacterData.name}
+                  className="w-12 h-12 object-contain rounded-lg border-2 border-gray-300"
+                />
+                <div>
+                  <div className="font-semibold text-gray-900">{currentCharacterData.name}</div>
+                  <div className="text-sm text-gray-600">{currentCharacterData.rarity} • {currentCharacterData.category}</div>
                 </div>
-                
-                <div className="bg-gray-200 rounded-full h-3">
-                  <div 
-                    className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min(progress, 100)}%` }}
-                  />
-                </div>
-                
-                <p className="text-sm text-gray-600">
-                  {nextCharacter.description}
-                </p>
               </div>
-            );
-          })()}
+              <div className="text-right">
+                <div className="text-lg font-bold text-blue-600">{currentPoints.toLocaleString()}</div>
+                <div className="text-sm text-gray-600">total points</div>
+              </div>
+            </div>
+            
+            <div className="text-center">
+              <p className="text-sm text-gray-600">
+                {currentCharacterData.description}
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </div>

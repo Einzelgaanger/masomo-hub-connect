@@ -1,5 +1,5 @@
 import React from 'react';
-import { Character } from '../../types/characters';
+import { Character } from '../../types/gamification';
 import { Badge } from './badge';
 import { Card, CardContent, CardHeader, CardTitle } from './card';
 import { CheckCircle, Lock, Star, Trophy } from 'lucide-react';
@@ -12,34 +12,38 @@ interface CharacterCardProps {
   onClick?: () => void;
 }
 
-const getCategoryColor = (category: Character['category']): string => {
-  switch (category) {
-    case 'starter':
+const getRarityColor = (rarity: Character['rarity']): string => {
+  switch (rarity) {
+    case 'common':
       return 'bg-gray-100 text-gray-800 border-gray-300';
-    case 'intermediate':
+    case 'uncommon':
+      return 'bg-green-100 text-green-800 border-green-300';
+    case 'rare':
       return 'bg-blue-100 text-blue-800 border-blue-300';
-    case 'advanced':
+    case 'epic':
       return 'bg-purple-100 text-purple-800 border-purple-300';
     case 'legendary':
       return 'bg-orange-100 text-orange-800 border-orange-300';
-    case 'ultimate':
-      return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+    case 'mythic':
+      return 'bg-red-100 text-red-800 border-red-300';
     default:
       return 'bg-gray-100 text-gray-800 border-gray-300';
   }
 };
 
-const getCategoryIcon = (category: Character['category']) => {
-  switch (category) {
-    case 'starter':
+const getRarityIcon = (rarity: Character['rarity']) => {
+  switch (rarity) {
+    case 'common':
       return <Star className="h-3 w-3" />;
-    case 'intermediate':
+    case 'uncommon':
       return <Star className="h-3 w-3" />;
-    case 'advanced':
+    case 'rare':
+      return <Trophy className="h-3 w-3" />;
+    case 'epic':
       return <Trophy className="h-3 w-3" />;
     case 'legendary':
       return <Trophy className="h-3 w-3" />;
-    case 'ultimate':
+    case 'mythic':
       return <Trophy className="h-3 w-3" />;
     default:
       return <Star className="h-3 w-3" />;
@@ -53,8 +57,9 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
   isCurrentCharacter,
   onClick
 }) => {
-  const categoryColor = getCategoryColor(character.category);
-  const pointsNeeded = character.pointsRequired - currentPoints;
+  const rarityColor = getRarityColor(character.rarity);
+  const pointsReq = character.unlockRequirements.find(req => req.type === 'points');
+  const pointsNeeded = pointsReq ? pointsReq.value - currentPoints : 0;
 
   return (
     <Card 
@@ -84,9 +89,9 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
         </div>
         
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className={categoryColor}>
-            {getCategoryIcon(character.category)}
-            <span className="ml-1 capitalize">{character.category}</span>
+          <Badge variant="outline" className={rarityColor}>
+            {getRarityIcon(character.rarity)}
+            <span className="ml-1 capitalize">{character.rarity}</span>
           </Badge>
           <Badge variant="secondary">
             Rank #{character.rank}
@@ -122,37 +127,42 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-medium text-gray-700">Points Required:</span>
               <span className={`text-sm font-bold ${isUnlocked ? 'text-green-600' : 'text-gray-500'}`}>
-                {character.pointsRequired.toLocaleString()}
+                {pointsReq?.value.toLocaleString() || 'N/A'}
               </span>
             </div>
             
-            {!isUnlocked && pointsNeeded > 0 && (
+            {!isUnlocked && pointsNeeded > 0 && pointsReq && (
               <div className="bg-gray-100 rounded-full h-2">
                 <div 
                   className="bg-blue-500 h-2 rounded-full transition-all duration-300"
                   style={{ 
-                    width: `${Math.min((currentPoints / character.pointsRequired) * 100, 100)}%` 
+                    width: `${Math.min((currentPoints / pointsReq.value) * 100, 100)}%` 
                   }}
                 />
               </div>
             )}
             
-            {!isUnlocked && (
+            {!isUnlocked && pointsNeeded > 0 && (
               <p className="text-xs text-gray-500 mt-1 text-center">
                 {pointsNeeded.toLocaleString()} more points needed
               </p>
             )}
           </div>
 
-          {/* Special Traits */}
+          {/* Special Abilities */}
           <div className="w-full">
-            <p className="text-xs font-medium text-gray-700 mb-2">Special Traits:</p>
+            <p className="text-xs font-medium text-gray-700 mb-2">Special Abilities:</p>
             <div className="flex flex-wrap gap-1">
-              {character.specialTraits.map((trait, index) => (
+              {character.specialAbilities.slice(0, 3).map((ability, index) => (
                 <Badge key={index} variant="secondary" className="text-xs">
-                  {trait}
+                  {ability}
                 </Badge>
               ))}
+              {character.specialAbilities.length > 3 && (
+                <Badge variant="secondary" className="text-xs">
+                  +{character.specialAbilities.length - 3} more
+                </Badge>
+              )}
             </div>
           </div>
         </div>

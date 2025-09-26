@@ -44,14 +44,21 @@ const ApplicationStatus = () => {
     try {
       setLoading(true);
       
-      // Temporarily use any type until Supabase types update
-      const { data, error } = await (supabase as any)
+      // Try to fetch from applications table
+      let { data, error } = await supabase
         .from('applications')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
+
+      // If applications table doesn't exist, handle gracefully
+      if (error && error.code === 'PGRST116') {
+        console.log('Applications table not found, redirecting to class selection');
+        navigate('/class-selection');
+        return;
+      }
 
       if (error) {
         if (error.code === 'PGRST116') {

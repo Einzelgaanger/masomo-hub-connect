@@ -186,8 +186,8 @@ const ClassSelection = () => {
 
     setSubmitting(true);
     try {
-      // Temporarily use any type until Supabase types update
-      const { error } = await (supabase as any)
+      // Insert application
+      const { error } = await supabase
         .from('applications')
         .insert({
           user_id: user.id,

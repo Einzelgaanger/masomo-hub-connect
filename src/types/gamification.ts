@@ -6,6 +6,7 @@ export interface Character {
   image: string;
   rarity: CharacterRarity;
   tier: CharacterTier;
+  rank: number;
   unlockRequirements: UnlockRequirement[];
   baseStats: CharacterStats;
   specialAbilities: string[];
