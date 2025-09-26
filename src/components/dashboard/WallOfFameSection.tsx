@@ -57,14 +57,14 @@ export function WallOfFameSection() {
         }
 
         // Use simplified query to avoid inner join issues
-        const { data: simpleData, error: simpleError } = await supabase
+        const { data: simpleData, error: simpleDataError } = await supabase
           .from('profiles')
           .select('*')
           .eq('class_id', simpleProfile.class_id)
           .order('points', { ascending: false })
           .limit(30);
 
-        if (simpleError) throw simpleError;
+        if (simpleDataError) throw simpleDataError;
 
         // Manually fetch class and university data for each profile
         const profilesWithClasses = await Promise.all(
@@ -115,13 +115,13 @@ export function WallOfFameSection() {
 
         if (error) {
           console.warn('Full global query failed, trying simplified query:', error);
-          const { data: simpleData, error: simpleError } = await supabase
+          const { data: simpleData, error: simpleDataError2 } = await supabase
             .from('profiles')
             .select('*')
             .order('points', { ascending: false })
             .limit(30);
 
-          if (simpleError) throw simpleError;
+          if (simpleDataError2) throw simpleDataError2;
 
           // Manually fetch class and university data for each profile
           const profilesWithClasses = await Promise.all(

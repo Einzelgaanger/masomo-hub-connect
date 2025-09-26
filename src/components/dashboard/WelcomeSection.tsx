@@ -2,9 +2,26 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Crown, Star, Flame } from "lucide-react";
 import { useProfile } from "@/components/layout/AppLayout";
-import { getCharacterByPoints } from "@/types/characters";
+import { CHARACTERS } from "@/data/characters";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
+
+// Helper function to get character by points using new system
+const getCharacterByPoints = (points: number) => {
+  // Sort characters by points required and find the highest one the user can unlock
+  const availableCharacters = CHARACTERS
+    .filter(char => {
+      const pointsReq = char.unlockRequirements.find(req => req.type === 'points');
+      return pointsReq ? points >= pointsReq.value : true;
+    })
+    .sort((a, b) => {
+      const aPoints = a.unlockRequirements.find(req => req.type === 'points')?.value || 0;
+      const bPoints = b.unlockRequirements.find(req => req.type === 'points')?.value || 0;
+      return aPoints - bPoints;
+    });
+  
+  return availableCharacters[availableCharacters.length - 1] || CHARACTERS[0];
+};
 
 export function WelcomeSection() {
   const profile = useProfile();

@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Link, Navigate } from "react-router-dom";
 import { GraduationCap, BookOpen, Users, Trophy, ArrowRight, Shield, Star, Zap, Target, MessageCircle, Upload, Calendar, TrendingUp, Award, Sparkles, Play, Facebook, Twitter, Instagram, Linkedin } from "lucide-react";
 import Logo from "@/components/ui/Logo";
-import { CHARACTERS } from "@/types/characters";
+import { CHARACTERS } from "@/data/characters";
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -222,18 +222,21 @@ const Index = () => {
                     </div>
                     <div className="bg-white rounded-lg p-3 shadow-md border border-gray-100">
                       <h3 className="text-sm font-semibold text-gray-800 fredoka-semibold mb-1">{character.name}</h3>
-                      <p className="text-xs text-gray-500 fredoka-medium">{character.pointsRequired} pts</p>
+                      <p className="text-xs text-gray-500 fredoka-medium">
+                        {character.unlockRequirements.find(req => req.type === 'points')?.value || 0} pts
+                      </p>
                       <Badge 
                         variant="outline" 
                         className={`text-xs mt-2 ${
-                          character.category === 'ultimate' ? 'border-yellow-400 text-yellow-600' :
-                          character.category === 'legendary' ? 'border-orange-400 text-orange-600' :
-                          character.category === 'advanced' ? 'border-purple-400 text-purple-600' :
-                          character.category === 'intermediate' ? 'border-blue-400 text-blue-600' :
+                          character.rarity === 'mythic' ? 'border-red-400 text-red-600' :
+                          character.rarity === 'legendary' ? 'border-orange-400 text-orange-600' :
+                          character.rarity === 'epic' ? 'border-purple-400 text-purple-600' :
+                          character.rarity === 'rare' ? 'border-blue-400 text-blue-600' :
+                          character.rarity === 'uncommon' ? 'border-green-400 text-green-600' :
                           'border-gray-400 text-gray-600'
                         }`}
                       >
-                        {character.category}
+                        {character.rarity}
                       </Badge>
                     </div>
                   </div>
@@ -253,18 +256,21 @@ const Index = () => {
                     </div>
                     <div className="bg-white rounded-lg p-3 shadow-md border border-gray-100">
                       <h3 className="text-sm font-semibold text-gray-800 fredoka-semibold mb-1">{character.name}</h3>
-                      <p className="text-xs text-gray-500 fredoka-medium">{character.pointsRequired} pts</p>
+                      <p className="text-xs text-gray-500 fredoka-medium">
+                        {character.unlockRequirements.find(req => req.type === 'points')?.value || 0} pts
+                      </p>
                       <Badge 
                         variant="outline" 
                         className={`text-xs mt-2 ${
-                          character.category === 'ultimate' ? 'border-yellow-400 text-yellow-600' :
-                          character.category === 'legendary' ? 'border-orange-400 text-orange-600' :
-                          character.category === 'advanced' ? 'border-purple-400 text-purple-600' :
-                          character.category === 'intermediate' ? 'border-blue-400 text-blue-600' :
+                          character.rarity === 'mythic' ? 'border-red-400 text-red-600' :
+                          character.rarity === 'legendary' ? 'border-orange-400 text-orange-600' :
+                          character.rarity === 'epic' ? 'border-purple-400 text-purple-600' :
+                          character.rarity === 'rare' ? 'border-blue-400 text-blue-600' :
+                          character.rarity === 'uncommon' ? 'border-green-400 text-green-600' :
                           'border-gray-400 text-gray-600'
                         }`}
                       >
-                        {character.category}
+                        {character.rarity}
                       </Badge>
                     </div>
                   </div>

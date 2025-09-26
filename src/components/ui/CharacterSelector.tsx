@@ -1,5 +1,6 @@
 import React from 'react';
-import { CHARACTERS, Character, getCharacterByPoints } from '../../types/characters';
+import { CHARACTERS } from '../../data/characters';
+import { Character } from '../../types/gamification';
 import { CharacterCard } from './CharacterCard';
 import { Trophy, Star } from 'lucide-react';
 import { Badge } from './badge';
@@ -9,6 +10,22 @@ interface CharacterSelectorProps {
   currentCharacterId?: string;
 }
 
+// Helper function to get character by points using new system
+const getCharacterByPoints = (points: number) => {
+  const availableCharacters = CHARACTERS
+    .filter(char => {
+      const pointsReq = char.unlockRequirements.find(req => req.type === 'points');
+      return pointsReq ? points >= pointsReq.value : true;
+    })
+    .sort((a, b) => {
+      const aPoints = a.unlockRequirements.find(req => req.type === 'points')?.value || 0;
+      const bPoints = b.unlockRequirements.find(req => req.type === 'points')?.value || 0;
+      return aPoints - bPoints;
+    });
+  
+  return availableCharacters[availableCharacters.length - 1] || CHARACTERS[0];
+};
+
 export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
   currentPoints,
   currentCharacterId
@@ -16,7 +33,11 @@ export const CharacterSelector: React.FC<CharacterSelectorProps> = ({
   const currentCharacter = getCharacterByPoints(currentPoints);
   const currentCharacterData = CHARACTERS.find(c => c.id === currentCharacterId) || currentCharacter;
 
-  const sortedCharacters = CHARACTERS.sort((a, b) => a.rank - b.rank);
+  const sortedCharacters = CHARACTERS.sort((a, b) => {
+    const aPoints = a.unlockRequirements.find(req => req.type === 'points')?.value || 0;
+    const bPoints = b.unlockRequirements.find(req => req.type === 'points')?.value || 0;
+    return aPoints - bPoints;
+  });
 
   const unlockedCount = CHARACTERS.filter(char => char.pointsRequired <= currentPoints).length;
   const totalCount = CHARACTERS.length;
