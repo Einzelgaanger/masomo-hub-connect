@@ -234,9 +234,9 @@ export function ClassManagementSection() {
 
   const handleApplicationAction = async (applicationId: string, action: 'approve' | 'reject') => {
     try {
-      // Check if admin is logged in (using sessionStorage)
-      const adminSession = sessionStorage.getItem('admin_session');
-      if (!adminSession) {
+      // Check if admin is logged in by checking the current user's role
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
         toast({
           title: "Error",
           description: "Admin authentication required.",
@@ -245,7 +245,21 @@ export function ClassManagementSection() {
         return;
       }
 
-      // Admin authentication verified via sessionStorage
+      // Verify admin role
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profileError || !profile || (profile.role !== 'admin' && profile.role !== 'super_admin')) {
+        toast({
+          title: "Error",
+          description: "Admin privileges required.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       // Map action to correct status values
       const status = action === 'approve' ? 'approved' : 'rejected';
