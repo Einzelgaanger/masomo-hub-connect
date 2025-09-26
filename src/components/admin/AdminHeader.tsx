@@ -16,14 +16,51 @@ export function AdminHeader({ profile }: AdminHeaderProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleLogout = () => {
-    // Clear admin session
-    sessionStorage.removeItem('admin_session');
-    navigate("/");
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out.",
-    });
+  const handleLogout = async () => {
+    try {
+      // Clear all storage immediately
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Try multiple logout methods for OAuth
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (e) {
+        console.log('Global logout failed, trying local:', e);
+        try {
+          await supabase.auth.signOut();
+        } catch (e2) {
+          console.log('Local logout also failed:', e2);
+        }
+      }
+      
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out.",
+      });
+      
+      // Force complete page reload to clear all state
+      setTimeout(() => {
+        window.location.replace("/");
+      }, 100);
+      
+    } catch (error) {
+      console.error('Admin logout error:', error);
+      
+      // Clear everything and force reload
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      toast({
+        title: "Logged out",
+        description: "You have been logged out.",
+      });
+      
+      // Force complete page reload
+      setTimeout(() => {
+        window.location.replace("/");
+      }, 100);
+    }
   };
 
   const getRoleBadgeColor = (role: string) => {

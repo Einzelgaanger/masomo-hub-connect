@@ -74,20 +74,6 @@ const Index = () => {
                   Start Learning <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Button>
               </Link>
-              <Link to="/login?mode=signin">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto gap-2 border-2 border-gray-300 hover:scale-105 hover:border-gray-300 hover:text-gray-700 hover:bg-transparent transition-transform duration-200 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg fredoka-medium">
-                  <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
-                  Sign In
-                </Button>
-              </Link>
-              {import.meta.env.DEV && (
-                <Link to="/mylogin">
-                  <Button size="lg" variant="outline" className="w-full sm:w-auto gap-2 border-2 border-green-300 hover:scale-105 hover:border-green-400 hover:text-green-700 hover:bg-green-50 transition-transform duration-200 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg fredoka-medium">
-                    <LogIn className="h-4 w-4 sm:h-5 sm:w-5" />
-                    My Login
-                  </Button>
-                </Link>
-              )}
             </div>
 
             {/* Stats - Mobile Optimized */}
@@ -309,11 +295,11 @@ const Index = () => {
               {CHARACTERS.map((character, index) => (
                 <div key={`first-${character.id}`} className="flex-shrink-0 mx-4">
                   <div className="text-center group">
-                    <div className="w-24 h-24 mx-auto mb-3 bg-gradient-to-br from-blue-50 to-orange-50 rounded-full shadow-lg flex items-center justify-center group-hover:shadow-xl transition-all duration-300 border-2 border-gray-200">
+                    <div className="w-32 h-32 mx-auto mb-3 bg-gradient-to-br from-blue-50 to-orange-50 rounded-full shadow-lg flex items-center justify-center group-hover:shadow-xl transition-all duration-300 border-2 border-gray-200">
                       <img
                         src={character.image}
                         alt={character.name}
-                        className="w-20 h-20 object-contain"
+                        className="w-28 h-28 object-contain"
                       />
                     </div>
                     <div className="bg-white rounded-lg p-3 shadow-md border border-gray-100">
@@ -343,11 +329,11 @@ const Index = () => {
               {CHARACTERS.map((character, index) => (
                 <div key={`second-${character.id}`} className="flex-shrink-0 mx-4">
                   <div className="text-center group">
-                    <div className="w-24 h-24 mx-auto mb-3 bg-gradient-to-br from-blue-50 to-orange-50 rounded-full shadow-lg flex items-center justify-center group-hover:shadow-xl transition-all duration-300 border-2 border-gray-200">
+                    <div className="w-32 h-32 mx-auto mb-3 bg-gradient-to-br from-blue-50 to-orange-50 rounded-full shadow-lg flex items-center justify-center group-hover:shadow-xl transition-all duration-300 border-2 border-gray-200">
                       <img
                         src={character.image}
                         alt={character.name}
-                        className="w-20 h-20 object-contain"
+                        className="w-28 h-28 object-contain"
                       />
                     </div>
                     <div className="bg-white rounded-lg p-3 shadow-md border border-gray-100">
@@ -533,36 +519,31 @@ const Index = () => {
                 Get Started Free
               </Button>
             </Link>
-            <Link to="/login?mode=signin">
-              <Button size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-blue-600 hover:scale-105 transition-all duration-200 px-8 py-4 text-lg fredoka-semibold shadow-lg">
-                Sign In
-              </Button>
-            </Link>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
+      <footer className="bg-black text-white py-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <Logo size="lg" showText={true} className="mx-auto mb-6" />
+            <Logo size="lg" showText={true} variant="white" className="mx-auto mb-6" />
             <p className="text-gray-400 fredoka-medium mb-6">
               Where learning meets creativity. Transform your university experience today.
             </p>
             <div className="flex justify-center space-x-6">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors" title="Help Center">
-                <HelpCircle className="h-6 w-6" />
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors" title="Contact Us">
+              <a href="mailto:binfred.ke@gmail.com" className="text-gray-400 hover:text-white transition-colors" title="Email Support">
                 <Mail className="h-6 w-6" />
               </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors" title="Phone Support">
+              <a href="tel:+254700861129" className="text-gray-400 hover:text-white transition-colors" title="Phone Support">
                 <Phone className="h-6 w-6" />
+              </a>
+              <a href="https://wa.me/254700861129" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors" title="WhatsApp Support">
+                <MessageCircle className="h-6 w-6" />
               </a>
             </div>
             <p className="text-gray-500 text-sm fredoka-medium mt-6">
-              © 2024 Bunifu. All rights reserved.
+              © 2025 Bunifu. All rights reserved.
             </p>
           </div>
         </div>

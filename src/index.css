@@ -281,7 +281,7 @@ All colors MUST be HSL.
 }
 
 .animate-character-tape {
-  animation: character-tape 30s linear infinite;
+  animation: character-tape 60s linear infinite;
   width: max-content;
   max-width: none;
 }

@@ -48,13 +48,20 @@ export function Sidebar({ profile }: SidebarProps) {
 
   const handleLogout = async () => {
     try {
-      // Clear any local storage/session data first
-      localStorage.removeItem('lastVisits');
+      // Clear all storage immediately
+      localStorage.clear();
+      sessionStorage.clear();
       
-      // Try to sign out, but don't fail if session is already invalid
-      const { error } = await supabase.auth.signOut();
-      if (error && error.message !== 'Auth session missing!') {
-        throw error;
+      // Try multiple logout methods for OAuth
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (e) {
+        console.log('Global logout failed, trying local:', e);
+        try {
+          await supabase.auth.signOut();
+        } catch (e2) {
+          console.log('Local logout also failed:', e2);
+        }
       }
       
       toast({
@@ -62,18 +69,27 @@ export function Sidebar({ profile }: SidebarProps) {
         description: "You have been successfully logged out.",
       });
       
-      navigate('/login');
+      // Force complete page reload to clear all state
+      setTimeout(() => {
+        window.location.replace('/');
+      }, 100);
+      
     } catch (error) {
       console.error('Error logging out:', error);
       
-      // Even if signOut fails, clear local data and redirect
-      localStorage.removeItem('lastVisits');
-      navigate('/login');
+      // Clear everything and force reload
+      localStorage.clear();
+      sessionStorage.clear();
       
       toast({
         title: "Logged Out",
         description: "You have been logged out.",
       });
+      
+      // Force complete page reload
+      setTimeout(() => {
+        window.location.replace('/');
+      }, 100);
     }
   };
 

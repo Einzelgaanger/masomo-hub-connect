@@ -70,8 +70,8 @@ export const useProfileGuard = () => {
           // Sign out the user
           await signOut();
           
-          // Redirect to login
-          navigate('/login', { replace: true });
+          // Redirect to homepage
+          navigate('/', { replace: true });
         }
       } catch (error) {
         console.error('Error checking profile existence:', error);
