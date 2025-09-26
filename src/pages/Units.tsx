@@ -60,6 +60,7 @@ export default function Units() {
   const [selectedYear, setSelectedYear] = useState("all");
   const [application, setApplication] = useState<any>(null);
   const [showApplicationForm, setShowApplicationForm] = useState(false);
+  const [canReapply, setCanReapply] = useState(true);
 
   useEffect(() => {
     if (user) {
@@ -72,12 +73,20 @@ export default function Units() {
     filterUnits();
   }, [units, searchQuery, selectedSemester, selectedYear]);
 
+  const checkCanReapply = (rejectedAt: string) => {
+    const rejectionDate = new Date(rejectedAt);
+    const now = new Date();
+    const twoDaysInMs = 2 * 24 * 60 * 60 * 1000; // 2 days in milliseconds
+    const timeSinceRejection = now.getTime() - rejectionDate.getTime();
+    return timeSinceRejection >= twoDaysInMs;
+  };
+
   const fetchApplicationStatus = async () => {
     if (!user) return;
     
     try {
       const { data, error } = await supabase
-        .from('applications')
+        .from('applications' as any)
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
@@ -90,6 +99,13 @@ export default function Units() {
       }
 
       setApplication(data);
+      
+      // Check if user can reapply (if application was rejected)
+      if (data && typeof data === 'object' && data !== null && 'status' in data && data.status === 'rejected' && 'rejected_at' in data && data.rejected_at) {
+        setCanReapply(checkCanReapply(data.rejected_at as string));
+      } else {
+        setCanReapply(true);
+      }
     } catch (error) {
       console.error('Error fetching application status:', error);
     }
@@ -260,11 +276,20 @@ export default function Units() {
                   {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
                 </Badge>
               </div>
-              {application.status === 'rejected' && application.rejection_reason && (
-                <div className="mt-3 p-3 bg-red-50 rounded-md">
-                  <p className="text-sm text-red-700">
-                    <strong>Reason:</strong> {application.rejection_reason}
-                  </p>
+              {application.status === 'rejected' && (
+                <div className="mt-3 space-y-3">
+                  {application.rejection_reason && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                      <p className="text-sm font-medium text-red-800">Rejection Reason:</p>
+                      <p className="text-sm text-red-700 mt-1">{application.rejection_reason}</p>
+                    </div>
+                  )}
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                    <p className="text-sm text-yellow-800">
+                      <strong>Note:</strong> You can apply again after 2 days from the rejection date. 
+                      Please ensure all information is correct before resubmitting.
+                    </p>
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -283,12 +308,96 @@ export default function Units() {
                 <p className="text-muted-foreground mb-6">
                   You need to apply for your class to access units and course materials.
                 </p>
-                <Button 
-                  onClick={() => setShowApplicationForm(true)}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Apply for Your Class
-                </Button>
+                <div className="space-y-3">
+                  <Button 
+                    onClick={() => setShowApplicationForm(true)}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Apply for Your Class
+                  </Button>
+                  
+                  <div className="text-center">
+                    <p className="text-sm text-gray-500 mb-2">
+                      Can't find your class?
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        const message = encodeURIComponent(
+                          "Hello! I'm trying to apply for a class but I can't find my specific class/course in the dropdown list. Could you please help me add it or guide me on what to do? Thank you!"
+                        );
+                        window.open(`https://wa.me/254700861129?text=${message}`, '_blank');
+                      }}
+                      className="bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700 text-sm"
+                    >
+                      📱 Contact Admin
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Rejected Application - Reapply Button */}
+        {application && application.status === 'rejected' && canReapply && (
+          <Card className="text-center py-12">
+            <CardContent>
+              <div className="max-w-md mx-auto">
+                <div className="p-4 bg-green-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                  <GraduationCap className="h-8 w-8 text-green-600" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Ready to Apply Again</h3>
+                <p className="text-muted-foreground mb-6">
+                  The 2-day cooldown period has passed. You can now apply for a class again.
+                </p>
+                <div className="space-y-3">
+                  <Button 
+                    onClick={() => setShowApplicationForm(true)}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Apply for Your Class
+                  </Button>
+                  
+                  <div className="text-center">
+                    <p className="text-sm text-gray-500 mb-2">
+                      Can't find your class?
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        const message = encodeURIComponent(
+                          "Hello! I'm trying to apply for a class but I can't find my specific class/course in the dropdown list. Could you please help me add it or guide me on what to do? Thank you!"
+                        );
+                        window.open(`https://wa.me/254700861129?text=${message}`, '_blank');
+                      }}
+                      className="bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700 text-sm"
+                    >
+                      📱 Contact Admin
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Rejected Application - Cooldown Message */}
+        {application && application.status === 'rejected' && !canReapply && (
+          <Card className="text-center py-12 border-yellow-200 bg-yellow-50">
+            <CardContent>
+              <div className="max-w-md mx-auto">
+                <div className="p-4 bg-yellow-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                  <Clock className="h-8 w-8 text-yellow-600" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2 text-yellow-800">Application on Cooldown</h3>
+                <p className="text-yellow-700 mb-4">
+                  You can apply again after 2 days from your rejection date. Please wait before submitting a new application.
+                </p>
+                <div className="text-sm text-yellow-600 bg-yellow-100 p-3 rounded-md">
+                  <p><strong>Rejected on:</strong> {new Date(application.rejected_at).toLocaleDateString()}</p>
+                  <p><strong>You can reapply after:</strong> {new Date(new Date(application.rejected_at).getTime() + (2 * 24 * 60 * 60 * 1000)).toLocaleDateString()}</p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -318,6 +427,7 @@ export default function Units() {
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(e.target.value)}
                   className="px-3 py-2 border border-input rounded-md bg-background"
+                  aria-label="Filter by year"
                 >
                   <option value="all">All Years</option>
                   {getUniqueYears().map(year => (
@@ -328,6 +438,7 @@ export default function Units() {
                   value={selectedSemester}
                   onChange={(e) => setSelectedSemester(e.target.value)}
                   className="px-3 py-2 border border-input rounded-md bg-background"
+                  aria-label="Filter by semester"
                 >
                   <option value="all">All Semesters</option>
                   {getUniqueSemesters().map(semester => (
@@ -453,10 +564,80 @@ function ApplicationForm({ onClose, onSuccess }: ApplicationFormProps) {
   const [selectedClass, setSelectedClass] = useState('');
   const [fullName, setFullName] = useState('');
   const [admissionNumber, setAdmissionNumber] = useState('');
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  
+  // Search states
+  const [countrySearch, setCountrySearch] = useState('');
+  const [universitySearch, setUniversitySearch] = useState('');
+  const [classSearch, setClassSearch] = useState('');
+  
+  // Filtered results
+  const [filteredCountries, setFilteredCountries] = useState<any[]>([]);
+  const [filteredUniversities, setFilteredUniversities] = useState<any[]>([]);
+  const [filteredClasses, setFilteredClasses] = useState<any[]>([]);
+  
+  // Show/hide dropdowns
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const [showUniversityDropdown, setShowUniversityDropdown] = useState(false);
+  const [showClassDropdown, setShowClassDropdown] = useState(false);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.dropdown-container')) {
+        setShowCountryDropdown(false);
+        setShowUniversityDropdown(false);
+        setShowClassDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     fetchCountries();
   }, []);
+
+  // Filter countries based on search
+  useEffect(() => {
+    if (countrySearch) {
+      const filtered = countries.filter(country =>
+        country.name.toLowerCase().includes(countrySearch.toLowerCase())
+      );
+      setFilteredCountries(filtered);
+    } else {
+      setFilteredCountries(countries);
+    }
+  }, [countrySearch, countries]);
+
+  // Filter universities based on search
+  useEffect(() => {
+    if (universitySearch) {
+      const filtered = universities.filter(university =>
+        university.name.toLowerCase().includes(universitySearch.toLowerCase())
+      );
+      setFilteredUniversities(filtered);
+    } else {
+      setFilteredUniversities(universities);
+    }
+  }, [universitySearch, universities]);
+
+  // Filter classes based on search
+  useEffect(() => {
+    if (classSearch) {
+      const filtered = classes.filter(cls =>
+        cls.course_name.toLowerCase().includes(classSearch.toLowerCase()) ||
+        cls.course_group.toLowerCase().includes(classSearch.toLowerCase())
+      );
+      setFilteredClasses(filtered);
+    } else {
+      setFilteredClasses(classes);
+    }
+  }, [classSearch, classes]);
 
   const fetchCountries = async () => {
     try {
@@ -467,6 +648,7 @@ function ApplicationForm({ onClose, onSuccess }: ApplicationFormProps) {
       
       if (error) throw error;
       setCountries(data || []);
+      setFilteredCountries(data || []);
     } catch (error) {
       console.error('Error fetching countries:', error);
     }
@@ -482,6 +664,7 @@ function ApplicationForm({ onClose, onSuccess }: ApplicationFormProps) {
       
       if (error) throw error;
       setUniversities(data || []);
+      setFilteredUniversities(data || []);
     } catch (error) {
       console.error('Error fetching universities:', error);
     }
@@ -497,6 +680,7 @@ function ApplicationForm({ onClose, onSuccess }: ApplicationFormProps) {
       
       if (error) throw error;
       setClasses(data || []);
+      setFilteredClasses(data || []);
     } catch (error) {
       console.error('Error fetching classes:', error);
     }
@@ -505,6 +689,21 @@ function ApplicationForm({ onClose, onSuccess }: ApplicationFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate all required fields
+    if (!user || !selectedCountry || !selectedUniversity || !selectedClass || !fullName.trim() || !admissionNumber.trim()) {
+      toast({
+        title: "Error",
+        description: "Please fill in all fields including first name, admission number, and select your country, university, and class.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Show confirmation dialog
+    setShowConfirmation(true);
+  };
+
+  const handleConfirmSubmit = async () => {
     if (!user || !selectedClass || !fullName.trim() || !admissionNumber.trim()) {
       toast({
         title: "Error",
@@ -517,7 +716,7 @@ function ApplicationForm({ onClose, onSuccess }: ApplicationFormProps) {
     setLoading(true);
     try {
       const { error } = await supabase
-        .from('applications')
+        .from('applications' as any)
         .insert({
           user_id: user.id,
           email: user.email,
@@ -534,6 +733,7 @@ function ApplicationForm({ onClose, onSuccess }: ApplicationFormProps) {
         description: "Your application has been sent to the admin for approval. You will be notified once it's reviewed.",
       });
 
+      setShowConfirmation(false);
       onSuccess();
     } catch (error: any) {
       console.error('Error submitting application:', error);
@@ -559,93 +759,158 @@ function ApplicationForm({ onClose, onSuccess }: ApplicationFormProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Full Name</label>
-                <Input
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Enter your full name"
-                  required
-                />
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Full Name *</label>
+                  <Input
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Enter your full name"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Admission Number *</label>
+                  <Input
+                    value={admissionNumber}
+                    onChange={(e) => setAdmissionNumber(e.target.value)}
+                    placeholder="Enter your admission number"
+                    required
+                  />
+                </div>
               </div>
+
               <div>
-                <label className="block text-sm font-medium mb-2">Admission Number</label>
-                <Input
-                  value={admissionNumber}
-                  onChange={(e) => setAdmissionNumber(e.target.value)}
-                  placeholder="Enter your admission number"
-                  required
-                />
+                <label className="block text-sm font-medium mb-2">Country *</label>
+                <div className="relative dropdown-container">
+                  <Input
+                    value={countrySearch}
+                    onChange={(e) => {
+                      setCountrySearch(e.target.value);
+                      setShowCountryDropdown(true);
+                    }}
+                    onFocus={() => setShowCountryDropdown(true)}
+                    placeholder="Search for your country..."
+                    required
+                  />
+                  {showCountryDropdown && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {filteredCountries.map((country) => (
+                        <div
+                          key={country.id}
+                          className="p-2 hover:bg-gray-100 cursor-pointer"
+                          onClick={() => {
+                            setSelectedCountry(country.id);
+                            setCountrySearch(country.name);
+                            setShowCountryDropdown(false);
+                            setSelectedUniversity('');
+                            setSelectedClass('');
+                            setUniversitySearch('');
+                            setClassSearch('');
+                            fetchUniversities(country.id);
+                          }}
+                        >
+                          {country.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">Country</label>
-              <select
-                value={selectedCountry}
-                onChange={(e) => {
-                  setSelectedCountry(e.target.value);
-                  setSelectedUniversity('');
-                  setSelectedClass('');
-                  if (e.target.value) {
-                    fetchUniversities(e.target.value);
-                  }
-                }}
-                className="w-full p-2 border border-gray-300 rounded-md"
-                required
-              >
-                <option value="">Select Country</option>
-                {countries.map((country) => (
-                  <option key={country.id} value={country.id}>
-                    {country.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">University *</label>
+                <div className="relative dropdown-container">
+                  <Input
+                    value={universitySearch}
+                    onChange={(e) => {
+                      setUniversitySearch(e.target.value);
+                      setShowUniversityDropdown(true);
+                    }}
+                    onFocus={() => setShowUniversityDropdown(true)}
+                    placeholder="Search for your university..."
+                    required
+                    disabled={!selectedCountry}
+                  />
+                  {showUniversityDropdown && selectedCountry && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {filteredUniversities.map((university) => (
+                        <div
+                          key={university.id}
+                          className="p-2 hover:bg-gray-100 cursor-pointer"
+                          onClick={() => {
+                            setSelectedUniversity(university.id);
+                            setUniversitySearch(university.name);
+                            setShowUniversityDropdown(false);
+                            setSelectedClass('');
+                            setClassSearch('');
+                            fetchClasses(university.id);
+                          }}
+                        >
+                          {university.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">University</label>
-              <select
-                value={selectedUniversity}
-                onChange={(e) => {
-                  setSelectedUniversity(e.target.value);
-                  setSelectedClass('');
-                  if (e.target.value) {
-                    fetchClasses(e.target.value);
-                  }
-                }}
-                className="w-full p-2 border border-gray-300 rounded-md"
-                required
-                disabled={!selectedCountry}
-              >
-                <option value="">Select University</option>
-                {universities.map((university) => (
-                  <option key={university.id} value={university.id}>
-                    {university.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Class/Course *</label>
+                <div className="relative dropdown-container">
+                  <Input
+                    value={classSearch}
+                    onChange={(e) => {
+                      setClassSearch(e.target.value);
+                      setShowClassDropdown(true);
+                    }}
+                    onFocus={() => setShowClassDropdown(true)}
+                    placeholder="Search for your class/course..."
+                    required
+                    disabled={!selectedUniversity}
+                  />
+                  {showClassDropdown && selectedUniversity && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {filteredClasses.map((cls) => (
+                        <div
+                          key={cls.id}
+                          className="p-2 hover:bg-gray-100 cursor-pointer"
+                          onClick={() => {
+                            setSelectedClass(cls.id);
+                            setClassSearch(`${cls.course_name} - Year ${cls.course_year}, Sem ${cls.semester} (${cls.course_group})`);
+                            setShowClassDropdown(false);
+                          }}
+                        >
+                          {cls.course_name} - Year {cls.course_year}, Sem {cls.semester} ({cls.course_group})
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">Class</label>
-              <select
-                value={selectedClass}
-                onChange={(e) => setSelectedClass(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-md"
-                required
-                disabled={!selectedUniversity}
-              >
-                <option value="">Select Class</option>
-                {classes.map((cls) => (
-                  <option key={cls.id} value={cls.id}>
-                    {cls.course_name} - Year {cls.course_year}, Sem {cls.semester} ({cls.course_group})
-                  </option>
-                ))}
-              </select>
-            </div>
+              {/* WhatsApp Contact Button */}
+              <div className="pt-4 border-t border-gray-200">
+                <div className="text-center">
+                  <p className="text-sm text-gray-600 mb-3">
+                    Can't find your class in the list above?
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      const message = encodeURIComponent(
+                        "Hello! I'm trying to apply for a class but I can't find my specific class/course in the dropdown list. Could you please help me add it or guide me on what to do? Thank you!"
+                      );
+                      window.open(`https://wa.me/254700861129?text=${message}`, '_blank');
+                    }}
+                    className="bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700"
+                  >
+                    📱 Can't see your class? Contact Admin
+                  </Button>
+                </div>
+              </div>
 
             <div className="flex gap-3 pt-4">
               <Button
@@ -661,10 +926,50 @@ function ApplicationForm({ onClose, onSuccess }: ApplicationFormProps) {
                 disabled={loading}
                 className="flex-1 bg-blue-600 hover:bg-blue-700"
               >
-                {loading ? "Submitting..." : "Submit Application"}
+                {loading ? "Submitting..." : "Review Application"}
               </Button>
             </div>
           </form>
+
+          {/* Confirmation Dialog */}
+          {showConfirmation && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-60">
+              <Card className="w-full max-w-md">
+                <CardHeader>
+                  <CardTitle>Confirm Application</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3 mb-6">
+                    <p className="text-sm text-gray-600">Please review your application details:</p>
+                    <div className="bg-gray-50 p-3 rounded-md space-y-2">
+                      <p><strong>Name:</strong> {fullName}</p>
+                      <p><strong>Admission Number:</strong> {admissionNumber}</p>
+                      <p><strong>Email:</strong> {user?.email}</p>
+                      <p><strong>Country:</strong> {countries.find(c => c.id === selectedCountry)?.name}</p>
+                      <p><strong>University:</strong> {universities.find(u => u.id === selectedUniversity)?.name}</p>
+                      <p><strong>Class:</strong> {classes.find(c => c.id === selectedClass)?.course_name}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowConfirmation(false)}
+                      className="flex-1"
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      onClick={handleConfirmSubmit}
+                      disabled={loading}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700"
+                    >
+                      {loading ? "Submitting..." : "Submit Application"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

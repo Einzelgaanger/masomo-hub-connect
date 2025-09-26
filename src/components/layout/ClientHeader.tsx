@@ -1,5 +1,6 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { ProfilePictureModal } from "@/components/ui/ProfilePictureModal";
 import { useProfile } from "./AppLayout";
 import BackButton from "@/components/ui/BackButton";
 
@@ -22,12 +23,12 @@ export function ClientHeader() {
               <p className="text-xs text-muted-foreground whitespace-nowrap overflow-hidden">{profile.email}</p>
             </div>
             
-            <Avatar className="h-7 w-7 sm:h-8 lg:h-10 xl:h-12 sm:w-8 lg:w-10 xl:w-12 flex-shrink-0">
-              <AvatarImage src={profile.profile_picture_url} />
-              <AvatarFallback className="text-xs lg:text-sm">
-                {profile.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <ProfilePictureModal
+              src={profile.profile_picture_url}
+              fallback={profile.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+              alt={profile.full_name}
+              className="h-7 w-7 sm:h-8 lg:h-10 xl:h-12 sm:w-8 lg:w-10 xl:w-12 flex-shrink-0"
+            />
           </>
         ) : (
           <>

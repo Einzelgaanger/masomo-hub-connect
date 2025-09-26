@@ -6,6 +6,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { ProfilePictureModal } from "@/components/ui/ProfilePictureModal";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { 
@@ -98,12 +99,12 @@ function ImagePlayer({ src, message }: { src: string; message: any }) {
           {/* Description at bottom - TikTok style */}
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-6">
             <div className="flex items-start gap-3">
-              <Avatar className="h-10 w-10 border-2 border-white/20">
-                <AvatarImage src={message.profiles?.profile_picture_url} />
-                <AvatarFallback className="text-xs bg-white/20 text-white">
-                  {message.profiles?.full_name?.split(' ').map((n: string) => n[0]).join('')}
-                </AvatarFallback>
-              </Avatar>
+              <ProfilePictureModal
+                src={message.profiles?.profile_picture_url}
+                fallback={message.profiles?.full_name?.split(' ').map((n: string) => n[0]).join('')}
+                alt={message.profiles?.full_name}
+                className="h-10 w-10 border-2 border-white/20"
+              />
               <div className="flex-1">
                 <p className="text-white font-medium text-sm mb-1">
                   {message.profiles?.full_name}
@@ -191,6 +192,9 @@ export default function Ukumbi() {
 
         if (simpleError) throw simpleError;
 
+        console.log('Simple profile data:', simpleData);
+        console.log('User class_id:', simpleData.class_id);
+
         // If user has no class_id, redirect to Masomo to apply for class
         if (!simpleData.class_id) {
           toast({
@@ -219,7 +223,7 @@ export default function Ukumbi() {
           return;
         }
 
-        // Check if user has units in this class
+        // Check if user has units in this class (optional check)
         const { data: unitsData, error: unitsError } = await supabase
           .from('units')
           .select('id')
@@ -227,11 +231,13 @@ export default function Ukumbi() {
           .limit(1);
 
         if (unitsError) {
-          console.error('Error fetching units:', unitsError);
+          console.warn('Error fetching units (non-critical):', unitsError);
+          // Don't block access if units check fails - just log the warning
         }
 
-        // If user has no units, redirect to Masomo to apply for class
-        if (!unitsData || unitsData.length === 0) {
+        // Only redirect if we successfully checked units and found none
+        // If units check failed, allow access anyway
+        if (unitsData && unitsData.length === 0) {
           toast({
             title: "No Units Available",
             description: "Please apply for a class first to access the chat room.",
@@ -246,7 +252,11 @@ export default function Ukumbi() {
           classes: classData
         });
       } else {
-        // Check if user has units in this class
+        console.log('Complex profile data:', data);
+        console.log('User class_id:', data.class_id);
+        console.log('User classes:', data.classes);
+        
+        // Check if user has units in this class (optional check)
         const { data: unitsData, error: unitsError } = await supabase
           .from('units')
           .select('id')
@@ -254,11 +264,13 @@ export default function Ukumbi() {
           .limit(1);
 
         if (unitsError) {
-          console.error('Error fetching units:', unitsError);
+          console.warn('Error fetching units (non-critical):', unitsError);
+          // Don't block access if units check fails - just log the warning
         }
 
-        // If user has no units, redirect to Masomo to apply for class
-        if (!unitsData || unitsData.length === 0) {
+        // Only redirect if we successfully checked units and found none
+        // If units check failed, allow access anyway
+        if (unitsData && unitsData.length === 0) {
           toast({
             title: "No Units Available",
             description: "Please apply for a class first to access the chat room.",
@@ -932,12 +944,12 @@ export default function Ukumbi() {
                       message.user_id === user?.id ? 'flex-row-reverse' : 'flex-row'
                     }`}
                   >
-                    <Avatar className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0">
-                      <AvatarImage src={message.profiles.profile_picture_url} />
-                      <AvatarFallback>
-                        {message.profiles.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                    <ProfilePictureModal
+                      src={message.profiles.profile_picture_url}
+                      fallback={message.profiles.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+                      alt={message.profiles.full_name}
+                      className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0"
+                    />
 
                     <div
                       className={`max-w-[75%] sm:max-w-[70%] space-y-1 ${

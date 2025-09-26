@@ -70,7 +70,7 @@ export function FloatingConcernsButton() {
   return (
     <>
       {/* Floating Button */}
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed top-1/2 right-6 z-50 transform -translate-y-1/2">
         <Button
           onClick={() => setIsOpen(true)}
           className="rounded-full w-14 h-14 p-0 bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-200"

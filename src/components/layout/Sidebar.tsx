@@ -14,6 +14,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { ProfilePictureModal } from "@/components/ui/ProfilePictureModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/ui/Logo";
@@ -273,12 +274,12 @@ export function Sidebar({ profile }: SidebarProps) {
       <SidebarFooter className="p-4">
         {profile ? (
           <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={profile.profile_picture_url} />
-              <AvatarFallback>
-                {profile.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <ProfilePictureModal
+              src={profile.profile_picture_url}
+              fallback={profile.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+              alt={profile.full_name}
+              className="h-10 w-10"
+            />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{profile.full_name}</p>
               <p className="text-xs text-muted-foreground truncate">{profile.email}</p>

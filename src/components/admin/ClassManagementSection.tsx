@@ -69,6 +69,12 @@ export function ClassManagementSection() {
   // Applications state
   const [applications, setApplications] = useState<Application[]>([]);
   const [loadingApplications, setLoadingApplications] = useState(false);
+  const [pendingCounts, setPendingCounts] = useState<Record<string, number>>({});
+  
+  // Rejection dialog state
+  const [showRejectionDialog, setShowRejectionDialog] = useState(false);
+  const [rejectingApplicationId, setRejectingApplicationId] = useState<string>('');
+  const [rejectionReason, setRejectionReason] = useState('');
   
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -96,13 +102,144 @@ export function ClassManagementSection() {
     course_group: ""
   });
 
+  // Search and selection states
+  const [countries, setCountries] = useState<any[]>([]);
+  const [universities, setUniversities] = useState<any[]>([]);
+  const [filteredCountries, setFilteredCountries] = useState<any[]>([]);
+  const [filteredUniversities, setFilteredUniversities] = useState<any[]>([]);
+  const [countrySearch, setCountrySearch] = useState('');
+  const [universitySearch, setUniversitySearch] = useState('');
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const [showUniversityDropdown, setShowUniversityDropdown] = useState(false);
+  const [selectedCountryId, setSelectedCountryId] = useState<string>('');
+  const [selectedUniversityId, setSelectedUniversityId] = useState<string>('');
+  const [isNewCountry, setIsNewCountry] = useState(false);
+  const [isNewUniversity, setIsNewUniversity] = useState(false);
+
   const [units, setUnits] = useState<Array<{ name: string; description: string }>>([
     { name: "", description: "" }
   ]);
 
   useEffect(() => {
     fetchData();
+    fetchCountries();
   }, []);
+
+  useEffect(() => {
+    if (classes.length > 0) {
+      fetchPendingCounts();
+    }
+  }, [classes]);
+
+  // Filter countries based on search
+  useEffect(() => {
+    if (countrySearch) {
+      const filtered = countries.filter(country =>
+        country.name.toLowerCase().includes(countrySearch.toLowerCase())
+      );
+      setFilteredCountries(filtered);
+    } else {
+      setFilteredCountries(countries);
+    }
+  }, [countrySearch, countries]);
+
+  // Filter universities based on search
+  useEffect(() => {
+    if (universitySearch) {
+      const filtered = universities.filter(university =>
+        university.name.toLowerCase().includes(universitySearch.toLowerCase())
+      );
+      setFilteredUniversities(filtered);
+    } else {
+      setFilteredUniversities(universities);
+    }
+  }, [universitySearch, universities]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.dropdown-container')) {
+        setShowCountryDropdown(false);
+        setShowUniversityDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const fetchCountries = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('countries')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      setCountries(data || []);
+      setFilteredCountries(data || []);
+    } catch (error) {
+      console.error('Error fetching countries:', error);
+    }
+  };
+
+  const fetchUniversities = async (countryId?: string) => {
+    try {
+      let query = supabase
+        .from('universities')
+        .select('*')
+        .order('name');
+      
+      if (countryId) {
+        query = query.eq('country_id', countryId);
+      }
+
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      setUniversities(data || []);
+      setFilteredUniversities(data || []);
+    } catch (error) {
+      console.error('Error fetching universities:', error);
+    }
+  };
+
+  const fetchPendingCounts = async () => {
+    try {
+      const classIds = classes.map(c => c.id);
+      if (classIds.length === 0) return;
+
+      const { data, error } = await supabase
+        .from('applications')
+        .select('class_id, status')
+        .in('class_id', classIds)
+        .eq('status', 'pending');
+
+      if (error) {
+        console.warn('Error fetching pending counts:', error);
+        return;
+      }
+
+      // Count pending applications per class
+      const counts: Record<string, number> = {};
+      classIds.forEach(classId => {
+        counts[classId] = 0;
+      });
+
+      data?.forEach(app => {
+        if (app.class_id in counts) {
+          counts[app.class_id]++;
+        }
+      });
+
+      setPendingCounts(counts);
+    } catch (error) {
+      console.error('Error fetching pending counts:', error);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -234,6 +371,19 @@ export function ClassManagementSection() {
   };
 
   const handleApplicationAction = async (applicationId: string, action: 'approve' | 'reject') => {
+    if (action === 'reject') {
+      // Show rejection dialog instead of directly rejecting
+      setRejectingApplicationId(applicationId);
+      setRejectionReason('');
+      setShowRejectionDialog(true);
+      return;
+    }
+
+    // Handle approval directly
+    await processApplicationAction(applicationId, action, '');
+  };
+
+  const processApplicationAction = async (applicationId: string, action: 'approve' | 'reject', rejectionReason: string = '') => {
     try {
       // Check if admin is logged in by checking the current user's role
       const { data: { user } } = await supabase.auth.getUser();
@@ -275,7 +425,7 @@ export function ClassManagementSection() {
         updateData.approved_at = new Date().toISOString();
       } else {
         updateData.rejected_at = new Date().toISOString();
-        updateData.rejection_reason = 'Application rejected by admin';
+        updateData.rejection_reason = rejectionReason || 'Application rejected by admin';
       }
 
       // Update the application in the database
@@ -360,6 +510,9 @@ export function ClassManagementSection() {
         await fetchApplications(selectedClass.id);
         await fetchStudents(selectedClass.id);
       }
+
+      // Refresh pending counts for all classes
+      await fetchPendingCounts();
     } catch (error: any) {
       console.error(`Error ${action}ing application:`, error);
       toast({
@@ -368,6 +521,28 @@ export function ClassManagementSection() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleRejectWithReason = async () => {
+    if (!rejectionReason.trim()) {
+      toast({
+        title: "Error",
+        description: "Please provide a reason for rejection.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await processApplicationAction(rejectingApplicationId, 'reject', rejectionReason);
+    setShowRejectionDialog(false);
+    setRejectionReason('');
+    setRejectingApplicationId('');
+  };
+
+  const handleCancelRejection = () => {
+    setShowRejectionDialog(false);
+    setRejectionReason('');
+    setRejectingApplicationId('');
   };
 
   const handleUpdateStudentRole = async (studentId: string, newRole: string) => {
@@ -791,15 +966,13 @@ export function ClassManagementSection() {
         return;
       }
 
-      // First, create or get country
-      let { data: countryData, error: countryError } = await supabase
-        .from('countries')
-        .select('id')
-        .eq('name', formData.country_name)
-        .single();
+      let countryData, universityData;
 
-      if (countryError && countryError.code === 'PGRST116') {
-        // Country doesn't exist, create it
+      // Handle country - either use selected or create new
+      if (selectedCountryId) {
+        countryData = { id: selectedCountryId };
+      } else {
+        // Create new country
         const { data: newCountry, error: newCountryError } = await supabase
           .from('countries')
           .insert({ name: formData.country_name })
@@ -808,20 +981,13 @@ export function ClassManagementSection() {
 
         if (newCountryError) throw newCountryError;
         countryData = newCountry;
-      } else if (countryError) {
-        throw countryError;
       }
 
-      // Then, create or get university
-      let { data: universityData, error: universityError } = await supabase
-        .from('universities')
-        .select('id')
-        .eq('name', formData.university_name)
-        .eq('country_id', countryData.id)
-        .single();
-
-      if (universityError && universityError.code === 'PGRST116') {
-        // University doesn't exist, create it
+      // Handle university - either use selected or create new
+      if (selectedUniversityId) {
+        universityData = { id: selectedUniversityId };
+      } else {
+        // Create new university
         const { data: newUniversity, error: newUniversityError } = await supabase
           .from('universities')
           .insert({ 
@@ -833,8 +999,6 @@ export function ClassManagementSection() {
 
         if (newUniversityError) throw newUniversityError;
         universityData = newUniversity;
-      } else if (universityError) {
-        throw universityError;
       }
 
       // Create class
@@ -896,10 +1060,49 @@ export function ClassManagementSection() {
       course_group: ""
     });
     setUnits([{ name: "", description: "" }]);
+    setCountrySearch('');
+    setUniversitySearch('');
+    setSelectedCountryId('');
+    setSelectedUniversityId('');
+    setIsNewCountry(false);
+    setIsNewUniversity(false);
+    setShowCountryDropdown(false);
+    setShowUniversityDropdown(false);
   };
 
   const addUnit = () => {
     setUnits([...units, { name: "", description: "" }]);
+  };
+
+  const handleCountrySelect = (country: any) => {
+    setSelectedCountryId(country.id);
+    setFormData({...formData, country_name: country.name});
+    setCountrySearch(country.name);
+    setShowCountryDropdown(false);
+    setIsNewCountry(false);
+    fetchUniversities(country.id);
+  };
+
+  const handleUniversitySelect = (university: any) => {
+    setSelectedUniversityId(university.id);
+    setFormData({...formData, university_name: university.name});
+    setUniversitySearch(university.name);
+    setShowUniversityDropdown(false);
+    setIsNewUniversity(false);
+  };
+
+  const handleNewCountry = () => {
+    setIsNewCountry(true);
+    setSelectedCountryId('');
+    setCountrySearch(formData.country_name);
+    setShowCountryDropdown(false);
+  };
+
+  const handleNewUniversity = () => {
+    setIsNewUniversity(true);
+    setSelectedUniversityId('');
+    setUniversitySearch(formData.university_name);
+    setShowUniversityDropdown(false);
   };
 
   const removeUnit = (index: number) => {
@@ -1237,21 +1440,87 @@ export function ClassManagementSection() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="country_name">Country *</Label>
-                    <Input
-                      id="country_name"
-                      value={formData.country_name}
-                      onChange={(e) => setFormData({...formData, country_name: e.target.value})}
-                      placeholder="e.g., Kenya"
-                    />
+                    <div className="relative dropdown-container">
+                      <Input
+                        id="country_name"
+                        value={countrySearch}
+                        onChange={(e) => {
+                          setCountrySearch(e.target.value);
+                          setFormData({...formData, country_name: e.target.value});
+                          setShowCountryDropdown(true);
+                        }}
+                        onFocus={() => setShowCountryDropdown(true)}
+                        placeholder="Search or type new country..."
+                      />
+                      {showCountryDropdown && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                          {filteredCountries.map((country) => (
+                            <div
+                              key={country.id}
+                              className="p-2 hover:bg-gray-100 cursor-pointer"
+                              onClick={() => handleCountrySelect(country)}
+                            >
+                              {country.name}
+                            </div>
+                          ))}
+                          {countrySearch && !filteredCountries.some(c => c.name.toLowerCase() === countrySearch.toLowerCase()) && (
+                            <div
+                              className="p-2 hover:bg-blue-50 cursor-pointer border-t border-gray-200 text-blue-600"
+                              onClick={handleNewCountry}
+                            >
+                              + Create new: "{countrySearch}"
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    {isNewCountry && (
+                      <p className="text-xs text-blue-600 mt-1">Creating new country</p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="university_name">University *</Label>
-                    <Input
-                      id="university_name"
-                      value={formData.university_name}
-                      onChange={(e) => setFormData({...formData, university_name: e.target.value})}
-                      placeholder="e.g., University of Nairobi"
-                    />
+                    <div className="relative dropdown-container">
+                      <Input
+                        id="university_name"
+                        value={universitySearch}
+                        onChange={(e) => {
+                          setUniversitySearch(e.target.value);
+                          setFormData({...formData, university_name: e.target.value});
+                          setShowUniversityDropdown(true);
+                        }}
+                        onFocus={() => setShowUniversityDropdown(true)}
+                        placeholder="Search or type new university..."
+                        disabled={!selectedCountryId && !isNewCountry}
+                      />
+                      {showUniversityDropdown && (selectedCountryId || isNewCountry) && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                          {filteredUniversities.map((university) => (
+                            <div
+                              key={university.id}
+                              className="p-2 hover:bg-gray-100 cursor-pointer"
+                              onClick={() => handleUniversitySelect(university)}
+                            >
+                              {university.name}
+                            </div>
+                          ))}
+                          {universitySearch && !filteredUniversities.some(u => u.name.toLowerCase() === universitySearch.toLowerCase()) && (
+                            <div
+                              className="p-2 hover:bg-blue-50 cursor-pointer border-t border-gray-200 text-blue-600"
+                              onClick={handleNewUniversity}
+                            >
+                              + Create new: "{universitySearch}"
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    {isNewUniversity && (
+                      <p className="text-xs text-blue-600 mt-1">Creating new university</p>
+                    )}
+                    {!selectedCountryId && !isNewCountry && (
+                      <p className="text-xs text-gray-500 mt-1">Select a country first</p>
+                    )}
                   </div>
                 </div>
                 
@@ -1580,6 +1849,24 @@ export function ClassManagementSection() {
             </div>
           </div>
 
+          {/* Classes Table Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold">Classes ({filteredClasses.length})</h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchPendingCounts}
+                className="text-xs"
+              >
+                Refresh Pending Counts
+              </Button>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Red badges show pending applications
+            </div>
+          </div>
+
           {/* Classes Table */}
           {loading ? (
             <div className="text-center py-12">
@@ -1610,7 +1897,19 @@ export function ClassManagementSection() {
                     className="cursor-pointer hover:bg-muted/50"
                     onClick={() => handleClassClick(classItem)}
                   >
-                    <TableCell className="font-medium">{classItem.course_name}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <span>{classItem.course_name}</span>
+                        {pendingCounts[classItem.id] > 0 && (
+                          <Badge 
+                            variant="destructive" 
+                            className="bg-red-500 hover:bg-red-600 text-white text-xs px-2 py-1"
+                          >
+                            {pendingCounts[classItem.id]} pending
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <div>
                         <div className="font-medium">{classItem.universities.name}</div>
@@ -1669,6 +1968,47 @@ export function ClassManagementSection() {
           )}
         </CardContent>
       </Card>
+
+      {/* Rejection Reason Dialog */}
+      <Dialog open={showRejectionDialog} onOpenChange={setShowRejectionDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reject Application</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejecting this application. The student will see this reason.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="rejection-reason">Rejection Reason *</Label>
+              <textarea
+                id="rejection-reason"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="e.g., Invalid admission number, Incomplete information, Not eligible for this class..."
+                className="w-full mt-2 p-3 border border-gray-300 rounded-md resize-none"
+                rows={4}
+                required
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleCancelRejection}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleRejectWithReason}
+              disabled={!rejectionReason.trim()}
+            >
+              Reject Application
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
