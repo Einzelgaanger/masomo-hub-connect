@@ -128,12 +128,12 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
         
         const commentsWithProfiles = comments.map(comment => ({
           ...comment,
-          profiles: commenterProfiles?.find(p => p.user_id === comment.commented_by)
+          profiles: commenterProfiles?.find(p => p.user_id === comment.commented_by) || { full_name: 'Unknown User', profile_picture_url: null }
         }));
 
         return {
           ...upload,
-          profiles: profile,
+          profiles: profile || { full_name: 'Unknown User', profile_picture_url: null },
           upload_reactions: reactions,
           comments: commentsWithProfiles
         };
@@ -530,15 +530,15 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3">
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src={note.profiles.profile_picture_url} />
+                          <AvatarImage src={note.profiles?.profile_picture_url} />
                           <AvatarFallback>
-                            {note.profiles.full_name.split(' ').map((n: string) => n[0]).join('')}
+                            {note.profiles?.full_name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
                           <h3 className="font-semibold">{note.title}</h3>
                           <p className="text-sm text-muted-foreground">
-                            by {note.profiles.full_name} • {format(new Date(note.created_at), 'MMM dd, yyyy')}
+                            by {note.profiles?.full_name || 'Unknown User'} • {format(new Date(note.created_at), 'MMM dd, yyyy')}
                           </p>
                           <p className="text-sm mt-2">{note.description}</p>
                         </div>
@@ -595,9 +595,9 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
                           {note.comments.map((comment) => (
                             <div key={comment.id} className="flex gap-2 sm:gap-3">
                               <Avatar className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0">
-                                <AvatarImage src={comment.profiles.profile_picture_url} />
+                                <AvatarImage src={comment.profiles?.profile_picture_url} />
                                 <AvatarFallback className="text-xs">
-                                  {comment.profiles.full_name.split(' ').map((n: string) => n[0]).join('')}
+                                  {comment.profiles?.full_name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
                                 </AvatarFallback>
                               </Avatar>
                               <div className="flex-1 min-w-0">

@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { User, Lock, Image, Edit3, X, GraduationCap } from "lucide-react";
+import { User, Image, Edit3, X, GraduationCap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
@@ -28,18 +28,7 @@ const Settings = () => {
   const [loading, setLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
 
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: ""
-  });
 
-  const [emailData, setEmailData] = useState({
-    newEmail: "",
-    confirmEmail: ""
-  });
-  const [isEditingEmail, setIsEditingEmail] = useState(false);
-  const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
 
   const [alumniData, setAlumniData] = useState({
     current_company: "",
@@ -113,70 +102,6 @@ const Settings = () => {
   };
 
 
-  const handleEmailUpdate = async () => {
-    if (!emailData.newEmail || !emailData.confirmEmail) {
-      toast({
-        title: "Error",
-        description: "Please fill in all email fields.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (emailData.newEmail !== emailData.confirmEmail) {
-      toast({
-        title: "Error",
-        description: "Email addresses do not match.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (emailData.newEmail === profile?.email) {
-      toast({
-        title: "Error",
-        description: "New email is the same as current email.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsUpdatingEmail(true);
-    try {
-      // Update email in Supabase Auth
-      const { error: authError } = await supabase.auth.updateUser({
-        email: emailData.newEmail
-      });
-
-      if (authError) throw authError;
-
-      // Update email in profiles table
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ email: emailData.newEmail })
-        .eq('user_id', user?.id);
-
-      if (profileError) throw profileError;
-
-      toast({
-        title: "Success",
-        description: "Email updated successfully! Please check your new email for verification.",
-      });
-
-      setEmailData({ newEmail: "", confirmEmail: "" });
-      setIsEditingEmail(false);
-      fetchProfile();
-    } catch (error: any) {
-      console.error('Error updating email:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update email.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUpdatingEmail(false);
-    }
-  };
 
   const handleAlumniUpdate = async () => {
     if (!alumniData.current_company || !alumniData.current_position) {
@@ -223,51 +148,6 @@ const Settings = () => {
     }
   };
 
-  const handlePasswordChange = async () => {
-    try {
-      if (passwordData.newPassword !== passwordData.confirmPassword) {
-        toast({
-          title: "Error",
-          description: "New passwords do not match.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (passwordData.newPassword.length < 6) {
-        toast({
-          title: "Error",
-          description: "Password must be at least 6 characters long.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const { error } = await supabase.auth.updateUser({
-        password: passwordData.newPassword
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Password updated successfully.",
-      });
-
-      setPasswordData({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: ""
-      });
-    } catch (error) {
-      console.error('Error updating password:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update password.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleProfilePictureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -443,57 +323,10 @@ const Settings = () => {
                       </div>
                       <h3 className="font-semibold">{profile?.full_name}</h3>
                       <div className="flex items-center gap-2">
-                        {isEditingEmail && profile?.role === 'alumni' ? (
-                          <div className="flex-1 space-y-2">
-                            <Input
-                              type="email"
-                              placeholder="New email address"
-                              value={emailData.newEmail}
-                              onChange={(e) => setEmailData({...emailData, newEmail: e.target.value})}
-                              className="text-sm"
-                            />
-                            <Input
-                              type="email"
-                              placeholder="Confirm new email address"
-                              value={emailData.confirmEmail}
-                              onChange={(e) => setEmailData({...emailData, confirmEmail: e.target.value})}
-                              className="text-sm"
-                            />
-                            <div className="flex gap-2">
-                              <Button 
-                                size="sm" 
-                                onClick={handleEmailUpdate}
-                                disabled={isUpdatingEmail}
-                              >
-                                {isUpdatingEmail ? "Updating..." : "Update Email"}
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => {
-                                  setIsEditingEmail(false);
-                                  setEmailData({ newEmail: "", confirmEmail: "" });
-                                }}
-                              >
-                                Cancel
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm text-muted-foreground">{profile?.email}</p>
-                            {profile?.role === 'alumni' && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => setIsEditingEmail(true)}
-                                className="h-6 w-6 p-0"
-                              >
-                                <Edit3 className="h-3 w-3" />
-                              </Button>
-                            )}
-                          </div>
-                        )}
+                        <p className="text-sm text-muted-foreground">{profile?.email}</p>
+                        <Badge variant="outline" className="text-xs">
+                          Google Account
+                        </Badge>
                       </div>
                       <Badge className={getRankColor(profile?.rank)}>
                         {profile?.rank?.charAt(0).toUpperCase() + profile?.rank?.slice(1)}
@@ -563,53 +396,6 @@ const Settings = () => {
 
               {/* Settings Forms */}
               <div className="lg:col-span-2 space-y-6">
-                {/* Password Settings */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Lock className="h-5 w-5" />
-                      Password Settings
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <Label htmlFor="current_password">Current Password</Label>
-                      <Input
-                        id="current_password"
-                        type="password"
-                        value={passwordData.currentPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                        placeholder="Enter current password"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="new_password">New Password</Label>
-                      <Input
-                        id="new_password"
-                        type="password"
-                        value={passwordData.newPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                        placeholder="Enter new password"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="confirm_password">Confirm New Password</Label>
-                      <Input
-                        id="confirm_password"
-                        type="password"
-                        value={passwordData.confirmPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                        placeholder="Confirm new password"
-                      />
-                    </div>
-                    
-                    <Button onClick={handlePasswordChange}>
-                      Update Password
-                    </Button>
-                  </CardContent>
-                </Card>
 
                 {/* Alumni Profile Settings - Only for Alumni */}
                 {profile?.role === 'alumni' && (

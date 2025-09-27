@@ -122,12 +122,12 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
         
         const commentsWithProfiles = comments.map(comment => ({
           ...comment,
-          profiles: commenterProfiles?.find(p => p.user_id === comment.commented_by)
+          profiles: commenterProfiles?.find(p => p.user_id === comment.commented_by) || { full_name: 'Unknown User', profile_picture_url: null }
         }));
 
         return {
           ...event,
-          profiles: profile,
+          profiles: profile || { full_name: 'Unknown User', profile_picture_url: null },
           upload_reactions: reactions,
           comments: commentsWithProfiles
         };
@@ -426,9 +426,9 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3">
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src={event.profiles.profile_picture_url} />
+                          <AvatarImage src={event.profiles?.profile_picture_url} />
                           <AvatarFallback>
-                            {event.profiles.full_name.split(' ').map((n: string) => n[0]).join('')}
+                            {event.profiles?.full_name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
@@ -516,7 +516,7 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
                               <Avatar className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0">
                                 <AvatarImage src={comment.profiles?.profile_picture_url} />
                                 <AvatarFallback className="text-xs">
-                                  {comment.profiles?.full_name?.split(' ').map((n: string) => n[0]).join('')}
+                                  {comment.profiles?.full_name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
                                 </AvatarFallback>
                               </Avatar>
                               <div className="flex-1 min-w-0">

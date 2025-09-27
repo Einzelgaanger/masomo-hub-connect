@@ -128,12 +128,12 @@ export function PastPapersTab({ unitId, profile }: PastPapersTabProps) {
         
         const commentsWithProfiles = comments.map(comment => ({
           ...comment,
-          profiles: commenterProfiles?.find(p => p.user_id === comment.commented_by)
+          profiles: commenterProfiles?.find(p => p.user_id === comment.commented_by) || { full_name: 'Unknown User', profile_picture_url: null }
         }));
 
         return {
           ...upload,
-          profiles: profile,
+          profiles: profile || { full_name: 'Unknown User', profile_picture_url: null },
           upload_reactions: reactions,
           comments: commentsWithProfiles
         };
@@ -428,15 +428,15 @@ export function PastPapersTab({ unitId, profile }: PastPapersTabProps) {
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3">
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src={paper.profiles.profile_picture_url} />
+                          <AvatarImage src={paper.profiles?.profile_picture_url} />
                           <AvatarFallback>
-                            {paper.profiles.full_name.split(' ').map((n: string) => n[0]).join('')}
+                            {paper.profiles?.full_name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
                           <h3 className="font-semibold">{paper.title}</h3>
                           <p className="text-sm text-muted-foreground">
-                            by {paper.profiles.full_name} • {format(new Date(paper.created_at), 'MMM dd, yyyy')}
+                            by {paper.profiles?.full_name || 'Unknown User'} • {format(new Date(paper.created_at), 'MMM dd, yyyy')}
                           </p>
                           <p className="text-sm mt-2">{paper.description}</p>
                         </div>
@@ -493,9 +493,9 @@ export function PastPapersTab({ unitId, profile }: PastPapersTabProps) {
                           {paper.comments.map((comment) => (
                             <div key={comment.id} className="flex gap-2 sm:gap-3">
                               <Avatar className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0">
-                                <AvatarImage src={comment.profiles.profile_picture_url} />
+                                <AvatarImage src={comment.profiles?.profile_picture_url} />
                                 <AvatarFallback className="text-xs">
-                                  {comment.profiles.full_name.split(' ').map((n: string) => n[0]).join('')}
+                                  {comment.profiles?.full_name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
                                 </AvatarFallback>
                               </Avatar>
                               <div className="flex-1 min-w-0">

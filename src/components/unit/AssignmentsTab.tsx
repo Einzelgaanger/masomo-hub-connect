@@ -94,7 +94,7 @@ export function AssignmentsTab({ unitId, profile }: AssignmentsTabProps) {
 
         return {
           ...assignment,
-          profiles: profile,
+          profiles: profile || { full_name: 'Unknown User', profile_picture_url: null },
           assignment_completions: completions
         };
       });
@@ -370,9 +370,9 @@ export function AssignmentsTab({ unitId, profile }: AssignmentsTabProps) {
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3">
                         <Avatar className="h-10 w-10">
-                          <AvatarImage src={assignment.profiles.profile_picture_url} />
+                          <AvatarImage src={assignment.profiles?.profile_picture_url} />
                           <AvatarFallback>
-                            {assignment.profiles.full_name.split(' ').map((n: string) => n[0]).join('')}
+                            {assignment.profiles?.full_name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
