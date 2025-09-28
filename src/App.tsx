@@ -32,10 +32,10 @@ import Inbox from "./pages/Inbox";
 import Units from "./pages/Units";
 import Alumni from "./pages/Alumni";
 import Profile from "./pages/Profile";
+import Sifa from "./pages/Sifa";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
-
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   
@@ -125,6 +125,11 @@ const App = () => (
                   <Alumni />
                 </ProtectedRoute>
               </ApplicationStatusGuard>
+            } />
+            <Route path="/sifa" element={
+              <ProtectedRoute>
+                <Sifa />
+              </ProtectedRoute>
             } />
             <Route path="/profile/:userId" element={
               <ApplicationStatusGuard>

@@ -1,4 +1,4 @@
-import { BookOpen, Info, User, GraduationCap, Shield, LogOut, Video, UserCircle, MessageCircle, Calendar, Briefcase, Mail, GraduationCap as MasomoIcon, Users } from "lucide-react";
+import { BookOpen, Info, User, GraduationCap, Shield, LogOut, Video, UserCircle, MessageCircle, Calendar, Briefcase, Mail, GraduationCap as MasomoIcon, Users, Award } from "lucide-react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
   Sidebar as SidebarComponent,
@@ -188,6 +188,18 @@ export function Sidebar({ profile }: SidebarProps) {
                         />
                       </div>
                       <span>Ajira</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink 
+                      to="/sifa" 
+                      className={getNavLinkClass}
+                      onClick={() => handleNavClick("/sifa")}
+                    >
+                      <Award className="h-4 w-4" />
+                      <span>Sifa</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

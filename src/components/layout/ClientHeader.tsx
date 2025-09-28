@@ -3,17 +3,51 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ProfilePictureModal } from "@/components/ui/ProfilePictureModal";
 import { useProfile } from "./AppLayout";
 import BackButton from "@/components/ui/BackButton";
+import { useLocation } from "react-router-dom";
+import { Award, Users, Calendar, Briefcase, MessageSquare, BookOpen, GraduationCap, User } from "lucide-react";
 
 export function ClientHeader() {
   const profile = useProfile();
+  const location = useLocation();
+
+  // Map paths to tab names and icons
+  const getTabInfo = (pathname: string) => {
+    const pathMap: Record<string, { name: string; icon: React.ReactNode }> = {
+      '/dashboard': { name: 'Dashboard', icon: <BookOpen className="h-4 w-4" /> },
+      '/ukumbi': { name: 'Ukumbi', icon: <Users className="h-4 w-4" /> },
+      '/events': { name: 'Tukio', icon: <Calendar className="h-4 w-4" /> },
+      '/ajira': { name: 'Ajira', icon: <Briefcase className="h-4 w-4" /> },
+      '/inbox': { name: 'Inbox', icon: <MessageSquare className="h-4 w-4" /> },
+      '/units': { name: 'Units', icon: <BookOpen className="h-4 w-4" /> },
+      '/alumni': { name: 'Alumni', icon: <GraduationCap className="h-4 w-4" /> },
+      '/sifa': { name: 'Sifa', icon: <Award className="h-4 w-4" /> },
+    };
+
+    // Check for profile routes
+    if (pathname.startsWith('/profile/')) {
+      return { name: 'Profile', icon: <User className="h-4 w-4" /> };
+    }
+
+    return pathMap[pathname] || { name: 'Masomo Hub', icon: <BookOpen className="h-4 w-4" /> };
+  };
+
+  const currentTab = getTabInfo(location.pathname);
 
   return (
     <header className="sticky top-0 z-50 flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
-      <SidebarTrigger className="-ml-1" />
-      
-      <BackButton fallbackPath="/dashboard" />
+      {/* Current Tab Name and Icon */}
+      <div className="flex items-center gap-2 text-base font-semibold">
+        <span>{currentTab.name}</span>
+        <div className="scale-110">
+          {currentTab.icon}
+        </div>
+      </div>
       
       <div className="flex-1" />
+      
+      <BackButton fallbackPath="/dashboard" className="h-8 w-8 p-1" />
+      
+      <SidebarTrigger className="-ml-1 h-8 w-8 p-1" />
       
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         {profile ? (

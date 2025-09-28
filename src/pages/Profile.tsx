@@ -25,7 +25,8 @@ import {
   Building,
   Briefcase,
   Globe,
-  Link
+  Link,
+  Plus
 } from "lucide-react";
 import { format } from "date-fns";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -38,6 +39,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CHARACTERS } from "@/data/characters";
+import { AchievementPost } from "@/components/achievements/AchievementPost";
+import { CreateAchievementForm } from "@/components/achievements/CreateAchievementForm";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 interface Profile {
   user_id: string;
@@ -82,6 +92,10 @@ const Profile = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [isEditingAlumni, setIsEditingAlumni] = useState(false);
   const [isUpdatingAlumni, setIsUpdatingAlumni] = useState(false);
+  const [achievements, setAchievements] = useState<any[]>([]);
+  const [achievementsLoading, setAchievementsLoading] = useState(false);
+  const [isCreateAchievementOpen, setIsCreateAchievementOpen] = useState(false);
+  const [canCreateAchievement, setCanCreateAchievement] = useState(false);
 
   const [alumniData, setAlumniData] = useState({
     current_company: "",
@@ -97,6 +111,8 @@ const Profile = () => {
   useEffect(() => {
     if (userId) {
       fetchProfile();
+      fetchAchievements();
+      checkCreateAchievementPermissions();
     }
   }, [userId]);
 
@@ -149,6 +165,115 @@ const Profile = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchAchievements = async () => {
+    if (!userId) return;
+    
+    try {
+      setAchievementsLoading(true);
+      
+      // Use simple query without complex joins for now
+      console.log('Using simple query for user achievements');
+      const directResult = await supabase
+        .from('achievements')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      
+      const data = directResult.data;
+      const error = directResult.error;
+
+      if (error) throw error;
+      
+      // Transform data and fetch profile info separately
+      const transformedData = await Promise.all(
+        (data || []).map(async (achievement) => {
+          // Fetch profile data for each achievement
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select(`
+              full_name,
+              email,
+              profile_picture_url,
+              classes(
+                course_name,
+                course_year,
+                semester,
+                course_group,
+                universities(
+                  name,
+                  countries(name)
+                )
+              )
+            `)
+            .eq('user_id', achievement.user_id)
+            .single();
+
+          return {
+            id: achievement.id,
+            user_id: achievement.user_id,
+            title: achievement.title,
+            description: achievement.description,
+            created_at: achievement.created_at,
+            updated_at: achievement.updated_at,
+            author_name: profileData?.full_name || 'Unknown',
+            author_email: profileData?.email || '',
+            author_picture: profileData?.profile_picture_url,
+            university_name: profileData?.classes?.universities?.name,
+            course_name: profileData?.classes?.course_name,
+            course_year: profileData?.classes?.course_year,
+            semester: profileData?.classes?.semester,
+            course_group: profileData?.classes?.course_group,
+            country_name: profileData?.classes?.universities?.countries?.name,
+            media_count: 0, // Will be fetched separately
+            likes_count: 0, // Will be fetched separately
+            comments_count: 0, // Will be fetched separately
+            views_count: 0, // Will be fetched separately
+            user_liked: false // Will be fetched separately
+          };
+        })
+      );
+      
+      setAchievements(transformedData);
+    } catch (error) {
+      console.error('Error fetching achievements:', error);
+    } finally {
+      setAchievementsLoading(false);
+    }
+  };
+
+  const checkCreateAchievementPermissions = async () => {
+    if (!user) {
+      setCanCreateAchievement(false);
+      return;
+    }
+
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('role, class_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) throw error;
+
+      // Only students enrolled in classes can create achievements
+      setCanCreateAchievement(profile?.role === 'student' && profile?.class_id !== null);
+    } catch (error) {
+      console.error('Error checking achievement permissions:', error);
+      setCanCreateAchievement(false);
+    }
+  };
+
+  const handleAchievementCreated = (newAchievement: any) => {
+    setIsCreateAchievementOpen(false);
+    fetchAchievements(); // Refresh achievements
+  };
+
+  const handleAchievementDeleted = (achievementId: string) => {
+    setAchievements(prev => prev.filter(a => a.id !== achievementId));
   };
 
   const handleProfilePictureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -585,6 +710,69 @@ const Profile = () => {
           </CardContent>
         </Card>
 
+        {/* Achievements Section */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Award className="h-5 w-5" />
+                Achievements
+                {achievements.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {achievements.length}
+                  </Badge>
+                )}
+              </CardTitle>
+              {isOwnProfile && canCreateAchievement && (
+                <Button
+                  size="sm"
+                  onClick={() => setIsCreateAchievementOpen(true)}
+                  className="rounded-md h-7 w-7 p-0"
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {achievementsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : achievements.length === 0 ? (
+              <div className="text-center py-8">
+                <Award className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">
+                  {isOwnProfile ? "No achievements yet" : "No achievements shared"}
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  {isOwnProfile 
+                    ? "Share your first achievement to showcase your accomplishments!"
+                    : "This user hasn't shared any achievements yet."
+                  }
+                </p>
+                {isOwnProfile && canCreateAchievement && (
+                  <Button onClick={() => setIsCreateAchievementOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Share Achievement
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {achievements.map((achievement) => (
+                  <AchievementPost
+                    key={achievement.id}
+                    achievement={achievement}
+                    onDelete={handleAchievementDeleted}
+                    showComments={false}
+                  />
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Alumni Profile Section - Only for Alumni */}
         {profile?.role === 'alumni' && (
           <Card>
@@ -764,6 +952,22 @@ const Profile = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Create Achievement Dialog */}
+        <Dialog open={isCreateAchievementOpen} onOpenChange={setIsCreateAchievementOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Share Your Achievement</DialogTitle>
+              <DialogDescription>
+                Share your accomplishments with the community. Upload photos or videos to showcase your achievements.
+              </DialogDescription>
+            </DialogHeader>
+            <CreateAchievementForm
+              onSuccess={handleAchievementCreated}
+              onCancel={() => setIsCreateAchievementOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );

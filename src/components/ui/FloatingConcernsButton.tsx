@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, Send, X } from "lucide-react";
+import { AlertTriangle, Send, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,13 +70,14 @@ export function FloatingConcernsButton() {
   return (
     <>
       {/* Floating Button */}
-      <div className="fixed top-1/2 right-6 z-50 transform -translate-y-1/2">
+      <div className="fixed top-3/4 right-6 z-50 transform -translate-y-1/2">
         <Button
           onClick={() => setIsOpen(true)}
-          className="rounded-full w-14 h-14 p-0 bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-200"
+          className="rounded-full w-10 h-10 p-0 bg-red-500 hover:bg-red-600 shadow-lg hover:shadow-xl transition-all duration-200"
+          style={{ backgroundColor: '#dc2626' }}
           title="Share concerns or ideas"
         >
-          <MessageSquare className="h-6 w-6" />
+          <AlertTriangle className="h-4 w-4" />
         </Button>
       </div>
 
