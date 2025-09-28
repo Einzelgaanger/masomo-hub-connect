@@ -91,6 +91,7 @@ export type Database = {
           deadline: string | null
           description: string | null
           file_url: string | null
+          link_url: string | null
           id: string
           title: string
           unit_id: string
@@ -101,6 +102,7 @@ export type Database = {
           deadline?: string | null
           description?: string | null
           file_url?: string | null
+          link_url?: string | null
           id?: string
           title: string
           unit_id: string
@@ -111,6 +113,7 @@ export type Database = {
           deadline?: string | null
           description?: string | null
           file_url?: string | null
+          link_url?: string | null
           id?: string
           title?: string
           unit_id?: string
@@ -431,6 +434,7 @@ export type Database = {
           dislikes_count: number
           file_type: string | null
           file_url: string | null
+          link_url: string | null
           id: string
           likes_count: number
           title: string
@@ -444,6 +448,7 @@ export type Database = {
           dislikes_count?: number
           file_type?: string | null
           file_url?: string | null
+          link_url?: string | null
           id?: string
           likes_count?: number
           title: string
@@ -457,6 +462,7 @@ export type Database = {
           dislikes_count?: number
           file_type?: string | null
           file_url?: string | null
+          link_url?: string | null
           id?: string
           likes_count?: number
           title?: string
