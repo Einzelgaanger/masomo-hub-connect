@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Upload, Download, Heart, HeartOff, MessageSquare, Trash2, FileText } from "lucide-react";
+import { Plus, Upload, Download, Heart, HeartOff, MessageSquare, Trash2, FileText, Link, ThumbsDown } from "lucide-react";
 import { format } from "date-fns";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
@@ -19,6 +19,7 @@ interface PastPaper {
   title: string;
   description: string;
   file_url: string;
+  link_url?: string;
   file_type: string;
   created_at: string;
   uploaded_by: string;
@@ -62,6 +63,7 @@ export function PastPapersTab({ unitId, profile }: PastPapersTabProps) {
   const [touchEnd, setTouchEnd] = useState<{ x: number; y: number } | null>(null);
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState<{ comment: any; paperId: string } | null>(null);
+  const [showReactionDialog, setShowReactionDialog] = useState<{ paperId: string; x: number; y: number } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
   // Form state
@@ -69,11 +71,14 @@ export function PastPapersTab({ unitId, profile }: PastPapersTabProps) {
     title: "",
     description: "",
     file: null as File | null,
-    fileType: "pdf"
+    fileType: "pdf",
+    link: ""
   });
 
   useEffect(() => {
     fetchPastPapers();
+    const cleanup = setupRealtimeSubscription();
+    return cleanup;
   }, [unitId]);
 
   const fetchPastPapers = async () => {
@@ -152,6 +157,85 @@ export function PastPapersTab({ unitId, profile }: PastPapersTabProps) {
     }
   };
 
+  const setupRealtimeSubscription = () => {
+    if (!unitId) return;
+
+    console.log('Setting up Past Papers real-time subscription for unit:', unitId);
+
+    const channel = supabase
+      .channel(`past-papers-comments-${unitId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'comments'
+        },
+        (payload) => {
+          console.log('New comment received via real-time:', payload.new);
+          // Check if this comment is for one of our past papers
+          const isOurPaper = pastPapers.some(paper => paper.id === payload.new.upload_id);
+          if (isOurPaper && payload.new.commented_by !== user?.id) {
+            fetchNewComment(payload.new.id);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'comments'
+        },
+        (payload) => {
+          console.log('Comment deleted via real-time:', payload.old);
+          // Check if this comment deletion is for one of our past papers
+          const isOurPaper = pastPapers.some(paper => paper.id === payload.old.upload_id);
+          if (isOurPaper) {
+            setPastPapers(prev => prev.map(paper => 
+              paper.id === payload.old.upload_id 
+                ? { ...paper, comments: paper.comments.filter((c: any) => c.id !== payload.old.id) }
+                : paper
+            ));
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('Past Papers subscription status:', status);
+      });
+
+    return () => {
+      console.log('Cleaning up Past Papers real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  };
+
+  const fetchNewComment = async (commentId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('comments')
+        .select(`
+          *,
+          profiles(
+            full_name,
+            profile_picture_url
+          )
+        `)
+        .eq('id', commentId)
+        .single();
+
+      if (error) throw error;
+
+      setPastPapers(prev => prev.map(paper => 
+        paper.id === data.upload_id 
+          ? { ...paper, comments: [...paper.comments, data] }
+          : paper
+      ));
+    } catch (error) {
+      console.error('Error fetching new comment:', error);
+    }
+  };
+
   const handleFileUpload = async () => {
     try {
       if (!formData.title || !formData.description || !formData.file) {
@@ -188,6 +272,7 @@ export function PastPapersTab({ unitId, profile }: PastPapersTabProps) {
           title: formData.title,
           description: formData.description,
           file_url: urlData.publicUrl,
+          link_url: formData.link || null,
           file_type: formData.fileType,
           upload_type: 'past_paper',
           uploaded_by: user?.id
@@ -327,8 +412,42 @@ export function PastPapersTab({ unitId, profile }: PastPapersTabProps) {
       title: "",
       description: "",
       file: null,
-      fileType: "pdf"
+      fileType: "pdf",
+      link: ""
     });
+  };
+
+  // Long press for paper reactions
+  const handlePaperLongPress = (e: React.MouseEvent | React.TouchEvent, paperId: string) => {
+    e.preventDefault();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top - 10;
+    setShowReactionDialog({ paperId, x, y });
+  };
+
+  const handlePaperLongPressStart = (e: React.TouchEvent, paperId: string) => {
+    e.preventDefault();
+    const timer = setTimeout(() => {
+      handlePaperLongPress(e, paperId);
+    }, 500); // 500ms long press
+    setLongPressTimer(timer);
+  };
+
+  const handlePaperLongPressEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+  };
+
+  const handleReactionFromDialog = async (paperId: string, reactionType: 'like' | 'dislike') => {
+    await handleReaction(paperId, reactionType);
+    setShowReactionDialog(null);
+  };
+
+  const cancelReactionDialog = () => {
+    setShowReactionDialog(null);
   };
 
   const canDelete = (paper: PastPaper) => {
@@ -405,6 +524,20 @@ export function PastPapersTab({ unitId, profile }: PastPapersTabProps) {
                     })}
                   />
                 </div>
+
+                <div>
+                  <Label htmlFor="link">Link (Optional)</Label>
+                  <Input
+                    id="link"
+                    type="url"
+                    value={formData.link}
+                    onChange={(e) => setFormData({ ...formData, link: e.target.value })}
+                    placeholder="https://example.com/past-paper-resources"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Share a link to additional past paper resources or solutions
+                  </p>
+                </div>
               </div>
 
               <DialogFooter>
@@ -454,6 +587,12 @@ export function PastPapersTab({ unitId, profile }: PastPapersTabProps) {
                   </CardHeader>
                   <CardContent 
                     onDoubleClick={() => handleReaction(paper.id, 'like')}
+                    onMouseDown={(e) => handlePaperLongPress(e, paper.id)}
+                    onTouchStart={(e) => {
+                      handlePaperLongPressStart(e, paper.id);
+                    }}
+                    onTouchEnd={handlePaperLongPressEnd}
+                    onTouchCancel={handlePaperLongPressEnd}
                   >
                     {paper.file_url && (
                       <div className="mb-4">
@@ -464,6 +603,19 @@ export function PastPapersTab({ unitId, profile }: PastPapersTabProps) {
                         >
                           <Download className="h-4 w-4 mr-2" />
                           Download Past Paper
+                        </Button>
+                      </div>
+                    )}
+
+                    {paper.link_url && (
+                      <div className="mb-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(paper.link_url, '_blank')}
+                        >
+                          <Link className="h-4 w-4 mr-2" />
+                          Open Link
                         </Button>
                       </div>
                     )}
@@ -478,11 +630,17 @@ export function PastPapersTab({ unitId, profile }: PastPapersTabProps) {
                         <MessageSquare className="h-3 w-3 mr-1" />
                         {paper.comments.length}
                       </Button>
-                      {/* Like Badge */}
+                      {/* Reaction Badges */}
                       {getLikesCount(paper) > 0 && (
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Heart className="h-3 w-3 fill-red-500 text-red-500" />
                           <span>{getLikesCount(paper)}</span>
+                        </div>
+                      )}
+                      {getDislikesCount(paper) > 0 && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <ThumbsDown className="h-3 w-3 fill-gray-500 text-gray-500" />
+                          <span>{getDislikesCount(paper)}</span>
                         </div>
                       )}
                     </div>
@@ -549,6 +707,45 @@ export function PastPapersTab({ unitId, profile }: PastPapersTabProps) {
               </div>
             )}
           </div>
+
+      {/* Reaction Dialog */}
+      {showReactionDialog && (
+        <div
+          className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-2 flex gap-2"
+          style={{
+            left: `${showReactionDialog.x - 80}px`,
+            top: `${showReactionDialog.y}px`,
+            transform: 'translateX(-50%)'
+          }}
+        >
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleReactionFromDialog(showReactionDialog.paperId, 'like')}
+            className="flex items-center gap-1"
+          >
+            <Heart className="h-4 w-4 text-red-500" />
+            Like
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleReactionFromDialog(showReactionDialog.paperId, 'dislike')}
+            className="flex items-center gap-1"
+          >
+            <ThumbsDown className="h-4 w-4 text-gray-500" />
+            Dislike
+          </Button>
+        </div>
+      )}
+
+      {/* Backdrop to close reaction dialog */}
+      {showReactionDialog && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={cancelReactionDialog}
+        />
+      )}
     </div>
   );
 }

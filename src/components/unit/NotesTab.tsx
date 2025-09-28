@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Upload, Download, Heart, HeartOff, MessageSquare, Trash2, Eye, FileText } from "lucide-react";
+import { Plus, Upload, Download, Heart, HeartOff, MessageSquare, Trash2, Eye, FileText, Link, ThumbsDown } from "lucide-react";
 import { format } from "date-fns";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
@@ -19,6 +19,7 @@ interface Note {
   title: string;
   description: string;
   file_url: string;
+  link_url?: string;
   file_type: string;
   created_at: string;
   uploaded_by: string;
@@ -62,6 +63,7 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
   const [touchEnd, setTouchEnd] = useState<{ x: number; y: number } | null>(null);
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState<{ comment: any; noteId: string } | null>(null);
+  const [showReactionDialog, setShowReactionDialog] = useState<{ noteId: string; x: number; y: number } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
   // Form state
@@ -69,11 +71,14 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
     title: "",
     description: "",
     file: null as File | null,
-    fileType: "pdf"
+    fileType: "pdf",
+    link: ""
   });
 
   useEffect(() => {
     fetchNotes();
+    const cleanup = setupRealtimeSubscription();
+    return cleanup;
   }, [unitId]);
 
   const fetchNotes = async () => {
@@ -152,6 +157,85 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
     }
   };
 
+  const setupRealtimeSubscription = () => {
+    if (!unitId) return;
+
+    console.log('Setting up Notes real-time subscription for unit:', unitId);
+
+    const channel = supabase
+      .channel(`notes-comments-${unitId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'comments'
+        },
+        (payload) => {
+          console.log('New comment received via real-time:', payload.new);
+          // Check if this comment is for one of our notes
+          const isOurNote = notes.some(note => note.id === payload.new.upload_id);
+          if (isOurNote && payload.new.commented_by !== user?.id) {
+            fetchNewComment(payload.new.id);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'comments'
+        },
+        (payload) => {
+          console.log('Comment deleted via real-time:', payload.old);
+          // Check if this comment deletion is for one of our notes
+          const isOurNote = notes.some(note => note.id === payload.old.upload_id);
+          if (isOurNote) {
+            setNotes(prev => prev.map(note => 
+              note.id === payload.old.upload_id 
+                ? { ...note, comments: note.comments.filter((c: any) => c.id !== payload.old.id) }
+                : note
+            ));
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('Notes subscription status:', status);
+      });
+
+    return () => {
+      console.log('Cleaning up Notes real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  };
+
+  const fetchNewComment = async (commentId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('comments')
+        .select(`
+          *,
+          profiles(
+            full_name,
+            profile_picture_url
+          )
+        `)
+        .eq('id', commentId)
+        .single();
+
+      if (error) throw error;
+
+      setNotes(prev => prev.map(note => 
+        note.id === data.upload_id 
+          ? { ...note, comments: [...note.comments, data] }
+          : note
+      ));
+    } catch (error) {
+      console.error('Error fetching new comment:', error);
+    }
+  };
+
   const handleFileUpload = async () => {
     try {
       if (!formData.title || !formData.description) {
@@ -193,6 +277,7 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
           title: formData.title,
           description: formData.description,
           file_url: fileUrl || null,
+          link_url: formData.link || null,
           file_type: formData.file ? formData.fileType : null,
           upload_type: 'note',
           uploaded_by: user?.id
@@ -396,6 +481,39 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
     }
   };
 
+  // Long press for note reactions
+  const handleNoteLongPress = (e: React.MouseEvent | React.TouchEvent, noteId: string) => {
+    e.preventDefault();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top - 10;
+    setShowReactionDialog({ noteId, x, y });
+  };
+
+  const handleNoteLongPressStart = (e: React.TouchEvent, noteId: string) => {
+    e.preventDefault();
+    const timer = setTimeout(() => {
+      handleNoteLongPress(e, noteId);
+    }, 500); // 500ms long press
+    setLongPressTimer(timer);
+  };
+
+  const handleNoteLongPressEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+  };
+
+  const handleReactionFromDialog = async (noteId: string, reactionType: 'like' | 'dislike') => {
+    await handleReaction(noteId, reactionType);
+    setShowReactionDialog(null);
+  };
+
+  const cancelReactionDialog = () => {
+    setShowReactionDialog(null);
+  };
+
   const deleteComment = async (commentId: string, noteId: string) => {
     try {
       // Remove from UI immediately (optimistic update)
@@ -507,6 +625,20 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
                     })}
                   />
                 </div>
+
+                <div>
+                  <Label htmlFor="link">Link (Optional)</Label>
+                  <Input
+                    id="link"
+                    type="url"
+                    value={formData.link}
+                    onChange={(e) => setFormData({ ...formData, link: e.target.value })}
+                    placeholder="https://example.com/note-resources"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Share a link to additional resources, online notes, or related materials
+                  </p>
+                </div>
               </div>
 
               <DialogFooter>
@@ -556,6 +688,12 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
                   </CardHeader>
                   <CardContent 
                     onDoubleClick={() => handleReaction(note.id, 'like')}
+                    onMouseDown={(e) => handleNoteLongPress(e, note.id)}
+                    onTouchStart={(e) => {
+                      handleNoteLongPressStart(e, note.id);
+                    }}
+                    onTouchEnd={handleNoteLongPressEnd}
+                    onTouchCancel={handleNoteLongPressEnd}
                   >
                     {note.file_url && (
                       <div className="mb-4">
@@ -566,6 +704,19 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
                         >
                           <Download className="h-4 w-4 mr-2" />
                           Download File
+                        </Button>
+                      </div>
+                    )}
+
+                    {note.link_url && (
+                      <div className="mb-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(note.link_url, '_blank')}
+                        >
+                          <Link className="h-4 w-4 mr-2" />
+                          Open Link
                         </Button>
                       </div>
                     )}
@@ -580,11 +731,17 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
                         <MessageSquare className="h-3 w-3 mr-1" />
                         {note.comments.length}
                       </Button>
-                      {/* Like Badge */}
+                      {/* Reaction Badges */}
                       {getLikesCount(note) > 0 && (
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Heart className="h-3 w-3 fill-red-500 text-red-500" />
                           <span>{getLikesCount(note)}</span>
+                        </div>
+                      )}
+                      {getDislikesCount(note) > 0 && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <ThumbsDown className="h-3 w-3 fill-gray-500 text-gray-500" />
+                          <span>{getDislikesCount(note)}</span>
                         </div>
                       )}
                     </div>
@@ -711,6 +868,45 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Reaction Dialog */}
+      {showReactionDialog && (
+        <div
+          className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-2 flex gap-2"
+          style={{
+            left: `${showReactionDialog.x - 80}px`,
+            top: `${showReactionDialog.y}px`,
+            transform: 'translateX(-50%)'
+          }}
+        >
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleReactionFromDialog(showReactionDialog.noteId, 'like')}
+            className="flex items-center gap-1"
+          >
+            <Heart className="h-4 w-4 text-red-500" />
+            Like
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleReactionFromDialog(showReactionDialog.noteId, 'dislike')}
+            className="flex items-center gap-1"
+          >
+            <ThumbsDown className="h-4 w-4 text-gray-500" />
+            Dislike
+          </Button>
+        </div>
+      )}
+
+      {/* Backdrop to close reaction dialog */}
+      {showReactionDialog && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={cancelReactionDialog}
+        />
       )}
     </div>
   );

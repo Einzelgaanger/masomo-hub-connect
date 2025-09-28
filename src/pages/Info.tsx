@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,57 @@ import { Trophy, Star, Target, Zap, Users, MessageCircle, Upload, Calendar, Thum
 import { useNavigate } from "react-router-dom";
 import { CharacterSelector } from "@/components/ui/CharacterSelector";
 
+// Error Boundary Component
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Info page error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <AppLayout>
+          <div className="min-h-screen flex items-center justify-center">
+            <Card className="w-full max-w-md">
+              <CardHeader>
+                <CardTitle className="text-red-600">Error Loading Info Page</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-4">
+                  There was an error loading the info page. Please try refreshing the page.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Error: {this.state.error?.message}
+                </p>
+                <button 
+                  onClick={() => window.location.reload()}
+                  className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                >
+                  Refresh Page
+                </button>
+              </CardContent>
+            </Card>
+          </div>
+        </AppLayout>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 const Info = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -16,13 +67,26 @@ const Info = () => {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  console.log('Info component initialized - user:', user, 'loading:', loading);
+
   useEffect(() => {
+    console.log('Info page useEffect - user:', user);
     if (user) {
       fetchProfile();
+    } else {
+      // If no user, set default profile and stop loading
+      console.log('No user found, setting default profile');
+      setProfile({
+        points: 0,
+        rank: 'bronze',
+        character_id: null
+      });
+      setLoading(false);
     }
   }, [user]);
 
   const fetchProfile = async () => {
+    console.log('Fetching profile for user:', user?.id);
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -42,14 +106,31 @@ const Info = () => {
         .eq('user_id', user?.id)
         .single();
 
-      if (error) throw error;
-      setProfile(data);
+      console.log('Profile fetch result:', { data, error });
+
+      if (error) {
+        console.warn('Profile fetch error (non-critical):', error);
+        // Set default profile data instead of throwing
+        setProfile({
+          points: 0,
+          rank: 'bronze',
+          character_id: null
+        });
+      } else {
+        console.log('Profile loaded successfully:', data);
+        setProfile(data);
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
+      // Set default profile data instead of showing error
+      setProfile({
+        points: 0,
+        rank: 'bronze',
+        character_id: null
+      });
       toast({
-        title: "Error",
-        description: "Failed to load profile data.",
-        variant: "destructive",
+        title: "Info",
+        description: "Using default profile data. Your profile will be updated once you complete setup.",
       });
     } finally {
       setLoading(false);
@@ -189,15 +270,26 @@ const Info = () => {
     { rank: 'diamond', ...getRankInfo('diamond') }
   ];
 
+  console.log('Info page render - loading:', loading, 'profile:', profile);
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
+      <AppLayout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+        </div>
+      </AppLayout>
     );
   }
 
-  const currentRankInfo = getRankInfo(profile?.rank || 'bronze');
+  // Ensure profile is never null
+  const safeProfile = profile || {
+    points: 0,
+    rank: 'bronze',
+    character_id: null
+  };
+
+  const currentRankInfo = getRankInfo(safeProfile.rank);
 
   return (
     <AppLayout>
@@ -229,7 +321,7 @@ const Info = () => {
                     </div>
                   </div>
                   <Badge className={`${currentRankInfo.color} text-lg px-4 py-2`}>
-                    {profile?.points || 0} Points
+                    {safeProfile.points} Points
                   </Badge>
                 </div>
               </CardContent>
@@ -412,8 +504,8 @@ const Info = () => {
               </CardHeader>
               <CardContent>
                 <CharacterSelector 
-                  currentPoints={profile?.points || 0}
-                  currentCharacterId={profile?.character_id}
+                  currentPoints={safeProfile.points}
+                  currentCharacterId={safeProfile.character_id}
                 />
               </CardContent>
             </Card>
@@ -454,4 +546,11 @@ const Info = () => {
   );
 };
 
-export default Info;
+// Wrap Info component with ErrorBoundary
+const InfoWithErrorBoundary = () => (
+  <ErrorBoundary>
+    <Info />
+  </ErrorBoundary>
+);
+
+export default InfoWithErrorBoundary;

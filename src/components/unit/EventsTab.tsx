@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Calendar, Trash2, Clock, MapPin, Heart, HeartOff, MessageSquare } from "lucide-react";
+import { Plus, Calendar, Trash2, Clock, MapPin, Heart, HeartOff, MessageSquare, Link, ThumbsDown } from "lucide-react";
 import { format, formatDistanceToNow, isAfter, isToday, isTomorrow, isYesterday } from "date-fns";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
@@ -21,6 +21,7 @@ interface Event {
   event_date: string;
   location?: string;
   venue?: string;
+  link_url?: string;
   created_at: string;
   created_by: string;
   profiles?: {
@@ -57,6 +58,8 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
   const [newComment, setNewComment] = useState("");
+  const [showReactionDialog, setShowReactionDialog] = useState<{ eventId: string; x: number; y: number } | null>(null);
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -64,11 +67,14 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
     description: "",
     event_date: "",
     location: "",
-    venue: ""
+    venue: "",
+    link: ""
   });
 
   useEffect(() => {
     fetchEvents();
+    const cleanup = setupRealtimeSubscription();
+    return cleanup;
   }, [unitId]);
 
   const fetchEvents = async () => {
@@ -146,6 +152,85 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
     }
   };
 
+  const setupRealtimeSubscription = () => {
+    if (!unitId) return;
+
+    console.log('Setting up Events real-time subscription for unit:', unitId);
+
+    const channel = supabase
+      .channel(`events-comments-${unitId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'comments'
+        },
+        (payload) => {
+          console.log('New comment received via real-time:', payload.new);
+          // Check if this comment is for one of our events
+          const isOurEvent = events.some(event => event.id === payload.new.upload_id);
+          if (isOurEvent && payload.new.commented_by !== user?.id) {
+            fetchNewComment(payload.new.id);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'comments'
+        },
+        (payload) => {
+          console.log('Comment deleted via real-time:', payload.old);
+          // Check if this comment deletion is for one of our events
+          const isOurEvent = events.some(event => event.id === payload.old.upload_id);
+          if (isOurEvent) {
+            setEvents(prev => prev.map(event => 
+              event.id === payload.old.upload_id 
+                ? { ...event, comments: event.comments.filter((c: any) => c.id !== payload.old.id) }
+                : event
+            ));
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('Events subscription status:', status);
+      });
+
+    return () => {
+      console.log('Cleaning up Events real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  };
+
+  const fetchNewComment = async (commentId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('comments')
+        .select(`
+          *,
+          profiles(
+            full_name,
+            profile_picture_url
+          )
+        `)
+        .eq('id', commentId)
+        .single();
+
+      if (error) throw error;
+
+      setEvents(prev => prev.map(event => 
+        event.id === data.upload_id 
+          ? { ...event, comments: [...event.comments, data] }
+          : event
+      ));
+    } catch (error) {
+      console.error('Error fetching new comment:', error);
+    }
+  };
+
   const handleCreateEvent = async () => {
     try {
       if (!formData.title || !formData.description || !formData.event_date) {
@@ -168,6 +253,7 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
           event_date: formData.event_date,
           location: formData.location || null,
           venue: formData.venue || null,
+          link_url: formData.link || null,
           created_by: user?.id
         });
 
@@ -226,8 +312,42 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
       description: "",
       event_date: "",
       location: "",
-      venue: ""
+      venue: "",
+      link: ""
     });
+  };
+
+  // Long press for event reactions
+  const handleEventLongPress = (e: React.MouseEvent | React.TouchEvent, eventId: string) => {
+    e.preventDefault();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top - 10;
+    setShowReactionDialog({ eventId, x, y });
+  };
+
+  const handleEventLongPressStart = (e: React.TouchEvent, eventId: string) => {
+    e.preventDefault();
+    const timer = setTimeout(() => {
+      handleEventLongPress(e, eventId);
+    }, 500); // 500ms long press
+    setLongPressTimer(timer);
+  };
+
+  const handleEventLongPressEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+  };
+
+  const handleReactionFromDialog = async (eventId: string, reactionType: 'like' | 'dislike') => {
+    await handleReaction(eventId, reactionType);
+    setShowReactionDialog(null);
+  };
+
+  const cancelReactionDialog = () => {
+    setShowReactionDialog(null);
   };
 
   const canManage = (event: Event) => {
@@ -402,6 +522,20 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
                     placeholder="e.g., Library Hall, Computer Lab, etc."
                   />
                 </div>
+
+                <div>
+                  <Label htmlFor="link">Link (Optional)</Label>
+                  <Input
+                    id="link"
+                    type="url"
+                    value={formData.link}
+                    onChange={(e) => setFormData({ ...formData, link: e.target.value })}
+                    placeholder="https://example.com/event-details"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Share a link to event registration, additional details, or related resources
+                  </p>
+                </div>
               </div>
 
               <DialogFooter>
@@ -457,6 +591,12 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
                   </CardHeader>
                   <CardContent 
                     onDoubleClick={() => handleReaction(event.id, 'like')}
+                    onMouseDown={(e) => handleEventLongPress(e, event.id)}
+                    onTouchStart={(e) => {
+                      handleEventLongPressStart(e, event.id);
+                    }}
+                    onTouchEnd={handleEventLongPressEnd}
+                    onTouchCancel={handleEventLongPressEnd}
                   >
                     <div className="mb-4">
                       <div className="flex flex-wrap items-center gap-4">
@@ -487,6 +627,19 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
                           ({formatDistanceToNow(new Date(event.event_date), { addSuffix: true })})
                         </span>
                       </div>
+                      
+                      {event.link_url && (
+                        <div className="mt-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(event.link_url, '_blank')}
+                          >
+                            <Link className="h-4 w-4 mr-2" />
+                            Open Link
+                          </Button>
+                        </div>
+                      )}
                     </div>
                     
                     <div className="flex items-center gap-2 sm:gap-3 mb-4">
@@ -499,11 +652,17 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
                         <MessageSquare className="h-3 w-3 mr-1" />
                         {event.comments.length}
                       </Button>
-                      {/* Like Badge */}
+                      {/* Reaction Badges */}
                       {getLikesCount(event) > 0 && (
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Heart className="h-3 w-3 fill-red-500 text-red-500" />
                           <span>{getLikesCount(event)}</span>
+                        </div>
+                      )}
+                      {getDislikesCount(event) > 0 && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <ThumbsDown className="h-3 w-3 fill-gray-500 text-gray-500" />
+                          <span>{getDislikesCount(event)}</span>
                         </div>
                       )}
                     </div>
@@ -570,6 +729,45 @@ export function EventsTab({ unitId, profile }: EventsTabProps) {
               </div>
             )}
           </div>
+
+      {/* Reaction Dialog */}
+      {showReactionDialog && (
+        <div
+          className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-2 flex gap-2"
+          style={{
+            left: `${showReactionDialog.x - 80}px`,
+            top: `${showReactionDialog.y}px`,
+            transform: 'translateX(-50%)'
+          }}
+        >
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleReactionFromDialog(showReactionDialog.eventId, 'like')}
+            className="flex items-center gap-1"
+          >
+            <Heart className="h-4 w-4 text-red-500" />
+            Like
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleReactionFromDialog(showReactionDialog.eventId, 'dislike')}
+            className="flex items-center gap-1"
+          >
+            <ThumbsDown className="h-4 w-4 text-gray-500" />
+            Dislike
+          </Button>
+        </div>
+      )}
+
+      {/* Backdrop to close reaction dialog */}
+      {showReactionDialog && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={cancelReactionDialog}
+        />
+      )}
     </div>
   );
 }

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Info Page Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            background: #f5f5f5;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>Info Page Accessibility Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Steps</h2>
+        <ol>
+            <li>Open browser console (F12)</li>
+            <li>Navigate to <code>/info</code> in your app</li>
+            <li>Check console for any errors or logs</li>
+            <li>Look for these specific log messages:</li>
+            <ul>
+                <li>"Info component initialized"</li>
+                <li>"Info page useEffect"</li>
+                <li>"Fetching profile for user"</li>
+                <li>"Profile fetch result"</li>
+                <li>"Info page render"</li>
+            </ul>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>Expected Behavior</h2>
+        <ul>
+            <li>Page should load without console errors</li>
+            <li>Should show loading spinner initially</li>
+            <li>Should display gamification info after loading</li>
+            <li>Should show default profile data if user has no profile</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>Common Issues</h2>
+        <ul>
+            <li><strong>White screen:</strong> Check for JavaScript errors in console</li>
+            <li><strong>Loading forever:</strong> Profile fetch might be stuck</li>
+            <li><strong>Redirect loops:</strong> Check ApplicationStatusGuard</li>
+            <li><strong>Authentication issues:</strong> Check useAuth hook</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>Debug Commands</h2>
+        <p>Run these in browser console:</p>
+        <pre>
+// Check if user is authenticated
+console.log('User:', window.supabase?.auth?.user);
+
+// Check current route
+console.log('Current path:', window.location.pathname);
+
+// Check for React errors
+console.log('React DevTools available:', !!window.__REACT_DEVTOOLS_GLOBAL_HOOK__);
+        </pre>
+    </div>
+</body>
+</html>

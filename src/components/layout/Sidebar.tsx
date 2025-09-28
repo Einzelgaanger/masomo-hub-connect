@@ -1,4 +1,4 @@
-import { BookOpen, Settings, Info, User, GraduationCap, Shield, LogOut, Video, UserCircle, MessageCircle, Calendar, Briefcase, Mail, GraduationCap as MasomoIcon, Users } from "lucide-react";
+import { BookOpen, Info, User, GraduationCap, Shield, LogOut, Video, UserCircle, MessageCircle, Calendar, Briefcase, Mail, GraduationCap as MasomoIcon, Users } from "lucide-react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
   Sidebar as SidebarComponent,
@@ -241,18 +241,6 @@ export function Sidebar({ profile }: SidebarProps) {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )}
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink 
-                      to="/settings" 
-                      className={getNavLinkClass}
-                      onClick={() => handleNavClick("/settings")}
-                    >
-                      <Settings className="h-4 w-4" />
-                      <span>Settings</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink 

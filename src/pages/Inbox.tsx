@@ -88,7 +88,8 @@ const Inbox = () => {
   useEffect(() => {
     if (selectedConversation) {
       fetchMessages(selectedConversation);
-      setupRealtimeSubscription();
+      const cleanup = setupRealtimeSubscription();
+      return cleanup;
     }
   }, [selectedConversation]);
 
@@ -353,10 +354,12 @@ const Inbox = () => {
   };
 
   const setupRealtimeSubscription = () => {
-    if (!selectedConversation) return;
+    if (!selectedConversation || !user) return;
+
+    console.log('Setting up Inbox real-time subscription for conversation:', selectedConversation);
 
     const subscription = supabase
-      .channel('direct_messages')
+      .channel(`direct_messages_${selectedConversation}_${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -366,6 +369,7 @@ const Inbox = () => {
           filter: `or(sender_id.eq.${selectedConversation},receiver_id.eq.${selectedConversation})`
         },
         (payload) => {
+          console.log('New DM received via real-time:', payload.new);
           if (payload.new.sender_id === user?.id || payload.new.receiver_id === user?.id) {
             fetchMessages(selectedConversation);
             // Refresh conversations to update unread counts
@@ -373,9 +377,12 @@ const Inbox = () => {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Inbox subscription status:', status);
+      });
 
     return () => {
+      console.log('Cleaning up Inbox real-time subscription');
       subscription.unsubscribe();
     };
   };
@@ -383,8 +390,10 @@ const Inbox = () => {
   const setupGlobalRealtimeSubscription = () => {
     if (!user) return;
 
+    console.log('Setting up global Inbox real-time subscription for user:', user.id);
+
     const subscription = supabase
-      .channel('global_direct_messages')
+      .channel(`global_direct_messages_${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -394,13 +403,31 @@ const Inbox = () => {
           filter: `receiver_id.eq.${user.id}`
         },
         (payload) => {
+          console.log('New DM received globally via real-time:', payload.new);
           // Refresh conversations to update unread counts
           fetchConversations();
         }
       )
-      .subscribe();
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'direct_messages',
+          filter: `or(sender_id.eq.${user.id},receiver_id.eq.${user.id})`
+        },
+        (payload) => {
+          console.log('DM updated via real-time:', payload.new);
+          // Refresh conversations to update read status
+          fetchConversations();
+        }
+      )
+      .subscribe((status) => {
+        console.log('Global Inbox subscription status:', status);
+      });
 
     return () => {
+      console.log('Cleaning up global Inbox real-time subscription');
       subscription.unsubscribe();
     };
   };

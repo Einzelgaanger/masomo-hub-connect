@@ -6,6 +6,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 import { 
   User,
   Mail,
@@ -14,12 +18,26 @@ import {
   GraduationCap,
   Award,
   BookOpen,
-  MessageCircle
+  MessageCircle,
+  Edit3,
+  Image,
+  X,
+  Building,
+  Briefcase,
+  Globe,
+  Link
 } from "lucide-react";
 import { format } from "date-fns";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { CHARACTERS } from "@/data/characters";
 
 interface Profile {
   user_id: string;
@@ -32,6 +50,13 @@ interface Profile {
   created_at: string;
   last_login?: string;
   character_id?: number;
+  role?: string;
+  admission_number?: string;
+  current_company?: string;
+  current_position?: string;
+  industry?: string;
+  linkedin_url?: string;
+  mentoring_available?: boolean;
   classes?: {
     course_name: string;
     course_year: number;
@@ -54,6 +79,18 @@ const Profile = () => {
   
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isEditingAlumni, setIsEditingAlumni] = useState(false);
+  const [isUpdatingAlumni, setIsUpdatingAlumni] = useState(false);
+
+  const [alumniData, setAlumniData] = useState({
+    current_company: "",
+    current_position: "",
+    industry: "",
+    linkedin_url: "",
+    bio: "",
+    mentoring_available: false
+  });
 
   const isOwnProfile = user?.id === userId;
 
@@ -85,6 +122,23 @@ const Profile = () => {
 
       if (error) throw error;
       setProfile(data);
+      
+      // Debug character_id
+      console.log('Profile data:', data);
+      console.log('Character ID:', data?.character_id);
+      console.log('Character ID type:', typeof data?.character_id);
+      
+      // Set alumni data for editing
+      if (data?.role === 'alumni') {
+        setAlumniData({
+          current_company: data.current_company || "",
+          current_position: data.current_position || "",
+          industry: data.industry || "",
+          linkedin_url: data.linkedin_url || "",
+          bio: data.bio || "",
+          mentoring_available: data.mentoring_available || false
+        });
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
       toast({
@@ -94,6 +148,124 @@ const Profile = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleProfilePictureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      setIsUploading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user?.id}-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      // Upload image to storage
+      const { error: uploadError } = await supabase.storage
+        .from('profiles')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('profiles')
+        .getPublicUrl(filePath);
+
+      // Update profile with new image URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ profile_picture_url: publicUrl })
+        .eq('user_id', user?.id);
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: "Success",
+        description: "Profile picture updated successfully.",
+      });
+
+      fetchProfile(); // Refresh profile data
+    } catch (error) {
+      console.error('Error uploading profile picture:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile picture.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemoveProfilePicture = async () => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ profile_picture_url: null })
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Profile picture removed successfully.",
+      });
+
+      fetchProfile(); // Refresh profile data
+    } catch (error) {
+      console.error('Error removing profile picture:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove profile picture.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAlumniUpdate = async () => {
+    if (!alumniData.current_company || !alumniData.current_position) {
+      toast({
+        title: "Error",
+        description: "Please fill in company and position fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUpdatingAlumni(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          current_company: alumniData.current_company,
+          current_position: alumniData.current_position,
+          industry: alumniData.industry,
+          linkedin_url: alumniData.linkedin_url,
+          bio: alumniData.bio,
+          mentoring_available: alumniData.mentoring_available
+        })
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Alumni profile updated successfully.",
+      });
+
+      setIsEditingAlumni(false);
+      fetchProfile(); // Refresh profile data
+    } catch (error) {
+      console.error('Error updating alumni profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update alumni profile.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingAlumni(false);
     }
   };
 
@@ -157,15 +329,58 @@ const Profile = () => {
                     {profile.full_name.split(' ').map((n: string) => n[0]).join('')}
                   </AvatarFallback>
                 </Avatar>
+                {isOwnProfile && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="absolute top-0 right-0 h-8 w-8 rounded-full p-0 bg-background shadow-lg"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => document.getElementById('profile-picture-input')?.click()}>
+                        <Image className="h-4 w-4 mr-2" />
+                        Update Photo
+                      </DropdownMenuItem>
+                      {profile?.profile_picture_url && (
+                        <DropdownMenuItem 
+                          onClick={handleRemoveProfilePicture}
+                          className="text-red-600 focus:text-red-600"
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Remove Photo
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
                 {profile.character_id && (
                   <div className="absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4 bg-background rounded-full p-0.5 shadow-lg ring-2 ring-background">
                     <img
-                      src={`/characters/${getCharacterImage(profile.character_id)}.png`}
+                      src={getCharacterImage(profile.character_id)}
                       alt="Character"
                       className="h-7 w-7 rounded-full"
+                      onError={(e) => {
+                        console.log('Character image failed to load:', profile.character_id, getCharacterImage(profile.character_id));
+                        e.currentTarget.src = '/characters/anonymous.png'; // Fallback
+                      }}
+                      onLoad={() => {
+                        console.log('Character image loaded successfully:', profile.character_id, getCharacterImage(profile.character_id));
+                      }}
                     />
                   </div>
                 )}
+                <Input
+                  id="profile-picture-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleProfilePictureUpload}
+                  className="hidden"
+                  disabled={isUploading}
+                />
               </div>
               
               <div className="flex-1">
@@ -180,6 +395,9 @@ const Profile = () => {
                       <div className="flex items-center gap-2">
                         <Mail className="h-4 w-4" />
                         <span>{profile.email}</span>
+                        <Badge variant="outline" className="text-xs">
+                          Google Account
+                        </Badge>
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4" />
@@ -188,6 +406,18 @@ const Profile = () => {
                       {profile.last_login && (
                         <div className="flex items-center gap-2">
                           <span>Last active: {format(new Date(profile.last_login), 'MMM dd, yyyy')}</span>
+                        </div>
+                      )}
+                      {profile.admission_number && (
+                        <div className="flex items-center gap-2">
+                          <span>Admission: {profile.admission_number}</span>
+                        </div>
+                      )}
+                      {profile.role && (
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-xs">
+                            {profile.role.charAt(0).toUpperCase() + profile.role.slice(1)}
+                          </Badge>
                         </div>
                       )}
                     </div>
@@ -354,18 +584,205 @@ const Profile = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Alumni Profile Section - Only for Alumni */}
+        {profile?.role === 'alumni' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <GraduationCap className="h-5 w-5" />
+                Professional Information
+                {isOwnProfile && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsEditingAlumni(!isEditingAlumni)}
+                    className="ml-auto"
+                  >
+                    <Edit3 className="h-4 w-4 mr-2" />
+                    {isEditingAlumni ? 'Cancel' : 'Edit'}
+                  </Button>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isEditingAlumni ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="current_company">Current Company *</Label>
+                      <Input
+                        id="current_company"
+                        value={alumniData.current_company}
+                        onChange={(e) => setAlumniData({...alumniData, current_company: e.target.value})}
+                        placeholder="Enter your company name"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="current_position">Current Position *</Label>
+                      <Input
+                        id="current_position"
+                        value={alumniData.current_position}
+                        onChange={(e) => setAlumniData({...alumniData, current_position: e.target.value})}
+                        placeholder="Enter your job title"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="industry">Industry</Label>
+                    <Input
+                      id="industry"
+                      value={alumniData.industry}
+                      onChange={(e) => setAlumniData({...alumniData, industry: e.target.value})}
+                      placeholder="e.g., Technology, Finance, Healthcare"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="linkedin_url">LinkedIn Profile</Label>
+                    <Input
+                      id="linkedin_url"
+                      type="url"
+                      value={alumniData.linkedin_url}
+                      onChange={(e) => setAlumniData({...alumniData, linkedin_url: e.target.value})}
+                      placeholder="https://linkedin.com/in/yourprofile"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="alumni_bio">Professional Bio</Label>
+                    <Textarea
+                      id="alumni_bio"
+                      value={alumniData.bio}
+                      onChange={(e) => setAlumniData({...alumniData, bio: e.target.value})}
+                      placeholder="Tell us about your professional journey and achievements..."
+                      rows={4}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="mentoring_available"
+                      checked={alumniData.mentoring_available}
+                      onChange={(e) => setAlumniData({...alumniData, mentoring_available: e.target.checked})}
+                      className="rounded"
+                      title="Available for mentoring current students"
+                      aria-label="Available for mentoring current students"
+                    />
+                    <Label htmlFor="mentoring_available">Available for mentoring current students</Label>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={handleAlumniUpdate}
+                      disabled={isUpdatingAlumni}
+                    >
+                      {isUpdatingAlumni ? "Updating..." : "Update Profile"}
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        setIsEditingAlumni(false);
+                        // Reset form data
+                        setAlumniData({
+                          current_company: profile.current_company || "",
+                          current_position: profile.current_position || "",
+                          industry: profile.industry || "",
+                          linkedin_url: profile.linkedin_url || "",
+                          bio: profile.bio || "",
+                          mentoring_available: profile.mentoring_available || false
+                        });
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {(profile.current_company || profile.current_position) && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {profile.current_company && (
+                        <div className="flex items-center gap-3">
+                          <Building className="h-5 w-5 text-muted-foreground" />
+                          <div>
+                            <p className="font-medium">Current Company</p>
+                            <p className="text-sm text-muted-foreground">{profile.current_company}</p>
+                          </div>
+                        </div>
+                      )}
+                      {profile.current_position && (
+                        <div className="flex items-center gap-3">
+                          <Briefcase className="h-5 w-5 text-muted-foreground" />
+                          <div>
+                            <p className="font-medium">Current Position</p>
+                            <p className="text-sm text-muted-foreground">{profile.current_position}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {profile.industry && (
+                    <div className="flex items-center gap-3">
+                      <Globe className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium">Industry</p>
+                        <p className="text-sm text-muted-foreground">{profile.industry}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {profile.linkedin_url && (
+                    <div className="flex items-center gap-3">
+                      <Link className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium">LinkedIn Profile</p>
+                        <a 
+                          href={profile.linkedin_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:underline"
+                        >
+                          {profile.linkedin_url}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {profile.mentoring_available && (
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline" className="text-green-600 border-green-600">
+                        Available for Mentoring
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </AppLayout>
   );
 };
 
-// Helper function to get character image filename
-const getCharacterImage = (characterId: number): string => {
-  const characters = [
-    'anonymous', 'angel', 'assasin', 'elf', 'guard', 'halloween', 
-    'leonardo', 'people', 'pinocchio', 'pirate', 'superhero', 'swordsman', 'zombie'
-  ];
-  return characters[characterId - 1] || 'anonymous';
+// Helper function to get character image
+const getCharacterImage = (characterId: number | string): string => {
+  // Find character by ID or rank in the CHARACTERS array
+  const character = CHARACTERS.find(char => 
+    char.id === characterId || char.rank === characterId
+  );
+  
+  if (character) {
+    return character.image;
+  }
+  
+  // Fallback to anonymous if character not found
+  const anonymousCharacter = CHARACTERS.find(char => char.id === 'anonymous');
+  return anonymousCharacter?.image || '/characters/anonymous.png';
 };
 
 export default Profile;

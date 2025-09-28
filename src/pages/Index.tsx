@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowRight, Sparkles, Users, BookOpen, MessageSquare, Calendar, Award, Shield, Zap, Heart, Star, Globe, GraduationCap, FileText, Clock, TrendingUp, CheckCircle, Send, Image, Video, Bell, Settings, BarChart3, Target, Crown, Trophy, Lightbulb, Share2, Download, Upload, Search, Filter, Plus, Eye, ThumbsUp, MessageCircle, UserPlus, Bookmark, Flag, HelpCircle, Phone, Mail, MapPin, ExternalLink, Briefcase } from "lucide-react";
+import { ArrowRight, Sparkles, Users, BookOpen, MessageSquare, Calendar, Award, Shield, Zap, Heart, Star, Globe, GraduationCap, FileText, Clock, TrendingUp, CheckCircle, Send, Image, Video, Bell, BarChart3, Target, Crown, Trophy, Lightbulb, Share2, Download, Upload, Search, Filter, Plus, Eye, ThumbsUp, MessageCircle, UserPlus, Bookmark, Flag, HelpCircle, Phone, Mail, MapPin, ExternalLink, Briefcase } from "lucide-react";
 import Logo from "@/components/ui/Logo";
 import { CHARACTERS } from "@/data/characters";
 

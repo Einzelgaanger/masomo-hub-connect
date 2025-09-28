@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Upload, Download, Trash2, Calendar, CheckCircle, Clock } from "lucide-react";
+import { Plus, Upload, Download, Trash2, Calendar, CheckCircle, Clock, Link } from "lucide-react";
 import { format, formatDistanceToNow, isAfter } from "date-fns";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
@@ -19,6 +19,7 @@ interface Assignment {
   title: string;
   description: string;
   file_url: string;
+  link_url?: string;
   deadline: string;
   created_at: string;
   created_by: string;
@@ -50,7 +51,8 @@ export function AssignmentsTab({ unitId, profile }: AssignmentsTabProps) {
     title: "",
     description: "",
     deadline: "",
-    file: null as File | null
+    file: null as File | null,
+    link: ""
   });
 
   useEffect(() => {
@@ -153,6 +155,7 @@ export function AssignmentsTab({ unitId, profile }: AssignmentsTabProps) {
           title: formData.title,
           description: formData.description,
           file_url: fileUrl || null,
+          link_url: formData.link || null,
           deadline: formData.deadline,
           created_by: user?.id
         });
@@ -240,7 +243,8 @@ export function AssignmentsTab({ unitId, profile }: AssignmentsTabProps) {
       title: "",
       description: "",
       deadline: "",
-      file: null
+      file: null,
+      link: ""
     });
   };
 
@@ -344,6 +348,20 @@ export function AssignmentsTab({ unitId, profile }: AssignmentsTabProps) {
                       })}
                     />
                   </div>
+
+                  <div>
+                    <Label htmlFor="link">Link (Optional)</Label>
+                    <Input
+                      id="link"
+                      type="url"
+                      value={formData.link}
+                      onChange={(e) => setFormData({ ...formData, link: e.target.value })}
+                      placeholder="https://example.com/assignment-link"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Share a link to assignment resources, guidelines, or external materials
+                    </p>
+                  </div>
                 </div>
 
                 <DialogFooter>
@@ -425,6 +443,19 @@ export function AssignmentsTab({ unitId, profile }: AssignmentsTabProps) {
                         >
                           <Download className="h-4 w-4 mr-2" />
                           Download Assignment
+                        </Button>
+                      </div>
+                    )}
+
+                    {assignment.link_url && (
+                      <div className="mb-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(assignment.link_url, '_blank')}
+                        >
+                          <Link className="h-4 w-4 mr-2" />
+                          Open Link
                         </Button>
                       </div>
                     )}

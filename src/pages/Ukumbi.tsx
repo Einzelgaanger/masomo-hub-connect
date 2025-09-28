@@ -149,12 +149,12 @@ export default function Ukumbi() {
   }, [user]);
 
   useEffect(() => {
-    if (userProfile) {
+    if (userProfile && userProfile.classes?.university_id) {
       fetchMessages();
       const cleanup = setupRealtimeSubscription();
       return cleanup;
     }
-  }, [userProfile]);
+  }, [userProfile?.classes?.university_id]);
 
   useEffect(() => {
     scrollToBottom();
@@ -380,8 +380,10 @@ export default function Ukumbi() {
   const setupRealtimeSubscription = () => {
     if (!userProfile?.classes?.university_id) return;
 
+    console.log('Setting up Ukumbi real-time subscription for university:', userProfile.classes.university_id);
+
     const channel = supabase
-      .channel('ukumbi-messages')
+      .channel(`ukumbi-messages-${userProfile.classes.university_id}`)
       .on(
         'postgres_changes',
         {
@@ -391,8 +393,11 @@ export default function Ukumbi() {
           filter: `university_id=eq.${userProfile.classes.university_id}`
         },
         (payload) => {
-          // Fetch the new message with profile data
-          fetchNewMessage(payload.new.id);
+          console.log('New message received via real-time:', payload.new);
+          // Only fetch if it's not from current user (to avoid duplicates)
+          if (payload.new.user_id !== user?.id) {
+            fetchNewMessage(payload.new.id);
+          }
         }
       )
       .on(
@@ -404,6 +409,7 @@ export default function Ukumbi() {
           filter: `university_id=eq.${userProfile.classes.university_id}`
         },
         (payload) => {
+          console.log('Message updated via real-time:', payload.new);
           setMessages(prev => 
             prev.map(msg => 
               msg.id === payload.new.id 
@@ -413,9 +419,12 @@ export default function Ukumbi() {
           );
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Ukumbi subscription status:', status);
+      });
 
     return () => {
+      console.log('Cleaning up Ukumbi real-time subscription');
       supabase.removeChannel(channel);
     };
   };

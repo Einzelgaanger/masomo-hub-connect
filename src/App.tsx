@@ -24,7 +24,6 @@ import ApplicationStatus from "./pages/ApplicationStatus";
 import ApplicationRejected from "./pages/ApplicationRejected";
 import AuthCallback from "./pages/AuthCallback";
 import UnitPage from "./pages/UnitPage";
-import Settings from "./pages/Settings";
 import Info from "./pages/Info";
 import Ukumbi from "./pages/Ukumbi";
 import Events from "./pages/Events";
@@ -161,13 +160,6 @@ const App = () => (
               <ApplicationStatusGuard>
                 <ProtectedRoute>
                   <UnitPage />
-                </ProtectedRoute>
-              </ApplicationStatusGuard>
-            } />
-            <Route path="/settings" element={
-              <ApplicationStatusGuard>
-                <ProtectedRoute>
-                  <Settings />
                 </ProtectedRoute>
               </ApplicationStatusGuard>
             } />
