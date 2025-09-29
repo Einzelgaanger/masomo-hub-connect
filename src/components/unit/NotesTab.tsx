@@ -688,9 +688,17 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
                   </CardHeader>
                   <CardContent 
                     onDoubleClick={() => handleReaction(note.id, 'like')}
-                    onMouseDown={(e) => handleNoteLongPress(e, note.id)}
+                    onMouseDown={(e) => {
+                      // Only trigger if not clicking on a button
+                      if (!(e.target as HTMLElement).closest('button')) {
+                        handleNoteLongPress(e, note.id);
+                      }
+                    }}
                     onTouchStart={(e) => {
-                      handleNoteLongPressStart(e, note.id);
+                      // Only trigger if not touching a button
+                      if (!(e.target as HTMLElement).closest('button')) {
+                        handleNoteLongPressStart(e, note.id);
+                      }
                     }}
                     onTouchEnd={handleNoteLongPressEnd}
                     onTouchCancel={handleNoteLongPressEnd}
@@ -725,25 +733,55 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setExpandedNote(expandedNote === note.id ? null : note.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedNote(expandedNote === note.id ? null : note.id);
+                        }}
                         className="h-7 px-2 text-xs"
                       >
                         <MessageSquare className="h-3 w-3 mr-1" />
                         {note.comments.length}
                       </Button>
-                      {/* Reaction Badges */}
-                      {getLikesCount(note) > 0 && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Heart className="h-3 w-3 fill-red-500 text-red-500" />
-                          <span>{getLikesCount(note)}</span>
-                        </div>
-                      )}
-                      {getDislikesCount(note) > 0 && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <ThumbsDown className="h-3 w-3 fill-gray-500 text-gray-500" />
-                          <span>{getDislikesCount(note)}</span>
-                        </div>
-                      )}
+                      
+                      {/* Like Button */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleReaction(note.id, 'like');
+                        }}
+                        className={`h-7 px-2 text-xs ${
+                          getUserReaction(note) === 'like' 
+                            ? 'bg-red-50 border-red-200 text-red-600' 
+                            : 'hover:bg-red-50 hover:border-red-200'
+                        }`}
+                      >
+                        <Heart className={`h-3 w-3 mr-1 ${
+                          getUserReaction(note) === 'like' ? 'fill-red-500 text-red-500' : ''
+                        }`} />
+                        {getLikesCount(note)}
+                      </Button>
+                      
+                      {/* Dislike Button */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleReaction(note.id, 'dislike');
+                        }}
+                        className={`h-7 px-2 text-xs ${
+                          getUserReaction(note) === 'dislike' 
+                            ? 'bg-gray-50 border-gray-200 text-gray-600' 
+                            : 'hover:bg-gray-50 hover:border-gray-200'
+                        }`}
+                      >
+                        <ThumbsDown className={`h-3 w-3 mr-1 ${
+                          getUserReaction(note) === 'dislike' ? 'fill-gray-500 text-gray-500' : ''
+                        }`} />
+                        {getDislikesCount(note)}
+                      </Button>
                     </div>
 
                     {expandedNote === note.id && (

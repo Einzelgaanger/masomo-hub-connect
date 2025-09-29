@@ -587,9 +587,17 @@ export function PastPapersTab({ unitId, profile }: PastPapersTabProps) {
                   </CardHeader>
                   <CardContent 
                     onDoubleClick={() => handleReaction(paper.id, 'like')}
-                    onMouseDown={(e) => handlePaperLongPress(e, paper.id)}
+                    onMouseDown={(e) => {
+                      // Only trigger if not clicking on a button
+                      if (!(e.target as HTMLElement).closest('button')) {
+                        handlePaperLongPress(e, paper.id);
+                      }
+                    }}
                     onTouchStart={(e) => {
-                      handlePaperLongPressStart(e, paper.id);
+                      // Only trigger if not touching a button
+                      if (!(e.target as HTMLElement).closest('button')) {
+                        handlePaperLongPressStart(e, paper.id);
+                      }
                     }}
                     onTouchEnd={handlePaperLongPressEnd}
                     onTouchCancel={handlePaperLongPressEnd}
@@ -624,25 +632,55 @@ export function PastPapersTab({ unitId, profile }: PastPapersTabProps) {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setExpandedPaper(expandedPaper === paper.id ? null : paper.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedPaper(expandedPaper === paper.id ? null : paper.id);
+                        }}
                         className="h-7 px-2 text-xs"
                       >
                         <MessageSquare className="h-3 w-3 mr-1" />
                         {paper.comments.length}
                       </Button>
-                      {/* Reaction Badges */}
-                      {getLikesCount(paper) > 0 && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Heart className="h-3 w-3 fill-red-500 text-red-500" />
-                          <span>{getLikesCount(paper)}</span>
-                        </div>
-                      )}
-                      {getDislikesCount(paper) > 0 && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <ThumbsDown className="h-3 w-3 fill-gray-500 text-gray-500" />
-                          <span>{getDislikesCount(paper)}</span>
-                        </div>
-                      )}
+                      
+                      {/* Like Button */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleReaction(paper.id, 'like');
+                        }}
+                        className={`h-7 px-2 text-xs ${
+                          getUserReaction(paper) === 'like' 
+                            ? 'bg-red-50 border-red-200 text-red-600' 
+                            : 'hover:bg-red-50 hover:border-red-200'
+                        }`}
+                      >
+                        <Heart className={`h-3 w-3 mr-1 ${
+                          getUserReaction(paper) === 'like' ? 'fill-red-500 text-red-500' : ''
+                        }`} />
+                        {getLikesCount(paper)}
+                      </Button>
+                      
+                      {/* Dislike Button */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleReaction(paper.id, 'dislike');
+                        }}
+                        className={`h-7 px-2 text-xs ${
+                          getUserReaction(paper) === 'dislike' 
+                            ? 'bg-gray-50 border-gray-200 text-gray-600' 
+                            : 'hover:bg-gray-50 hover:border-gray-200'
+                        }`}
+                      >
+                        <ThumbsDown className={`h-3 w-3 mr-1 ${
+                          getUserReaction(paper) === 'dislike' ? 'fill-gray-500 text-gray-500' : ''
+                        }`} />
+                        {getDislikesCount(paper)}
+                      </Button>
                     </div>
 
                     {expandedPaper === paper.id && (
