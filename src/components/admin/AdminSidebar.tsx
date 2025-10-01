@@ -1,4 +1,4 @@
-import { BookOpen, BarChart3, MessageSquare } from "lucide-react";
+import { BookOpen, BarChart3, MessageSquare, GraduationCap, Settings } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
   Sidebar as SidebarComponent,
@@ -65,6 +65,24 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ profile }) => {
                   <NavLink to="/admin/concerns" className={getNavLinkClass}>
                     <MessageSquare className="h-5 w-5" />
                     <span>Concerns</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to="/admin/universities" className={getNavLinkClass}>
+                    <GraduationCap className="h-5 w-5" />
+                    <span>Universities</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to="/admin/class-management" className={getNavLinkClass}>
+                    <Settings className="h-5 w-5" />
+                    <span>Class Management</span>
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>

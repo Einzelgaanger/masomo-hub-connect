@@ -23,6 +23,7 @@ export default defineConfig(({ mode }) => ({
     allowedHosts: [
       "localhost",
       "127.0.0.1",
+      "bunifu.world",
       "bunifu.onrender.com",
       ".onrender.com"
     ],

@@ -46,15 +46,15 @@ export function UpcomingSection() {
           return;
         }
 
-        // Get university_id from class_id
+        // Get university_id from class_id (try old system first)
         const { data: classData, error: classError } = await supabase
-          .from('classes')
+          .from('classes_old')
           .select('university_id')
           .eq('id', simpleProfile.class_id)
           .single();
 
         if (classError || !classData) {
-          console.error('Error fetching class data:', classError);
+          // Old classes table doesn't exist, skip upcoming events
           setUpcoming([]);
           return;
         }

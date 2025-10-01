@@ -63,9 +63,9 @@ export function WallOfFameSection() {
           return;
         }
 
-        // Get university_id from class_id
+        // Get university_id from class_id (try old system)
         const { data: classData, error: classError } = await supabase
-          .from('classes')
+          .from('classes_old')
           .select('university_id')
           .eq('id', simpleProfile.class_id)
           .single();
@@ -93,23 +93,16 @@ export function WallOfFameSection() {
               return { ...profile, classes: null };
             }
 
+            // Simplified query without joins to avoid foreign key issues
             const { data: classInfo, error: classError } = await supabase
-              .from('classes')
-              .select(`
-                course_name,
-                course_year,
-                semester,
-                university_id,
-                universities(
-                  name,
-                  countries(name)
-                )
-              `)
+              .from('classes_old')
+              .select('course_name, course_year, semester')
               .eq('id', profile.class_id)
               .single();
 
             if (classError) {
-              console.warn('Error fetching class info for profile:', profile.id, classError);
+              // classes_old might not exist, just return profile without class info
+              return { ...profile, classes: null };
             }
 
             return { ...profile, classes: classInfo };

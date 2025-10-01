@@ -18,6 +18,8 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminClasses from "./pages/admin/AdminClasses";
 import AdminConcerns from "./pages/admin/AdminConcerns";
+import AdminUniversityManagement from "./pages/admin/AdminUniversityManagement";
+import AdminClassManagement from "./pages/admin/AdminClassManagement";
 import ClassSelection from "./pages/ClassSelection";
 import ApplicationForm from "./pages/ApplicationForm";
 import ApplicationStatus from "./pages/ApplicationStatus";
@@ -30,6 +32,8 @@ import Events from "./pages/Events";
 import Ajira from "./pages/Ajira";
 import Inbox from "./pages/Inbox";
 import Units from "./pages/Units";
+import MasomoNew from "./pages/MasomoNew";
+import ManageClasses from "./pages/ManageClasses";
 import Alumni from "./pages/Alumni";
 import Profile from "./pages/Profile";
 import Sifa from "./pages/Sifa";
@@ -119,6 +123,16 @@ const App = () => (
                 </ProtectedRoute>
               </ApplicationStatusGuard>
             } />
+            <Route path="/masomo" element={
+              <ProtectedRoute>
+                <MasomoNew />
+              </ProtectedRoute>
+            } />
+            <Route path="/masomo/manage" element={
+              <ProtectedRoute>
+                <ManageClasses />
+              </ProtectedRoute>
+            } />
             <Route path="/alumni" element={
               <ApplicationStatusGuard>
                 <ProtectedRoute>
@@ -152,6 +166,16 @@ const App = () => (
             <Route path="/admin/concerns" element={
               <AdminGuard>
                 <AdminConcerns />
+              </AdminGuard>
+            } />
+            <Route path="/admin/universities" element={
+              <AdminGuard>
+                <AdminUniversityManagement />
+              </AdminGuard>
+            } />
+            <Route path="/admin/class-management" element={
+              <AdminGuard>
+                <AdminClassManagement />
               </AdminGuard>
             } />
           <Route path="/auth/callback" element={<AuthCallback />} />

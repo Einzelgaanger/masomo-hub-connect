@@ -41,6 +41,7 @@ import {
 import { CHARACTERS } from "@/data/characters";
 import { AchievementPost } from "@/components/achievements/AchievementPost";
 import { CreateAchievementForm } from "@/components/achievements/CreateAchievementForm";
+import { EditProfileModal } from "@/components/profile/EditProfileModal";
 import {
   Dialog,
   DialogContent,
@@ -67,6 +68,12 @@ interface Profile {
   industry?: string;
   linkedin_url?: string;
   mentoring_available?: boolean;
+  country_id?: string;
+  university_id?: string;
+  course_id?: string;
+  year?: string;
+  semester?: string;
+  student_status?: 'student' | 'graduated' | 'alumni';
   classes?: {
     course_name: string;
     course_year: number;
@@ -78,6 +85,15 @@ interface Profile {
         name: string;
       };
     };
+  };
+  countries?: {
+    name: string;
+  };
+  universities?: {
+    name: string;
+  };
+  courses?: {
+    name: string;
   };
 }
 
@@ -96,6 +112,7 @@ const Profile = () => {
   const [achievementsLoading, setAchievementsLoading] = useState(false);
   const [isCreateAchievementOpen, setIsCreateAchievementOpen] = useState(false);
   const [canCreateAchievement, setCanCreateAchievement] = useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
 
   const [alumniData, setAlumniData] = useState({
     current_company: "",
@@ -122,21 +139,33 @@ const Profile = () => {
         .from('profiles')
         .select(`
           *,
-          classes(
-            course_name,
-            course_year,
-            semester,
-            course_group,
-            universities(
-              name,
-              countries(name)
-            )
-          )
+          countries(name),
+          universities(name),
+          courses(name)
         `)
         .eq('user_id', userId)
         .single();
 
       if (error) throw error;
+
+      // If user has class_id, try to fetch old class data
+      if (data.class_id) {
+        try {
+          const { data: classData } = await supabase
+            .from('classes_old')
+            .select('course_name, course_year, semester, course_group')
+            .eq('id', data.class_id)
+            .single();
+
+          if (classData) {
+            data.classes = classData;
+          }
+        } catch (classError) {
+          // classes_old doesn't exist or query failed, ignore
+          console.log('Old classes data not available');
+        }
+      }
+      
       setProfile(data);
       
       // Debug character_id
@@ -549,6 +578,17 @@ const Profile = () => {
                   </div>
                   
                   <div className="flex flex-col items-end gap-2">
+                    {isOwnProfile && (
+                      <Button
+                        onClick={() => setIsEditProfileOpen(true)}
+                        className="mb-2"
+                        size="sm"
+                        variant="outline"
+                      >
+                        <Edit3 className="h-4 w-4 mr-2" />
+                        Edit Profile
+                      </Button>
+                    )}
                     {!isOwnProfile && (
                       <Button
                         onClick={() => navigate(`/inbox/${userId}`)}
@@ -573,7 +613,7 @@ const Profile = () => {
         </Card>
 
         {/* Academic Information */}
-        {profile.classes && (
+        {(profile.countries || profile.universities || profile.courses || profile.classes) && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -584,37 +624,76 @@ const Profile = () => {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <BookOpen className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="font-medium">{profile.classes.course_name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Year {profile.classes.course_year}, Semester {profile.classes.semester}
-                      </p>
+                  {/* New System: Course from courses table */}
+                  {profile.courses && (
+                    <div className="flex items-center gap-3">
+                      <BookOpen className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium">{profile.courses.name}</p>
+                        {profile.year && profile.semester && (
+                          <p className="text-sm text-muted-foreground">
+                            Year {profile.year}, {profile.semester}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3">
-                    <MapPin className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="font-medium">{profile.classes.universities.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {profile.classes.universities.countries.name}
-                      </p>
+                  )}
+
+                  {/* New System: University from universities table */}
+                  {profile.universities && (
+                    <div className="flex items-center gap-3">
+                      <GraduationCap className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium">{profile.universities.name}</p>
+                        {profile.countries && (
+                          <p className="text-sm text-muted-foreground">
+                            {profile.countries.name}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Old System: Classes table (fallback) */}
+                  {!profile.courses && profile.classes && (
+                    <div className="flex items-center gap-3">
+                      <BookOpen className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium">{profile.classes.course_name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Year {profile.classes.course_year}, Semester {profile.classes.semester}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <User className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="font-medium">Group</p>
-                      <p className="text-sm text-muted-foreground">
-                        {profile.classes.course_group}
-                      </p>
+                  {/* Student Status */}
+                  {profile.student_status && (
+                    <div className="flex items-center gap-3">
+                      <User className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium">Status</p>
+                        <p className="text-sm text-muted-foreground">
+                          {profile.student_status.charAt(0).toUpperCase() + profile.student_status.slice(1)}
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Old system: Group */}
+                  {profile.classes && (
+                    <div className="flex items-center gap-3">
+                      <User className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium">Group</p>
+                        <p className="text-sm text-muted-foreground">
+                          {profile.classes.course_group}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                   
                   <div className="flex items-center gap-3">
                     <Award className="h-5 w-5 text-muted-foreground" />
@@ -968,6 +1047,14 @@ const Profile = () => {
             />
           </DialogContent>
         </Dialog>
+
+        {/* Edit Profile Modal */}
+        <EditProfileModal
+          open={isEditProfileOpen}
+          onOpenChange={setIsEditProfileOpen}
+          profile={profile}
+          onProfileUpdated={fetchProfile}
+        />
       </div>
     </AppLayout>
   );

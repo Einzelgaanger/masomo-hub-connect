@@ -92,15 +92,19 @@ export default function Sifa() {
     try {
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('role, class_id')
+        .select('role, class_id, university_id, course_id')
         .eq('user_id', user.id)
         .single();
 
       if (error) throw error;
 
       console.log('Profile data for permissions:', profile);
-      const canCreateValue = (profile?.role === 'student' && profile?.class_id !== null) || profile?.role === 'super_admin';
-      console.log('Setting canCreate to:', canCreateValue);
+      
+      // NEW RULE: Must have university_id AND course_id to post on Sifa
+      const hasCompleteProfile = profile?.university_id && profile?.course_id;
+      const canCreateValue = hasCompleteProfile || profile?.role === 'super_admin';
+      
+      console.log('Setting canCreate to:', canCreateValue, 'hasCompleteProfile:', hasCompleteProfile);
       setCanCreate(canCreateValue);
     } catch (error) {
       console.error('Error checking permissions:', error);
@@ -353,7 +357,7 @@ export default function Sifa() {
     return (
       <AppLayout>
         {/* Floating Achievement Button */}
-        {canCreate && (
+        {canCreate ? (
           <button
             onClick={() => setIsCreateDialogOpen(true)}
             className="fixed top-1/2 right-4 sm:right-6 z-50 transform -translate-y-1/2 -translate-y-16 w-12 h-12 sm:w-14 sm:h-14 text-white rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 flex items-center justify-center group hover:scale-110"
@@ -361,6 +365,21 @@ export default function Sifa() {
             title="Share achievement"
           >
             <Trophy className="h-5 w-5 sm:h-6 sm:w-6 group-hover:rotate-12 transition-transform duration-300" />
+          </button>
+        ) : user && (
+          <button
+            onClick={() => {
+              toast({
+                title: 'Complete Your Profile',
+                description: 'Please update your university and course in your profile to share achievements',
+                variant: 'destructive',
+              });
+            }}
+            className="fixed top-1/2 right-4 sm:right-6 z-50 transform -translate-y-1/2 -translate-y-16 w-12 h-12 sm:w-14 sm:h-14 text-white rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 flex items-center justify-center group hover:scale-110 opacity-50"
+            style={{ backgroundColor: '#f59e0b' }}
+            title="Complete your profile first"
+          >
+            <Trophy className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
         )}
         

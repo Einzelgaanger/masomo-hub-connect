@@ -122,15 +122,15 @@ export function Sidebar({ profile }: SidebarProps) {
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink 
-                      to="/units" 
+                      to="/masomo" 
                       className={getNavLinkClass}
-                      onClick={() => handleNavClick("/units")}
+                      onClick={() => handleNavClick("/masomo")}
                     >
                       <div className="relative">
                         <MasomoIcon className="h-4 w-4" />
                         <NotificationBadge 
                           count={notifications.masomo} 
-                          onClick={() => navigate('/units')}
+                          onClick={() => navigate('/masomo')}
                         />
                       </div>
                       <span>Masomo</span>
