@@ -207,7 +207,7 @@ export default function Ukumbi() {
 
         // Fetch class data separately
         const { data: classData, error: classError } = await supabase
-          .from('classes')
+          .from('classes_old')
           .select('course_name, university_id')
           .eq('id', simpleData.class_id)
           .single();

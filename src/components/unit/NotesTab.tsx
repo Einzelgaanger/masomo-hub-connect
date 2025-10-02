@@ -47,10 +47,11 @@ interface Note {
 
 interface NotesTabProps {
   unitId: string;
-  profile: any;
+  classId: string;
+  userRole: 'creator' | 'student';
 }
 
-export function NotesTab({ unitId, profile }: NotesTabProps) {
+export function NotesTab({ unitId, classId, userRole }: NotesTabProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [notes, setNotes] = useState<Note[]>([]);
@@ -83,7 +84,7 @@ export function NotesTab({ unitId, profile }: NotesTabProps) {
 
   const fetchNotes = async () => {
     try {
-      // Fetch uploads without foreign key relationships
+      // Fetch uploads for this class unit
       const { data: uploadsData, error: uploadsError } = await supabase
         .from('uploads')
         .select('*')

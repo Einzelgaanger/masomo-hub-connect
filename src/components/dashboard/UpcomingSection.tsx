@@ -46,18 +46,8 @@ export function UpcomingSection() {
           return;
         }
 
-        // Get university_id from class_id (try old system first)
-        const { data: classData, error: classError } = await supabase
-          .from('classes_old')
-          .select('university_id')
-          .eq('id', simpleProfile.class_id)
-          .single();
-
-        if (classError || !classData) {
-          // Old classes table doesn't exist, skip upcoming events
-          setUpcoming([]);
-          return;
-        }
+        // In the new system, we'll show class-specific upcoming items
+        console.log('Using class-based upcoming for class:', simpleProfile.class_id);
 
         // Use simplified queries to avoid complex joins
         const { data: assignments, error: assignmentsError } = await supabase

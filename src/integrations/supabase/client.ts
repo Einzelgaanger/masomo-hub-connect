@@ -13,5 +13,18 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-  }
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'masomo-hub-connect',
+    },
+  },
+  db: {
+    schema: 'public',
+  },
+      realtime: {
+        params: {
+          eventsPerSecond: 5,
+        },
+      },
 });

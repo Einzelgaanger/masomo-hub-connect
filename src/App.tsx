@@ -18,9 +18,6 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminClasses from "./pages/admin/AdminClasses";
 import AdminConcerns from "./pages/admin/AdminConcerns";
-import AdminUniversityManagement from "./pages/admin/AdminUniversityManagement";
-import AdminClassManagement from "./pages/admin/AdminClassManagement";
-import ClassSelection from "./pages/ClassSelection";
 import ApplicationForm from "./pages/ApplicationForm";
 import ApplicationStatus from "./pages/ApplicationStatus";
 import ApplicationRejected from "./pages/ApplicationRejected";
@@ -31,12 +28,13 @@ import Ukumbi from "./pages/Ukumbi";
 import Events from "./pages/Events";
 import Ajira from "./pages/Ajira";
 import Inbox from "./pages/Inbox";
-import Units from "./pages/Units";
-import MasomoNew from "./pages/MasomoNew";
-import ManageClasses from "./pages/ManageClasses";
 import Alumni from "./pages/Alumni";
 import Profile from "./pages/Profile";
 import Sifa from "./pages/Sifa";
+import Masomo from "./pages/Masomo";
+import ClassUnits from "./pages/ClassUnits";
+import UnitContent from "./pages/UnitContent";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -116,23 +114,6 @@ const App = () => (
                 </ProtectedRoute>
               </ApplicationStatusGuard>
             } />
-            <Route path="/units" element={
-              <ApplicationStatusGuard>
-                <ProtectedRoute>
-                  <Units />
-                </ProtectedRoute>
-              </ApplicationStatusGuard>
-            } />
-            <Route path="/masomo" element={
-              <ProtectedRoute>
-                <MasomoNew />
-              </ProtectedRoute>
-            } />
-            <Route path="/masomo/manage" element={
-              <ProtectedRoute>
-                <ManageClasses />
-              </ProtectedRoute>
-            } />
             <Route path="/alumni" element={
               <ApplicationStatusGuard>
                 <ProtectedRoute>
@@ -143,6 +124,21 @@ const App = () => (
             <Route path="/sifa" element={
               <ProtectedRoute>
                 <Sifa />
+              </ProtectedRoute>
+            } />
+            <Route path="/masomo" element={
+              <ProtectedRoute>
+                <Masomo />
+              </ProtectedRoute>
+            } />
+            <Route path="/class/:classId/units" element={
+              <ProtectedRoute>
+                <ClassUnits />
+              </ProtectedRoute>
+            } />
+            <Route path="/class/:classId/unit/:unitId" element={
+              <ProtectedRoute>
+                <UnitContent />
               </ProtectedRoute>
             } />
             <Route path="/profile/:userId" element={
@@ -168,20 +164,13 @@ const App = () => (
                 <AdminConcerns />
               </AdminGuard>
             } />
-            <Route path="/admin/universities" element={
+            <Route path="/admin/new" element={
               <AdminGuard>
-                <AdminUniversityManagement />
-              </AdminGuard>
-            } />
-            <Route path="/admin/class-management" element={
-              <AdminGuard>
-                <AdminClassManagement />
+                <Admin />
               </AdminGuard>
             } />
           <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/class-selection" element={<ClassSelection />} />
           <Route path="/application-status" element={<ApplicationStatus />} />
-            <Route path="/class-selection" element={<ClassSelection />} />
             <Route path="/application" element={<ApplicationForm />} />
             <Route path="/application-status" element={<ApplicationStatus />} />
             <Route path="/application-rejected" element={<ApplicationRejected />} />

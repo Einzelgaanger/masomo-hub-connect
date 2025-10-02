@@ -202,7 +202,8 @@ export function AchievementPost({
   };
 
   const getMediaIcon = (mediaType: string) => {
-    return mediaType === 'video' ? Video : ImageIcon;
+    const IconComponent = mediaType === 'video' ? Video : ImageIcon;
+    return <IconComponent className="h-4 w-4" />;
   };
 
   return (

@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { safeSupabaseQuery, handleSupabaseError } from "@/utils/errorHandling";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Star, Target, Zap, Users, MessageCircle, Upload, Calendar, ThumbsUp, ThumbsDown, Award, Crown, Briefcase, GraduationCap } from "lucide-react";
@@ -88,28 +89,22 @@ const Info = () => {
   const fetchProfile = async () => {
     console.log('Fetching profile for user:', user?.id);
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          *,
-          classes(
-            course_name,
-            course_year,
-            semester,
-            course_group,
-            universities(
-              name,
-              countries(name)
-            )
-          )
-        `)
-        .eq('user_id', user?.id)
-        .single();
+      const { data, error } = await safeSupabaseQuery(
+        () => supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', user?.id)
+          .single(),
+        { maxRetries: 2, delay: 500, timeout: 10000 }
+      );
 
       console.log('Profile fetch result:', { data, error });
 
       if (error) {
         console.warn('Profile fetch error (non-critical):', error);
+        const errorMessage = handleSupabaseError(error, 'Failed to load profile');
+        console.log('Error message:', errorMessage);
+        
         // Set default profile data instead of throwing
         setProfile({
           points: 0,
@@ -122,12 +117,15 @@ const Info = () => {
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
+      const errorMessage = handleSupabaseError(error, 'Failed to load profile');
+      
       // Set default profile data instead of showing error
       setProfile({
         points: 0,
         rank: 'bronze',
         character_id: null
       });
+      
       toast({
         title: "Info",
         description: "Using default profile data. Your profile will be updated once you complete setup.",

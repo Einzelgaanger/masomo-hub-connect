@@ -19,7 +19,6 @@ export function ClientHeader() {
       '/ajira': { name: 'Ajira', icon: <Briefcase className="h-4 w-4" /> },
       '/inbox': { name: 'Inbox', icon: <MessageSquare className="h-4 w-4" /> },
       '/units': { name: 'Units', icon: <BookOpen className="h-4 w-4" /> },
-      '/masomo': { name: 'Masomo', icon: <GraduationCap className="h-4 w-4" /> },
       '/alumni': { name: 'Alumni', icon: <GraduationCap className="h-4 w-4" /> },
       '/sifa': { name: 'Sifa', icon: <Award className="h-4 w-4" /> },
     };

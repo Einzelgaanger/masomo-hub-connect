@@ -38,28 +38,17 @@ const UnitPage = () => {
       // Fetch profile with units
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          classes(
-            *,
-            universities(
-              *,
-              countries(*)
-            ),
-            units(*)
-          )
-        `)
+        .select('*')
         .eq('user_id', user?.id)
         .single();
 
       if (profileError) throw profileError;
 
-      // Check if user has access to this unit
-      const userUnitIds = profileData?.classes?.units?.map((u: any) => u.id) || [];
-      if (!userUnitIds.includes(unitId)) {
+      // Check if user has access to this unit (simplified check)
+      if (!profileData.class_id) {
         toast({
           title: "Access Denied",
-          description: "You don't have access to this unit.",
+          description: "You don't have access to any units.",
           variant: "destructive",
         });
         navigate("/dashboard");
@@ -69,19 +58,7 @@ const UnitPage = () => {
       // Fetch unit details
       const { data: unitData, error: unitError } = await supabase
         .from('units')
-        .select(`
-          *,
-          classes(
-            course_name,
-            course_year,
-            semester,
-            course_group,
-            universities(
-              name,
-              countries(name)
-            )
-          )
-        `)
+        .select('*')
         .eq('id', unitId)
         .single();
 

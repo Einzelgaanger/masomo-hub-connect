@@ -47,10 +47,11 @@ interface PastPaper {
 
 interface PastPapersTabProps {
   unitId: string;
-  profile: any;
+  classId: string;
+  userRole: 'creator' | 'student';
 }
 
-export function PastPapersTab({ unitId, profile }: PastPapersTabProps) {
+export function PastPapersTab({ unitId, classId, userRole }: PastPapersTabProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [pastPapers, setPastPapers] = useState<PastPaper[]>([]);

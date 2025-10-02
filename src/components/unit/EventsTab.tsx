@@ -46,10 +46,11 @@ interface Event {
 
 interface EventsTabProps {
   unitId: string;
-  profile: any;
+  classId: string;
+  userRole: 'creator' | 'student';
 }
 
-export function EventsTab({ unitId, profile }: EventsTabProps) {
+export function EventsTab({ unitId, classId, userRole }: EventsTabProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [events, setEvents] = useState<Event[]>([]);

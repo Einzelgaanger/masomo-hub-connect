@@ -37,13 +37,7 @@ export function useNotifications() {
       // Get user's profile to access class and university info
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          classes(
-            *,
-            units(*)
-          )
-        `)
+        .select('*')
         .eq('user_id', user.id)
         .single();
 
@@ -64,73 +58,68 @@ export function useNotifications() {
         unitTabs: {}
       };
 
-      // Get user's last visit timestamp for each section
+      // Get last visit times from localStorage
       const lastVisits = JSON.parse(localStorage.getItem('lastVisits') || '{}');
-
+      
       // 1. Fetch Masomo notifications (uploads, assignments, events)
-      if (profile.classes?.units) {
-        for (const unit of profile.classes.units) {
-          const unitLastVisit = lastVisits[`unit_${unit.id}`] || new Date().toISOString();
-          const tabsLastVisit = lastVisits[`unit_${unit.id}_tabs`] || {};
+      if (profile.class_id) {
+        // Fetch units for this class
+        const { data: unitsData } = await supabase
+          .from('units')
+          .select('*')
+          .eq('class_id', profile.class_id);
 
-          // Notes notifications
-          const { count: notesCount } = await supabase
-            .from('uploads')
-            .select('*', { count: 'exact', head: true })
-            .eq('unit_id', unit.id)
-            .eq('upload_type', 'notes')
-            .gt('created_at', tabsLastVisit.notes || unitLastVisit);
+        if (unitsData) {
+          for (const unit of unitsData) {
+            const unitLastVisit = lastVisits[`unit_${unit.id}`] || unit.created_at;
+            const tabsLastVisit = lastVisits[`unit_${unit.id}_tabs`] || {};
 
-          // Past Papers notifications
-          const { count: pastPapersCount } = await supabase
-            .from('uploads')
-            .select('*', { count: 'exact', head: true })
-            .eq('unit_id', unit.id)
-            .eq('upload_type', 'past_papers')
-            .gt('created_at', tabsLastVisit.pastPapers || unitLastVisit);
+            // Notes notifications
+            const { count: notesCount } = await supabase
+              .from('uploads')
+              .select('*', { count: 'exact', head: true })
+              .eq('unit_id', unit.id)
+              .eq('upload_type', 'note')
+              .gt('created_at', tabsLastVisit.notes || unitLastVisit);
 
-          // Assignments notifications
-          const { count: assignmentsCount } = await supabase
-            .from('assignments')
-            .select('*', { count: 'exact', head: true })
-            .eq('unit_id', unit.id)
-            .gt('created_at', tabsLastVisit.assignments || unitLastVisit);
+            // Past Papers notifications
+            const { count: pastPapersCount } = await supabase
+              .from('uploads')
+              .select('*', { count: 'exact', head: true })
+              .eq('unit_id', unit.id)
+              .eq('upload_type', 'past_paper')
+              .gt('created_at', tabsLastVisit.pastPapers || unitLastVisit);
 
-          // Events notifications
-          const { count: eventsCount } = await supabase
-            .from('events')
-            .select('*', { count: 'exact', head: true })
-            .eq('unit_id', unit.id)
-            .gt('created_at', tabsLastVisit.events || unitLastVisit);
+            // Assignments notifications
+            const { count: assignmentsCount } = await supabase
+              .from('assignments')
+              .select('*', { count: 'exact', head: true })
+              .eq('unit_id', unit.id)
+              .gt('created_at', tabsLastVisit.assignments || unitLastVisit);
 
-          const unitTabCounts = {
-            notes: notesCount || 0,
-            assignments: assignmentsCount || 0,
-            events: eventsCount || 0,
-            pastPapers: pastPapersCount || 0
-          };
+            // Events notifications
+            const { count: eventsCount } = await supabase
+              .from('events')
+              .select('*', { count: 'exact', head: true })
+              .eq('unit_id', unit.id)
+              .gt('created_at', tabsLastVisit.events || unitLastVisit);
 
-          const unitTotal = unitTabCounts.notes + unitTabCounts.assignments + unitTabCounts.events + unitTabCounts.pastPapers;
-
-          newNotifications.unitTabs[unit.id] = unitTabCounts;
-          newNotifications.units[unit.id] = unitTotal;
-          newNotifications.masomo += unitTotal;
+            const unitTotal = (notesCount || 0) + (pastPapersCount || 0) + (assignmentsCount || 0) + (eventsCount || 0);
+            newNotifications.units[unit.id] = unitTotal;
+            newNotifications.unitTabs[unit.id] = {
+              notes: notesCount || 0,
+              pastPapers: pastPapersCount || 0,
+              assignments: assignmentsCount || 0,
+              events: eventsCount || 0
+            };
+          }
         }
       }
 
-      // 2. Fetch Ukumbi notifications
-      // Use a default timestamp of 24 hours ago if no last visit is recorded
-      const defaultLastVisit = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const ukumbiLastVisit = lastVisits.ukumbi || defaultLastVisit;
-      console.log('Ukumbi notification debug:', {
-        hasClasses: !!profile.classes,
-        universityId: profile.classes?.university_id,
-        userId: user.id,
-        ukumbiLastVisit,
-        lastVisits
-      });
+      // 2. Fetch Ukumbi notifications (university-wide messages)
+      const ukumbiLastVisit = lastVisits.ukumbi || new Date().toISOString();
       
-      if (profile.classes?.university_id) {
+      if (profile.class_id) {
         // First, let's check if the messages table exists and has the right structure
         const { data: sampleMessages, error: sampleError } = await supabase
           .from('messages')
@@ -139,35 +128,9 @@ export function useNotifications() {
         
         console.log('Messages table sample:', { sampleMessages, sampleError });
         
-        const { count: ukumbiCount, error: ukumbiError } = await supabase
-          .from('messages')
-          .select('*', { count: 'exact', head: true })
-          .eq('university_id', profile.classes.university_id)
-          .neq('user_id', user.id) // Exclude user's own messages
-          .gt('created_at', ukumbiLastVisit);
-        
-        // Also try a simpler query to see if there are any messages at all
-        const { count: totalMessages, error: totalError } = await supabase
-          .from('messages')
-          .select('*', { count: 'exact', head: true })
-          .eq('university_id', profile.classes.university_id);
-        
-        console.log('Total messages in university:', { totalMessages, totalError });
-        
-        // For testing: show all messages from other users (not just recent ones)
-        const { count: allOtherMessages, error: allOtherError } = await supabase
-          .from('messages')
-          .select('*', { count: 'exact', head: true })
-          .eq('university_id', profile.classes.university_id)
-          .neq('user_id', user.id);
-        
-        console.log('All messages from other users:', { allOtherMessages, allOtherError });
-        console.log('Ukumbi query result (recent):', { ukumbiCount, ukumbiError });
-        
-        // Use all other messages for now (for testing)
-        newNotifications.ukumbi = allOtherMessages || 0;
-      } else {
-        console.log('No university_id found for Ukumbi notifications');
+        // In the new system, we'll use class-based messaging instead of university-based
+        // For now, disable Ukumbi notifications until we implement class chat notifications
+        console.log('Ukumbi notifications disabled for new class system');
         newNotifications.ukumbi = 0;
       }
 
@@ -177,6 +140,7 @@ export function useNotifications() {
         .select('*', { count: 'exact', head: true })
         .eq('receiver_id', user.id)
         .eq('is_read', false);
+
       newNotifications.inbox = inboxCount || 0;
 
       // 4. Fetch Ajira notifications
@@ -186,6 +150,7 @@ export function useNotifications() {
         .select('*', { count: 'exact', head: true })
         .neq('created_by', user.id) // Exclude user's own posts
         .gt('created_at', ajiraLastVisit);
+
       newNotifications.ajira = ajiraCount || 0;
 
       // 5. Fetch Tukio notifications
@@ -195,51 +160,11 @@ export function useNotifications() {
         .select('*', { count: 'exact', head: true })
         .neq('created_by', user.id) // Exclude user's own posts
         .gt('created_at', tukioLastVisit);
+
       newNotifications.tukio = tukioCount || 0;
 
-      // 6. Fetch Alumni notifications with comprehensive fallback handling
-      const alumniLastVisit = lastVisits.alumni || new Date().toISOString();
-      
-      // Temporarily disable alumni notifications due to database issues
-      // TODO: Re-enable when alumni tables are properly set up
-      newNotifications.alumni = 0;
-      
-      // Commented out until database issues are resolved
-      /*
-      try {
-        // Try full queries first
-        const alumniNotifications = await Promise.all([
-          supabase
-            .from('alumni_events')
-            .select('*', { count: 'exact', head: true })
-            .neq('created_by', user.id)
-            .gt('created_at', alumniLastVisit),
-          supabase
-            .from('alumni_success_stories')
-            .select('*', { count: 'exact', head: true })
-            .neq('alumni_id', user.id)
-            .gt('created_at', alumniLastVisit)
-        ]);
-        
-        // Check if queries were successful
-        const eventsCount = alumniNotifications[0].error ? 0 : (alumniNotifications[0].count || 0);
-        const storiesCount = alumniNotifications[1].error ? 0 : (alumniNotifications[1].count || 0);
-        
-        newNotifications.alumni = eventsCount + storiesCount;
-        
-        // Log warnings for failed queries
-        if (alumniNotifications[0].error) {
-          console.warn('Alumni events notifications query failed:', alumniNotifications[0].error);
-        }
-        if (alumniNotifications[1].error) {
-          console.warn('Alumni success stories notifications query failed:', alumniNotifications[1].error);
-        }
-        
-      } catch (error) {
-        console.warn('Alumni notifications queries failed completely:', error);
-        newNotifications.alumni = 0;
-      }
-      */
+      // 6. Calculate total Masomo notifications
+      newNotifications.masomo = Object.values(newNotifications.units).reduce((sum, count) => sum + count, 0);
 
       console.log('Final notifications state:', newNotifications);
       setNotifications(newNotifications);
@@ -253,103 +178,77 @@ export function useNotifications() {
   const markAsRead = (section: string, unitId?: string, tab?: string) => {
     const now = new Date().toISOString();
     const lastVisits = JSON.parse(localStorage.getItem('lastVisits') || '{}');
-
-    if (unitId && tab) {
-      // Mark specific unit tab as read
-      if (!lastVisits[`unit_${unitId}_tabs`]) {
-        lastVisits[`unit_${unitId}_tabs`] = {};
+    
+    if (section === 'unit' && unitId) {
+      if (tab) {
+        lastVisits[`unit_${unitId}_tabs`] = {
+          ...lastVisits[`unit_${unitId}_tabs`],
+          [tab]: now
+        };
+      } else {
+        lastVisits[`unit_${unitId}`] = now;
       }
-      lastVisits[`unit_${unitId}_tabs`][tab] = now;
-    } else if (unitId) {
-      // Mark entire unit as read
-      lastVisits[`unit_${unitId}`] = now;
     } else {
-      // Mark section as read
       lastVisits[section] = now;
     }
-
+    
     localStorage.setItem('lastVisits', JSON.stringify(lastVisits));
-    fetchNotifications(); // Refresh notifications
+    
+    // Update notifications state
+    setNotifications(prev => {
+      const newNotifications = { ...prev };
+      
+      if (section === 'unit' && unitId) {
+        if (tab) {
+          newNotifications.unitTabs[unitId] = {
+            ...newNotifications.unitTabs[unitId],
+            [tab]: 0
+          };
+          // Recalculate unit total
+          const unitTabs = newNotifications.unitTabs[unitId] || {};
+          newNotifications.units[unitId] = Object.values(unitTabs).reduce((sum, count) => sum + count, 0);
+        } else {
+          newNotifications.units[unitId] = 0;
+          newNotifications.unitTabs[unitId] = { notes: 0, assignments: 0, events: 0, pastPapers: 0 };
+        }
+        // Recalculate total masomo
+        newNotifications.masomo = Object.values(newNotifications.units).reduce((sum, count) => sum + count, 0);
+      } else {
+        newNotifications[section as keyof NotificationCounts] = 0;
+      }
+      
+      return newNotifications;
+    });
   };
 
   useEffect(() => {
     fetchNotifications();
     
-    // Set up real-time subscriptions for live updates
-    const subscriptions: any[] = [];
+    // Set up real-time subscriptions for notifications
+    const channels = [
+      supabase.channel('uploads').on('postgres_changes', { event: '*', schema: 'public', table: 'uploads' }, () => {
+        fetchNotifications();
+      }),
+      supabase.channel('assignments').on('postgres_changes', { event: '*', schema: 'public', table: 'assignments' }, () => {
+        fetchNotifications();
+      }),
+      supabase.channel('direct_messages').on('postgres_changes', { event: '*', schema: 'public', table: 'direct_messages' }, () => {
+        fetchNotifications();
+      }),
+      supabase.channel('job_postings').on('postgres_changes', { event: '*', schema: 'public', table: 'job_postings' }, () => {
+        fetchNotifications();
+      }),
+      supabase.channel('public_events').on('postgres_changes', { event: '*', schema: 'public', table: 'public_events' }, () => {
+        fetchNotifications();
+      })
+    ];
 
-    if (user) {
-      // Subscribe to uploads
-      const uploadsSubscription = supabase
-        .channel('uploads_changes')
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'uploads'
-        }, () => {
-          fetchNotifications();
-        })
-        .subscribe();
+    // Subscribe to all channels
+    channels.forEach(channel => channel.subscribe());
 
-      // Subscribe to assignments
-      const assignmentsSubscription = supabase
-        .channel('assignments_changes')
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'assignments'
-        }, () => {
-          fetchNotifications();
-        })
-        .subscribe();
-
-      // Subscribe to events
-      const eventsSubscription = supabase
-        .channel('events_changes')
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'events'
-        }, () => {
-          fetchNotifications();
-        })
-        .subscribe();
-
-      // Subscribe to messages
-      const messagesSubscription = supabase
-        .channel('messages_changes')
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages'
-        }, () => {
-          fetchNotifications();
-        })
-        .subscribe();
-
-      // Subscribe to direct messages
-      const directMessagesSubscription = supabase
-        .channel('direct_messages_changes')
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'direct_messages'
-        }, () => {
-          fetchNotifications();
-        })
-        .subscribe();
-
-      subscriptions.push(
-        uploadsSubscription,
-        assignmentsSubscription,
-        eventsSubscription,
-        messagesSubscription,
-        directMessagesSubscription
-      );
-    }
-
+    // Cleanup subscriptions on unmount
     return () => {
-      subscriptions.forEach(sub => sub.unsubscribe());
+      channels.forEach(channel => channel.unsubscribe());
     };
   }, [user]);
 
@@ -357,6 +256,6 @@ export function useNotifications() {
     notifications,
     loading,
     markAsRead,
-    refreshNotifications: fetchNotifications
+    refresh: fetchNotifications
   };
 }

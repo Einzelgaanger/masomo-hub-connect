@@ -41,7 +41,7 @@ import {
 import { CHARACTERS } from "@/data/characters";
 import { AchievementPost } from "@/components/achievements/AchievementPost";
 import { CreateAchievementForm } from "@/components/achievements/CreateAchievementForm";
-import { EditProfileModal } from "@/components/profile/EditProfileModal";
+import ProfileEditForm from "@/components/profile/ProfileEditForm";
 import {
   Dialog,
   DialogContent,
@@ -73,7 +73,7 @@ interface Profile {
   course_id?: string;
   year?: string;
   semester?: string;
-  student_status?: 'student' | 'graduated' | 'alumni';
+  profile_completed?: boolean;
   classes?: {
     course_name: string;
     course_year: number;
@@ -85,15 +85,6 @@ interface Profile {
         name: string;
       };
     };
-  };
-  countries?: {
-    name: string;
-  };
-  universities?: {
-    name: string;
-  };
-  courses?: {
-    name: string;
   };
 }
 
@@ -112,7 +103,7 @@ const Profile = () => {
   const [achievementsLoading, setAchievementsLoading] = useState(false);
   const [isCreateAchievementOpen, setIsCreateAchievementOpen] = useState(false);
   const [canCreateAchievement, setCanCreateAchievement] = useState(false);
-  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
 
   const [alumniData, setAlumniData] = useState({
     current_company: "",
@@ -135,53 +126,58 @@ const Profile = () => {
 
   const fetchProfile = async () => {
     try {
-      const { data, error } = await supabase
+      // First get the basic profile data
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          countries(name),
-          universities(name),
-          courses(name)
-        `)
+        .select('*')
         .eq('user_id', userId)
         .single();
 
-      if (error) throw error;
+      if (profileError) throw profileError;
 
-      // If user has class_id, try to fetch old class data
-      if (data.class_id) {
-        try {
-          const { data: classData } = await supabase
-            .from('classes_old')
-            .select('course_name, course_year, semester, course_group')
-            .eq('id', data.class_id)
-            .single();
+      // Then get related data separately to avoid foreign key ambiguity
+      const [countryData, universityData, courseData] = await Promise.all([
+        profileData.country_id ? supabase
+          .from('countries')
+          .select('name')
+          .eq('id', profileData.country_id)
+          .single() : { data: null },
+        profileData.university_id ? supabase
+          .from('universities')
+          .select('name')
+          .eq('id', profileData.university_id)
+          .single() : { data: null },
+        profileData.course_id ? supabase
+          .from('courses')
+          .select('name')
+          .eq('id', profileData.course_id)
+          .single() : { data: null }
+      ]);
 
-          if (classData) {
-            data.classes = classData;
-          }
-        } catch (classError) {
-          // classes_old doesn't exist or query failed, ignore
-          console.log('Old classes data not available');
-        }
-      }
-      
-      setProfile(data);
+      // Combine the data
+      const combinedData = {
+        ...profileData,
+        countries: countryData.data,
+        universities: universityData.data,
+        courses: courseData.data
+      };
+
+      setProfile(combinedData);
       
       // Debug character_id
-      console.log('Profile data:', data);
-      console.log('Character ID:', data?.character_id);
-      console.log('Character ID type:', typeof data?.character_id);
+      console.log('Profile data:', combinedData);
+      console.log('Character ID:', combinedData?.character_id);
+      console.log('Character ID type:', typeof combinedData?.character_id);
       
       // Set alumni data for editing
-      if (data?.role === 'alumni') {
+      if (combinedData?.role === 'alumni') {
         setAlumniData({
-          current_company: data.current_company || "",
-          current_position: data.current_position || "",
-          industry: data.industry || "",
-          linkedin_url: data.linkedin_url || "",
-          bio: data.bio || "",
-          mentoring_available: data.mentoring_available || false
+          current_company: combinedData.current_company || "",
+          current_position: combinedData.current_position || "",
+          industry: combinedData.industry || "",
+          linkedin_url: combinedData.linkedin_url || "",
+          bio: combinedData.bio || "",
+          mentoring_available: combinedData.mentoring_available || false
         });
       }
     } catch (error) {
@@ -225,17 +221,7 @@ const Profile = () => {
             .select(`
               full_name,
               email,
-              profile_picture_url,
-              classes(
-                course_name,
-                course_year,
-                semester,
-                course_group,
-                universities(
-                  name,
-                  countries(name)
-                )
-              )
+              profile_picture_url
             `)
             .eq('user_id', achievement.user_id)
             .single();
@@ -282,14 +268,21 @@ const Profile = () => {
     try {
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('role, class_id')
+        .select('role, class_id, profile_completed, country_id, university_id, course_id, year')
         .eq('user_id', user.id)
         .single();
 
       if (error) throw error;
 
-      // Only students enrolled in classes can create achievements
-      setCanCreateAchievement(profile?.role === 'student' && profile?.class_id !== null);
+      // Check if profile is completed (has all required fields)
+      const isProfileComplete = profile?.profile_completed === true || (
+        profile?.country_id && 
+        profile?.university_id && 
+        profile?.course_id && 
+        profile?.year
+      );
+
+      setCanCreateAchievement(isProfileComplete);
     } catch (error) {
       console.error('Error checking achievement permissions:', error);
       setCanCreateAchievement(false);
@@ -303,6 +296,12 @@ const Profile = () => {
 
   const handleAchievementDeleted = (achievementId: string) => {
     setAchievements(prev => prev.filter(a => a.id !== achievementId));
+  };
+
+  const handleProfileUpdated = (updatedProfile: any) => {
+    setProfile(updatedProfile);
+    setIsEditingProfile(false);
+    fetchProfile(); // Refresh to get latest data
   };
 
   const handleProfilePictureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -472,6 +471,15 @@ const Profile = () => {
   return (
     <AppLayout>
       <div className="max-w-4xl mx-auto space-y-6">
+        {/* Profile Edit Form */}
+        {isEditingProfile && isOwnProfile && (
+          <ProfileEditForm
+            profile={profile}
+            onSave={handleProfileUpdated}
+            onCancel={() => setIsEditingProfile(false)}
+          />
+        )}
+
         {/* Profile Header */}
         <Card>
           <CardHeader>
@@ -527,6 +535,11 @@ const Profile = () => {
                     />
                   </div>
                 )}
+                {!profile.character_id && (
+                  <div className="absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4 bg-red-500 rounded-full p-1">
+                    <span className="text-white text-xs">No Char</span>
+                  </div>
+                )}
                 <Input
                   id="profile-picture-input"
                   type="file"
@@ -578,17 +591,6 @@ const Profile = () => {
                   </div>
                   
                   <div className="flex flex-col items-end gap-2">
-                    {isOwnProfile && (
-                      <Button
-                        onClick={() => setIsEditProfileOpen(true)}
-                        className="mb-2"
-                        size="sm"
-                        variant="outline"
-                      >
-                        <Edit3 className="h-4 w-4 mr-2" />
-                        Edit Profile
-                      </Button>
-                    )}
                     {!isOwnProfile && (
                       <Button
                         onClick={() => navigate(`/inbox/${userId}`)}
@@ -597,6 +599,17 @@ const Profile = () => {
                       >
                         <MessageCircle className="h-4 w-4 mr-2" />
                         Send Message
+                      </Button>
+                    )}
+                    {isOwnProfile && (
+                      <Button
+                        onClick={() => setIsEditingProfile(true)}
+                        variant="outline"
+                        size="sm"
+                        className="mb-2"
+                      >
+                        <Edit3 className="h-4 w-4 mr-2" />
+                        Edit Profile
                       </Button>
                     )}
                     <Badge className={`${getRankColor(profile.rank)} text-lg px-3 py-1`}>
@@ -613,7 +626,7 @@ const Profile = () => {
         </Card>
 
         {/* Academic Information */}
-        {(profile.countries || profile.universities || profile.courses || profile.classes) && (
+        {(profile.country_id || profile.university_id || profile.course_id || profile.year) && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -624,28 +637,27 @@ const Profile = () => {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  {/* New System: Course from courses table */}
-                  {profile.courses && (
+                  {profile.courses?.name && (
                     <div className="flex items-center gap-3">
                       <BookOpen className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <p className="font-medium">{profile.courses.name}</p>
-                        {profile.year && profile.semester && (
+                        {profile.year && (
                           <p className="text-sm text-muted-foreground">
-                            Year {profile.year}, {profile.semester}
+                            Year {profile.year}
+                            {profile.semester && `, ${profile.semester}`}
                           </p>
                         )}
                       </div>
                     </div>
                   )}
-
-                  {/* New System: University from universities table */}
-                  {profile.universities && (
+                  
+                  {profile.universities?.name && (
                     <div className="flex items-center gap-3">
-                      <GraduationCap className="h-5 w-5 text-muted-foreground" />
+                      <MapPin className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <p className="font-medium">{profile.universities.name}</p>
-                        {profile.countries && (
+                        {profile.countries?.name && (
                           <p className="text-sm text-muted-foreground">
                             {profile.countries.name}
                           </p>
@@ -653,44 +665,15 @@ const Profile = () => {
                       </div>
                     </div>
                   )}
-
-                  {/* Old System: Classes table (fallback) */}
-                  {!profile.courses && profile.classes && (
-                    <div className="flex items-center gap-3">
-                      <BookOpen className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium">{profile.classes.course_name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Year {profile.classes.course_year}, Semester {profile.classes.semester}
-                        </p>
-                      </div>
-                    </div>
-                  )}
                 </div>
                 
                 <div className="space-y-4">
-                  {/* Student Status */}
-                  {profile.student_status && (
+                  {profile.profile_completed && (
                     <div className="flex items-center gap-3">
-                      <User className="h-5 w-5 text-muted-foreground" />
+                      <CheckCircle className="h-5 w-5 text-green-500" />
                       <div>
-                        <p className="font-medium">Status</p>
-                        <p className="text-sm text-muted-foreground">
-                          {profile.student_status.charAt(0).toUpperCase() + profile.student_status.slice(1)}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Old system: Group */}
-                  {profile.classes && (
-                    <div className="flex items-center gap-3">
-                      <User className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium">Group</p>
-                        <p className="text-sm text-muted-foreground">
-                          {profile.classes.course_group}
-                        </p>
+                        <p className="font-medium">Profile Complete</p>
+                        <p className="text-sm text-muted-foreground">Ready to join classes</p>
                       </div>
                     </div>
                   )}
@@ -1047,14 +1030,6 @@ const Profile = () => {
             />
           </DialogContent>
         </Dialog>
-
-        {/* Edit Profile Modal */}
-        <EditProfileModal
-          open={isEditProfileOpen}
-          onOpenChange={setIsEditProfileOpen}
-          profile={profile}
-          onProfileUpdated={fetchProfile}
-        />
       </div>
     </AppLayout>
   );
@@ -1062,10 +1037,23 @@ const Profile = () => {
 
 // Helper function to get character image
 const getCharacterImage = (characterId: number | string): string => {
+  console.log('Looking for character:', characterId, typeof characterId);
+  
+  // Handle common character ID variations
+  let searchId = characterId;
+  if (characterId === 'guard') {
+    searchId = 'guardian'; // Map 'guard' to 'guardian'
+  }
+  
   // Find character by ID or rank in the CHARACTERS array
   const character = CHARACTERS.find(char => 
-    char.id === characterId || char.rank === characterId
+    char.id === searchId || 
+    char.rank === searchId ||
+    char.id === characterId || 
+    char.rank === characterId
   );
+  
+  console.log('Found character:', character?.name, character?.image);
   
   if (character) {
     return character.image;
@@ -1073,6 +1061,7 @@ const getCharacterImage = (characterId: number | string): string => {
   
   // Fallback to anonymous if character not found
   const anonymousCharacter = CHARACTERS.find(char => char.id === 'anonymous');
+  console.log('Using fallback character:', anonymousCharacter?.name, anonymousCharacter?.image);
   return anonymousCharacter?.image || '/characters/anonymous.png';
 };
 

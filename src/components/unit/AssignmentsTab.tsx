@@ -35,10 +35,11 @@ interface Assignment {
 
 interface AssignmentsTabProps {
   unitId: string;
-  profile: any;
+  classId: string;
+  userRole: 'creator' | 'student';
 }
 
-export function AssignmentsTab({ unitId, profile }: AssignmentsTabProps) {
+export function AssignmentsTab({ unitId, classId, userRole }: AssignmentsTabProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [assignments, setAssignments] = useState<Assignment[]>([]);

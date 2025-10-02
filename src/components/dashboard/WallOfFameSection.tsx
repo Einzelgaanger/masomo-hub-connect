@@ -63,17 +63,9 @@ export function WallOfFameSection() {
           return;
         }
 
-        // Get university_id from class_id (try old system)
-        const { data: classData, error: classError } = await supabase
-          .from('classes_old')
-          .select('university_id')
-          .eq('id', simpleProfile.class_id)
-          .single();
-
-        if (classError || !classData) {
-          console.error('Error fetching class data:', classError);
-          return;
-        }
+        // In the new system, we don't have university_id in classes
+        // Instead, we'll show users from the same class
+        console.log('Using class-based wall of fame for class:', simpleProfile.class_id);
 
         // Use simplified query to avoid inner join issues
         const { data: simpleData, error: simpleDataError } = await supabase
@@ -93,19 +85,25 @@ export function WallOfFameSection() {
               return { ...profile, classes: null };
             }
 
-            // Simplified query without joins to avoid foreign key issues
             const { data: classInfo, error: classError } = await supabase
-              .from('classes_old')
-              .select('course_name, course_year, semester')
+              .from('classes')
+              .select('name, description, created_at')
               .eq('id', profile.class_id)
               .single();
 
             if (classError) {
-              // classes_old might not exist, just return profile without class info
-              return { ...profile, classes: null };
+              console.warn('Error fetching class info for profile:', profile.id, classError);
             }
 
-            return { ...profile, classes: classInfo };
+            return { 
+              ...profile, 
+              classes: classInfo ? {
+                course_name: classInfo.name,
+                course_year: 'N/A',
+                semester: 'N/A',
+                universities: null
+              } : null 
+            };
           })
         );
 

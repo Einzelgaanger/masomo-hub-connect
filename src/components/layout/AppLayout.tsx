@@ -62,16 +62,17 @@ export function AppLayout({ children, showHeader = false, HeaderComponent }: App
         return;
       }
 
-      // Try to fetch class data from old system (optional, for backward compatibility)
+      // Try to fetch class data separately (optional)
       try {
         const { data: classData, error: classError } = await supabase
-          .from('classes_old')
+          .from('classes')
           .select('*')
           .eq('id', profileData.class_id)
           .single();
 
         if (classError) {
-          // Old classes table doesn't exist or query failed, just use profile data
+          console.warn('Error fetching class data:', classError);
+          // Set profile without class data if class fetch fails
           setProfile(profileData);
         } else {
           // Combine profile and class data
@@ -81,7 +82,7 @@ export function AppLayout({ children, showHeader = false, HeaderComponent }: App
           });
         }
       } catch (classError) {
-        // Silently fail and just use profile data
+        console.warn('Error fetching class data:', classError);
         setProfile(profileData);
       }
     } catch (error) {

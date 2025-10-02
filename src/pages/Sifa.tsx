@@ -17,8 +17,10 @@ import {
   GraduationCap,
   MapPin,
   Calendar,
-  Trophy
+  Trophy,
+  AlertTriangle
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { AchievementPost } from "@/components/achievements/AchievementPost";
 import { CreateAchievementForm } from "@/components/achievements/CreateAchievementForm";
 import {
@@ -62,6 +64,7 @@ interface Achievement {
 export default function Sifa() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -92,20 +95,24 @@ export default function Sifa() {
     try {
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('role, class_id, university_id, course_id')
+        .select('role, class_id, profile_completed, country_id, university_id, course_id, year')
         .eq('user_id', user.id)
         .single();
 
       if (error) throw error;
 
       console.log('Profile data for permissions:', profile);
-      
-      // NEW RULE: Must have university_id AND course_id to post on Sifa
-      const hasCompleteProfile = profile?.university_id && profile?.course_id;
-      const canCreateValue = hasCompleteProfile || profile?.role === 'super_admin';
-      
-      console.log('Setting canCreate to:', canCreateValue, 'hasCompleteProfile:', hasCompleteProfile);
-      setCanCreate(canCreateValue);
+
+      // Check if profile is completed (has all required fields)
+      const isProfileComplete = profile?.profile_completed === true || (
+        profile?.country_id && 
+        profile?.university_id && 
+        profile?.course_id && 
+        profile?.year
+      );
+
+      console.log('Profile completion status:', isProfileComplete);
+      setCanCreate(isProfileComplete);
     } catch (error) {
       console.error('Error checking permissions:', error);
       setCanCreate(false);
@@ -357,7 +364,7 @@ export default function Sifa() {
     return (
       <AppLayout>
         {/* Floating Achievement Button */}
-        {canCreate ? (
+        {canCreate && (
           <button
             onClick={() => setIsCreateDialogOpen(true)}
             className="fixed top-1/2 right-4 sm:right-6 z-50 transform -translate-y-1/2 -translate-y-16 w-12 h-12 sm:w-14 sm:h-14 text-white rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 flex items-center justify-center group hover:scale-110"
@@ -365,21 +372,6 @@ export default function Sifa() {
             title="Share achievement"
           >
             <Trophy className="h-5 w-5 sm:h-6 sm:w-6 group-hover:rotate-12 transition-transform duration-300" />
-          </button>
-        ) : user && (
-          <button
-            onClick={() => {
-              toast({
-                title: 'Complete Your Profile',
-                description: 'Please update your university and course in your profile to share achievements',
-                variant: 'destructive',
-              });
-            }}
-            className="fixed top-1/2 right-4 sm:right-6 z-50 transform -translate-y-1/2 -translate-y-16 w-12 h-12 sm:w-14 sm:h-14 text-white rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 flex items-center justify-center group hover:scale-110 opacity-50"
-            style={{ backgroundColor: '#f59e0b' }}
-            title="Complete your profile first"
-          >
-            <Trophy className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
         )}
         
@@ -488,7 +480,7 @@ export default function Sifa() {
                     ? "Try adjusting your filters to discover amazing achievements from the community."
                     : "Be the first to share your achievement and inspire others!"}
                 </p>
-                {canCreate && (
+                {canCreate ? (
                   <Button 
                     onClick={() => setIsCreateDialogOpen(true)} 
                     className="h-12 sm:h-14 px-8 text-base font-semibold rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-200 shadow-lg hover:shadow-xl"
@@ -497,6 +489,24 @@ export default function Sifa() {
                     <span className="hidden sm:inline">Share Your First Achievement</span>
                     <span className="sm:hidden">Share Achievement</span>
                   </Button>
+                ) : (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-w-md mx-auto">
+                    <div className="flex items-center gap-2 text-yellow-800 mb-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span className="font-medium">Complete Your Profile</span>
+                    </div>
+                    <p className="text-sm text-yellow-700 mb-3">
+                      To share achievements, please complete your profile with your university, course, and academic year.
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => navigate(`/profile/${user?.id}`)}
+                      className="w-full"
+                    >
+                      Complete Profile
+                    </Button>
+                  </div>
                 )}
               </CardContent>
             </Card>
