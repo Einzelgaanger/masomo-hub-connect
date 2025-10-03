@@ -72,7 +72,6 @@ export default function ClassPage() {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [showChat, setShowChat] = useState(false);
 
   useEffect(() => {
     if (classId) {
@@ -377,9 +376,109 @@ export default function ClassPage() {
         </div>
 
         {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Units Section */}
-          <div className="lg:col-span-2 space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Chat Section - Takes 3/4 of the width */}
+          <div className="lg:col-span-3 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Class Chat</h2>
+            </div>
+
+            <Card className="h-[75vh] flex flex-col">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <MessageSquare className="h-5 w-5" />
+                    Live Chat
+                  </CardTitle>
+                </CardHeader>
+                <ScrollArea className="flex-1 p-4">
+                  <div className="space-y-4">
+                    {messages.length === 0 ? (
+                      <div className="text-center py-12">
+                        <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">Start the Conversation</h3>
+                        <p className="text-muted-foreground">
+                          Be the first to send a message in this classroom.
+                        </p>
+                      </div>
+                    ) : (
+                      messages.map((message) => (
+                        <div
+                          key={message.id}
+                          className={`flex gap-3 ${
+                            message.sender_id === user?.id ? 'flex-row-reverse' : ''
+                          }`}
+                        >
+                          <img
+                            src={message.sender_avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${message.sender_name}`}
+                            alt={message.sender_name}
+                            className="h-8 w-8 rounded-full flex-shrink-0"
+                          />
+                          <div className={`flex-1 max-w-[70%] ${
+                            message.sender_id === user?.id ? 'text-right' : ''
+                          }`}>
+                            <div className={`inline-block p-3 rounded-2xl shadow-sm ${
+                              message.sender_id === user?.id 
+                                ? 'bg-primary text-primary-foreground' 
+                                : 'bg-white dark:bg-slate-700 border'
+                            }`}>
+                              <p className="text-sm leading-relaxed">{message.message}</p>
+                              {message.file_name && (
+                                <div className="mt-2 p-2 bg-background/50 rounded-lg">
+                                  <Paperclip className="h-4 w-4 inline mr-1" />
+                                  <span className="text-xs">{message.file_name}</span>
+                                </div>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {message.sender_name} • {formatTime(message.created_at)}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+                <div className="border-t bg-white dark:bg-slate-800 p-4">
+                  <div className="flex gap-2">
+                    <div className="flex-1 relative">
+                      <Input
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        placeholder="Type a message..."
+                        className="pr-12 h-11 rounded-xl border-2 focus:border-primary/50"
+                        disabled={sending}
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-primary/10"
+                      >
+                        <Smile className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <Button
+                      onClick={sendMessage}
+                      disabled={!newMessage.trim() || sending}
+                      size="sm"
+                      className="h-11 px-6 rounded-xl"
+                    >
+                      {sending ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4 mr-1" />
+                          <span className="hidden sm:inline">Send</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+          </div>
+
+          {/* Units Section - Takes 1/4 of the width, single column */}
+          <div className="lg:col-span-1 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">Course Units</h2>
               <Badge variant="outline" className="text-xs">
@@ -387,51 +486,41 @@ export default function ClassPage() {
               </Badge>
             </div>
             
-            <div className="space-y-4">
+            <div className="space-y-3">
               {units.map((unit, index) => (
                 <Card 
                   key={unit.id} 
                   className="hover:shadow-lg transition-all cursor-pointer group border-2 hover:border-primary/20"
                   onClick={() => navigate(`/class/${classId}/unit/${unit.id}`)}
                 >
-                  <CardContent className="p-4">
+                  <CardContent className="p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-sm group-hover:text-primary transition-colors truncate">
+                          {unit.name}
+                        </h3>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{unit.description}</p>
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
-                          {index + 1}
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">
-                            {unit.name}
-                          </h3>
-                          <p className="text-sm text-muted-foreground mt-1">{unit.description}</p>
-                          <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              <span>Created {new Date(unit.created_at).toLocaleDateString()}</span>
-                            </div>
-                            {unit.is_completed && (
-                              <div className="flex items-center gap-1 text-green-600">
-                                <CheckCircle2 className="h-3 w-3" />
-                                <span>Completed</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        <span>{new Date(unit.created_at).toLocaleDateString()}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">
-                          {unit.materials_count || 0} materials
-                        </Badge>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          className="group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
-                        >
-                          <Play className="h-4 w-4 mr-1" />
-                          Start
-                        </Button>
-                      </div>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="h-6 px-2 text-xs group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/class/${classId}/unit/${unit.id}`);
+                        }}
+                      >
+                        <Play className="h-3 w-3" />
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -439,16 +528,16 @@ export default function ClassPage() {
               
               {units.length === 0 && (
                 <Card>
-                  <CardContent className="p-8 text-center">
-                    <BookOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">No Units Yet</h3>
-                    <p className="text-muted-foreground mb-4">
+                  <CardContent className="p-6 text-center">
+                    <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                    <h3 className="text-sm font-semibold mb-2">No Units Yet</h3>
+                    <p className="text-xs text-muted-foreground mb-3">
                       Course units will appear here when they're created.
                     </p>
                     {classInfo.role === 'creator' && (
-                      <Button variant="outline" size="sm">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create First Unit
+                      <Button variant="outline" size="sm" className="h-7 px-3 text-xs">
+                        <Plus className="h-3 w-3 mr-1" />
+                        Create Unit
                       </Button>
                     )}
                   </CardContent>
@@ -457,114 +546,6 @@ export default function ClassPage() {
             </div>
           </div>
 
-          {/* Chat Section */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Class Chat</h2>
-              <Button
-                onClick={() => setShowChat(!showChat)}
-                variant={showChat ? "default" : "outline"}
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <MessageSquare className="h-4 w-4" />
-                {showChat ? 'Hide Chat' : 'Show Chat'}
-              </Button>
-            </div>
-
-            {showChat && (
-              <Card className="h-[600px] flex flex-col">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <MessageSquare className="h-5 w-5" />
-                    Class Discussion
-                  </CardTitle>
-                </CardHeader>
-                
-                <CardContent className="flex-1 flex flex-col p-0">
-                  {/* Messages Area */}
-                  <ScrollArea className="flex-1 p-4">
-                    <div className="space-y-4">
-                      {messages.length === 0 ? (
-                        <div className="text-center py-8">
-                          <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                          <h3 className="text-sm font-semibold mb-1">Start the Conversation</h3>
-                          <p className="text-xs text-muted-foreground">
-                            Be the first to send a message in this class.
-                          </p>
-                        </div>
-                      ) : (
-                        messages.map((message) => (
-                          <div
-                            key={message.id}
-                            className={`flex gap-3 ${
-                              message.sender_id === user?.id ? 'flex-row-reverse' : ''
-                            }`}
-                          >
-                            <Avatar className="h-6 w-6 flex-shrink-0">
-                              <AvatarImage src={message.sender_avatar} />
-                              <AvatarFallback className="text-xs">
-                                {message.sender_name.split(' ').map(n => n[0]).join('')}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className={`flex-1 max-w-[80%] ${
-                              message.sender_id === user?.id ? 'text-right' : ''
-                            }`}>
-                              <div className={`inline-block p-2 rounded-lg text-sm ${
-                                message.sender_id === user?.id 
-                                  ? 'bg-primary text-primary-foreground' 
-                                  : 'bg-muted'
-                              }`}>
-                                {message.message}
-                              </div>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {message.sender_name} • {formatTime(message.created_at)}
-                              </p>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </ScrollArea>
-
-                  {/* Message Input */}
-                  <div className="border-t p-3">
-                    <div className="flex gap-2">
-                      <div className="flex-1 relative">
-                        <Input
-                          value={newMessage}
-                          onChange={(e) => setNewMessage(e.target.value)}
-                          onKeyPress={handleKeyPress}
-                          placeholder="Type a message..."
-                          className="pr-10 h-9 text-sm"
-                          disabled={sending}
-                        />
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
-                        >
-                          <Smile className="h-3 w-3" />
-                        </Button>
-                      </div>
-                      <Button
-                        onClick={sendMessage}
-                        disabled={!newMessage.trim() || sending}
-                        size="sm"
-                        className="h-9 px-3"
-                      >
-                        {sending ? (
-                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-                        ) : (
-                          <Send className="h-3 w-3" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
         </div>
       </div>
     </AppLayout>
