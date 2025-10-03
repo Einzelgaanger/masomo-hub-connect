@@ -34,11 +34,22 @@ const AuthCallback = () => {
 
         if (!existingProfile) {
           // Create a basic profile for Google OAuth users using upsert
+          // Extract proper name from email or metadata
+          const extractNameFromEmail = (email: string) => {
+            const emailPrefix = email.split('@')[0];
+            // Convert email prefix to proper name format
+            // e.g., "john.doe" -> "John Doe", "johndoe" -> "Johndoe"
+            return emailPrefix
+              .split('.')
+              .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+              .join(' ');
+          };
+
           const { error: createError } = await supabase
             .from('profiles')
             .upsert({
               user_id: user.id,
-              full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+              full_name: user.user_metadata?.full_name || extractNameFromEmail(user.email || '') || 'User',
               email: user.email || '',
               role: 'student',
               points: 0,

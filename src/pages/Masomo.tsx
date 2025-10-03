@@ -215,6 +215,8 @@ const Masomo = () => {
           id,
           class_id,
           user_id,
+          requester_name,
+          requester_email,
           request_message,
           status,
           requested_at,
@@ -244,13 +246,12 @@ const Masomo = () => {
       const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
       
       setJoinRequests(requestsData.map(req => {
-        const profile = profilesMap.get(req.user_id);
         return {
           id: req.id,
           class_id: req.class_id,
           user_id: req.user_id,
-          full_name: profile?.full_name || 'Unknown User',
-          email: profile?.email || 'Unknown Email',
+          full_name: req.requester_name || 'Unknown User',
+          email: req.requester_email || 'Unknown Email',
           message: req.request_message,
           status: req.status,
           requested_at: req.requested_at,

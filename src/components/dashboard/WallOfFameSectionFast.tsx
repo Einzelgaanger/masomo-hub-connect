@@ -11,7 +11,6 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 // Helper function to get character by points using new system
 const getCharacterByPoints = (points: number) => {
-  // Sort characters by points required and find the highest one the user can unlock
   const availableCharacters = CHARACTERS
     .filter(char => {
       const pointsReq = char.unlockRequirements.find(req => req.type === 'points');
@@ -26,27 +25,17 @@ const getCharacterByPoints = (points: number) => {
   return availableCharacters[availableCharacters.length - 1] || CHARACTERS[0];
 };
 
-export function WallOfFameSection() {
+export function WallOfFameSectionFast() {
   const { user } = useAuth();
   const [topUsers, setTopUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'university' | 'global'>('university');
-  const [initialLoad, setInitialLoad] = useState(false);
 
-  // Force initial load when component mounts
   useEffect(() => {
-    if (user && !initialLoad) {
-      setInitialLoad(true);
+    if (user) {
       fetchTopUsers();
     }
-  }, [user, initialLoad]);
-
-  // Reload when view mode changes
-  useEffect(() => {
-    if (initialLoad) {
-      fetchTopUsers();
-    }
-  }, [viewMode]);
+  }, [user, viewMode]);
 
   const fetchTopUsers = async () => {
     try {
@@ -67,80 +56,58 @@ export function WallOfFameSection() {
           return;
         }
 
-        // Get users from the same class
+        // Use materialized view for fast class-based query
         const { data: classUsers, error: classError } = await supabase
-          .from('profiles')
-          .select(`
-            *,
-            classes!inner(
-              course_name,
-              course_year,
-              semester,
-              universities!inner(
-                name,
-                countries!inner(name)
-              )
-            )
-          `)
+          .from('wall_of_fame_mv')
+          .select('*')
           .eq('class_id', userProfile.class_id)
           .order('points', { ascending: false })
           .limit(30);
 
         if (classError) {
-          console.warn('Class query failed, trying simplified approach:', classError);
+          console.warn('Materialized view query failed, trying fallback:', classError);
           
-          // Fallback to simple class query
-          const { data: simpleUsers, error: simpleError } = await supabase
+          // Fallback to regular profiles table
+          const { data: fallbackUsers, error: fallbackError } = await supabase
             .from('profiles')
             .select('*')
             .eq('class_id', userProfile.class_id)
             .order('points', { ascending: false })
             .limit(30);
 
-          if (simpleError) {
-            console.error('Simple class query also failed:', simpleError);
+          if (fallbackError) {
+            console.error('Fallback query also failed:', fallbackError);
             setViewMode('global');
             return;
           }
 
-          setTopUsers(simpleUsers || []);
+          setTopUsers(fallbackUsers || []);
         } else {
           setTopUsers(classUsers || []);
         }
       } else {
-        // Global mode - get all users
+        // Global mode - use materialized view for fast global query
         const { data: globalUsers, error: globalError } = await supabase
-          .from('profiles')
-          .select(`
-            *,
-            classes(
-              course_name,
-              course_year,
-              semester,
-              universities(
-                name,
-                countries(name)
-              )
-            )
-          `)
+          .from('wall_of_fame_mv')
+          .select('*')
           .order('points', { ascending: false })
           .limit(30);
 
         if (globalError) {
-          console.warn('Global query failed, trying simple approach:', globalError);
+          console.warn('Materialized view global query failed, trying fallback:', globalError);
           
-          // Fallback to simple global query
-          const { data: simpleUsers, error: simpleError } = await supabase
+          // Fallback to regular profiles table
+          const { data: fallbackUsers, error: fallbackError } = await supabase
             .from('profiles')
             .select('*')
             .order('points', { ascending: false })
             .limit(30);
 
-          if (simpleError) {
-            console.error('Simple global query also failed:', simpleError);
+          if (fallbackError) {
+            console.error('Fallback global query also failed:', fallbackError);
             setTopUsers([]);
           } else {
-            setTopUsers(simpleUsers || []);
+            setTopUsers(fallbackUsers || []);
           }
         } else {
           setTopUsers(globalUsers || []);
@@ -264,18 +231,18 @@ export function WallOfFameSection() {
                       {profile.rank || 'bronze'}
                     </Badge>
                     <div className="text-xs text-muted-foreground truncate">
-                      {profile.classes?.course_name ? (
+                      {profile.class_name ? (
                         <>
-                          <div>{profile.classes.course_name}</div>
-                          {viewMode === 'global' && profile.classes?.universities?.name && (
+                          <div>{profile.class_name}</div>
+                          {profile.class_description && (
                             <div className="text-muted-foreground/80">
-                              {profile.classes.universities.name}
+                              {profile.class_description}
                             </div>
                           )}
                         </>
                       ) : (
                         <span className="text-muted-foreground/70">
-                          {viewMode === 'global' ? 'No course assigned' : 'Course not found'}
+                          {viewMode === 'global' ? 'No class assigned' : 'Class not found'}
                         </span>
                       )}
                     </div>

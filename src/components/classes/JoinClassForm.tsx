@@ -215,6 +215,8 @@ const JoinClassForm = ({ onSuccess, onCancel }: JoinClassFormProps) => {
         .insert({
           class_id: classInfo.id,
           user_id: user?.id,
+          requester_name: joinData.name.trim(),
+          requester_email: user?.email || '',
           request_message: joinData.message.trim() || null
         });
 
