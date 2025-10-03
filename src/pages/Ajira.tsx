@@ -174,24 +174,18 @@ function JobCard({ job }: { job: JobPosting }) {
             </span>
           </div>
 
-          {/* University and Course Info */}
-          {(job.universities?.name || job.classes?.course_name || job.universities?.countries?.name) && (
+          {/* University and Country Info */}
+          {(job.profiles?.universities?.name || job.profiles?.universities?.countries?.name) && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Building className="h-3 w-3" />
-              {job.universities?.name && (
+              {job.profiles?.universities?.name && (
                 <>
-                  <span>{job.universities.name}</span>
-                  {job.classes?.course_name && <span>•</span>}
+                  <span>{job.profiles.universities.name}</span>
+                  {job.profiles?.universities?.countries?.name && <span>•</span>}
                 </>
               )}
-              {job.classes?.course_name && (
-                <>
-                  <span>{job.classes.course_name}</span>
-                  {job.universities?.countries?.name && <span>•</span>}
-                </>
-              )}
-              {job.universities?.countries?.name && (
-                <span>{job.universities.countries.name}</span>
+              {job.profiles?.universities?.countries?.name && (
+                <span>{job.profiles.universities.countries.name}</span>
               )}
             </div>
           )}
@@ -300,9 +294,8 @@ export default function Ajira() {
       const { data: userProfile, error: profileError } = await supabase
         .from('profiles')
         .select(`
-          classes!inner(
-            university_id
-          )
+          university_id,
+          country_id
         `)
         .eq('user_id', user?.id)
         .single();
@@ -317,20 +310,18 @@ export default function Ajira() {
         .from('job_postings')
         .select(`
           *,
-          profiles(
+          profiles!inner(
             full_name,
             profile_picture_url,
-            classes!inner(
-              course_name,
-              university_id,
-              universities!inner(
-                name,
-                countries!inner(name)
-              )
+            university_id,
+            country_id,
+            universities!fk_profiles_university(
+              name,
+              countries!inner(name)
             )
           )
         `)
-        .eq('profiles.classes.university_id', userProfile.classes.university_id)
+        .eq('profiles.university_id', userProfile.university_id)
         .order('created_at', { ascending: false });
 
       // Fetch all job postings (global, country, and university)
@@ -338,16 +329,14 @@ export default function Ajira() {
         .from('job_postings')
         .select(`
           *,
-          profiles(
+          profiles!inner(
             full_name,
             profile_picture_url,
-            classes!inner(
-              course_name,
-              university_id,
-              universities!inner(
-                name,
-                countries!inner(name)
-              )
+            university_id,
+            country_id,
+            universities!fk_profiles_university(
+              name,
+              countries!inner(name)
             )
           )
         `)
@@ -356,7 +345,7 @@ export default function Ajira() {
       if (myUniError) throw myUniError;
       if (allJobsError) throw allJobsError;
 
-      const myUniId = userProfile.classes.university_id;
+      const myUniId = userProfile.university_id;
       
       // Sort jobs by priority: recent first, then by deadline urgency
       const sortJobsByPriority = (jobs: any[]) => {
@@ -388,7 +377,7 @@ export default function Ajira() {
       setMyUniversityJobs(sortedMyUniJobs);
       
       // Exclude anything from my own university from the All tab to avoid repetition
-      const filteredAll = ((allJobsData as any[]) || []).filter((job: any) => job?.profiles?.classes?.university_id !== myUniId);
+      const filteredAll = ((allJobsData as any[]) || []).filter((job: any) => job?.profiles?.university_id !== myUniId);
       const sortedAllJobs = sortJobsByPriority(filteredAll);
       setAllJobs(sortedAllJobs);
       setJobPostings(sortedMyUniJobs); // Default to university jobs

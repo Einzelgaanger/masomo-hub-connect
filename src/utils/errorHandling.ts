@@ -100,3 +100,4 @@ export function handleSupabaseError(error: any, fallbackMessage = 'An error occu
   
   return error.message || fallbackMessage;
 }
+

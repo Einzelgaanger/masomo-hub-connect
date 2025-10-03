@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
+import type { FC, ReactNode } from 'react';
 import { useCSRFProtection } from '@/hooks/useCSRFProtection';
 import { logSecurityEvent, SECURITY_EVENTS } from '@/lib/security';
 
@@ -14,9 +15,26 @@ const SecurityContext = createContext<SecurityContextType>({
   reportSecurityEvent: () => {},
 });
 
-export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const SecurityProvider: FC<{ children: ReactNode }> = ({ children }) => {
+  // Add safety check for hooks
+  if (typeof useState !== 'function') {
+    console.error('SecurityProvider: useState is not available');
+    return <>{children}</>;
+  }
+
   const [isSecure, setIsSecure] = useState(false);
-  const { token: csrfToken, isValid } = useCSRFProtection();
+  
+  // Add safety check for custom hook
+  let csrfToken = '';
+  let isValid = false;
+  
+  try {
+    const csrfData = useCSRFProtection();
+    csrfToken = csrfData.token;
+    isValid = csrfData.isValid;
+  } catch (error) {
+    console.error('SecurityProvider: Error in useCSRFProtection:', error);
+  }
 
   useEffect(() => {
     // Check if we're in a secure context

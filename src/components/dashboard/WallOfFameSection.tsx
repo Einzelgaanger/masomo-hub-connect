@@ -233,11 +233,11 @@ export function WallOfFameSection() {
           points: user.points,
           rank: user.rank,
           class_id: user.class_id,
-          hasClassData: !!user.classes,
-          classInfo: user.classes ? {
-            course_name: user.classes.course_name,
-            university: user.classes.universities?.name,
-            country: user.classes.universities?.countries?.name
+          hasClassData: !!(user.course_name || user.universities?.name),
+          classInfo: (user.course_name || user.universities?.name) ? {
+            course_name: user.course_name,
+            university: user.universities?.name,
+            country: user.universities?.countries?.name
           } : null
         }))
       });
@@ -352,12 +352,12 @@ export function WallOfFameSection() {
                       {profile.rank || 'bronze'}
                     </Badge>
                     <div className="text-xs text-muted-foreground truncate">
-                      {profile.classes?.course_name ? (
+                      {profile.course_name ? (
                         <>
-                          <div>{profile.classes.course_name}</div>
-                          {viewMode === 'global' && profile.classes?.universities?.name && (
+                          <div>{profile.course_name}</div>
+                          {viewMode === 'global' && profile.universities?.name && (
                             <div className="text-muted-foreground/80">
-                              {profile.classes.universities.name}
+                              {profile.universities.name}
                             </div>
                           )}
                         </>

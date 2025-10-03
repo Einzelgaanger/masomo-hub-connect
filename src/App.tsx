@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
-import SecurityProvider from "@/components/SecurityProvider";
 import ApplicationStatusGuard from "@/components/ApplicationStatusGuard";
 import AdminGuard from "@/components/AdminGuard";
 import ProfileGuard from "@/components/ProfileGuard";
@@ -15,9 +14,6 @@ import Login from "./pages/Login";
 import MyLogin from "./pages/MyLogin";
 import Dashboard from "./pages/Dashboard";
 import AdminLogin from "./pages/AdminLogin";
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminClasses from "./pages/admin/AdminClasses";
-import AdminConcerns from "./pages/admin/AdminConcerns";
 import ApplicationForm from "./pages/ApplicationForm";
 import ApplicationStatus from "./pages/ApplicationStatus";
 import ApplicationRejected from "./pages/ApplicationRejected";
@@ -54,7 +50,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <SecurityProvider>
       <AuthProvider>
         <TooltipProvider>
         <Toaster />
@@ -80,11 +75,9 @@ const App = () => (
               </ApplicationStatusGuard>
             } />
             <Route path="/ukumbi" element={
-              <ApplicationStatusGuard>
-                <ProtectedRoute>
-                  <Ukumbi />
-                </ProtectedRoute>
-              </ApplicationStatusGuard>
+              <ProtectedRoute>
+                <Ukumbi />
+              </ProtectedRoute>
             } />
             <Route path="/events" element={
               <ApplicationStatusGuard>
@@ -151,24 +144,12 @@ const App = () => (
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin" element={
               <AdminGuard>
-                <AdminDashboard />
-              </AdminGuard>
-            } />
-            <Route path="/admin/classes" element={
-              <AdminGuard>
-                <AdminClasses />
-              </AdminGuard>
-            } />
-            <Route path="/admin/concerns" element={
-              <AdminGuard>
-                <AdminConcerns />
-              </AdminGuard>
-            } />
-            <Route path="/admin/new" element={
-              <AdminGuard>
                 <Admin />
               </AdminGuard>
             } />
+            <Route path="/admin/classes" element={<Navigate to="/admin" replace />} />
+            <Route path="/admin/concerns" element={<Navigate to="/admin" replace />} />
+            <Route path="/admin/new" element={<Navigate to="/admin" replace />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/application-status" element={<ApplicationStatus />} />
             <Route path="/application" element={<ApplicationForm />} />
@@ -200,7 +181,6 @@ const App = () => (
         </div>
         </TooltipProvider>
       </AuthProvider>
-    </SecurityProvider>
   </QueryClientProvider>
 );
 

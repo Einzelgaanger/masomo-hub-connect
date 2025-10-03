@@ -150,14 +150,9 @@ export default function Alumni() {
         .from('profiles')
         .select(`
           *,
-          classes(
-            course_name,
-            course_year,
-            semester,
-            universities(
-              name,
-              countries(name)
-            )
+          universities!fk_profiles_university(
+            name,
+            countries(name)
           )
         `)
         .eq('user_id', user?.id)
@@ -197,35 +192,12 @@ export default function Alumni() {
   const fetchAlumni = async () => {
     try {
       // First get user's university ID
-      const userUniversityId = userProfile?.classes?.universities?.id;
+      const userUniversityId = userProfile?.university_id;
       if (!userUniversityId) return;
 
-      const { data, error } = await supabase
-        .from('alumni_profiles')
-        .select(`
-          *,
-          profiles(full_name, profile_picture_url, email),
-          graduation_class:classes(
-            course_name,
-            course_year,
-            semester,
-            university_id,
-            universities(name)
-          )
-        `)
-        .eq('graduation_class.university_id', userUniversityId)
-        .order('graduation_year', { ascending: false });
-
-      if (error) {
-        // If table doesn't exist yet, just set empty array
-        if (error.code === '42P01') {
-          console.log('Alumni profiles table not created yet, showing empty list');
-          setAlumni([]);
-          return;
-        }
-        throw error;
-      }
-      setAlumni(data || []);
+      // For now, just set empty array since alumni tables don't exist yet
+      console.log('Alumni functionality not yet implemented - showing empty list');
+      setAlumni([]);
     } catch (error) {
       console.error('Error fetching alumni:', error);
       setAlumni([]);
@@ -235,55 +207,12 @@ export default function Alumni() {
   const fetchEvents = async () => {
     try {
       // First get user's university ID
-      const userUniversityId = userProfile?.classes?.universities?.id;
+      const userUniversityId = userProfile?.university_id;
       if (!userUniversityId) return;
 
-      // Try the full query first
-      const { data, error } = await supabase
-        .from('alumni_events')
-        .select(`
-          *,
-          profiles(full_name, profile_picture_url)
-        `)
-        .eq('university_id', userUniversityId)
-        .gte('event_date', new Date().toISOString())
-        .order('event_date', { ascending: true })
-        .limit(10);
-
-      if (error) {
-        console.warn('Full alumni events query failed, trying simplified query:', error);
-        
-        // Fallback to simplified query without university_id filter
-        const { data: simpleData, error: simpleError } = await supabase
-          .from('alumni_events')
-          .select(`
-            *,
-            profiles(full_name, profile_picture_url)
-          `)
-          .gte('event_date', new Date().toISOString())
-          .order('event_date', { ascending: true })
-          .limit(10);
-
-        if (simpleError) {
-          // If table doesn't exist yet, just set empty array
-          if (simpleError.code === '42P01') {
-            console.log('Alumni events table not created yet, showing empty list');
-            setEvents([]);
-            return;
-          }
-          throw simpleError;
-        }
-        
-        // Filter by university on the client side if needed
-        const filteredData = simpleData?.filter(event => 
-          // You can add client-side filtering here if needed
-          true
-        ) || [];
-        
-        setEvents(filteredData);
-      } else {
-        setEvents(data || []);
-      }
+      // For now, just set empty array since alumni events table doesn't exist yet
+      console.log('Alumni events functionality not yet implemented - showing empty list');
+      setEvents([]);
     } catch (error) {
       console.error('Error fetching events:', error);
       setEvents([]);
@@ -293,54 +222,12 @@ export default function Alumni() {
   const fetchSuccessStories = async () => {
     try {
       // First get user's university ID
-      const userUniversityId = userProfile?.classes?.universities?.id;
+      const userUniversityId = userProfile?.university_id;
       if (!userUniversityId) return;
 
-      // Try the full query with complex join first
-      const { data, error } = await supabase
-        .from('alumni_success_stories')
-        .select(`
-          *,
-          profiles(full_name, profile_picture_url),
-          alumni_profiles!inner(university_id)
-        `)
-        .eq('alumni_profiles.university_id', userUniversityId)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (error) {
-        console.warn('Full alumni success stories query failed, trying simplified query:', error);
-        
-        // Fallback to simplified query without complex join
-        const { data: simpleData, error: simpleError } = await supabase
-          .from('alumni_success_stories')
-          .select(`
-            *,
-            profiles(full_name, profile_picture_url)
-          `)
-          .order('created_at', { ascending: false })
-          .limit(10);
-
-        if (simpleError) {
-          // If table doesn't exist yet, just set empty array
-          if (simpleError.code === '42P01') {
-            console.log('Alumni success stories table not created yet, showing empty list');
-            setSuccessStories([]);
-            return;
-          }
-          throw simpleError;
-        }
-        
-        // Filter by university on the client side if needed
-        const filteredData = simpleData?.filter(story => 
-          // You can add client-side filtering here if needed
-          true
-        ) || [];
-        
-        setSuccessStories(filteredData);
-      } else {
-        setSuccessStories(data || []);
-      }
+      // For now, just set empty array since alumni success stories table doesn't exist yet
+      console.log('Alumni success stories functionality not yet implemented - showing empty list');
+      setSuccessStories([]);
     } catch (error) {
       console.error('Error fetching success stories:', error);
       setSuccessStories([]);
@@ -349,44 +236,13 @@ export default function Alumni() {
 
   const handleCreateEvent = async () => {
     try {
-      const { error } = await supabase
-        .from('alumni_events')
-        .insert({
-          ...eventForm,
-          max_attendees: eventForm.max_attendees ? parseInt(eventForm.max_attendees) : null,
-          created_by: user?.id,
-          university_id: userProfile?.classes?.universities?.id
-        });
-
-      if (error) {
-        if (error.code === '42P01') {
-          toast({
-            title: "Error",
-            description: "Alumni system not set up yet. Please contact admin.",
-            variant: "destructive",
-          });
-          return;
-        }
-        throw error;
-      }
-
+      // For now, show error since alumni events table doesn't exist yet
       toast({
-        title: "Success",
-        description: "Event created successfully!",
+        title: "Error",
+        description: "Alumni system not set up yet. Please contact admin.",
+        variant: "destructive",
       });
-
-      setIsCreateEventOpen(false);
-      setEventForm({
-        title: "",
-        description: "",
-        event_type: "networking",
-        event_date: "",
-        location: "",
-        is_virtual: false,
-        meeting_url: "",
-        max_attendees: ""
-      });
-      fetchEvents();
+      return;
     } catch (error) {
       console.error('Error creating event:', error);
       toast({
@@ -399,27 +255,13 @@ export default function Alumni() {
 
   const handleCreateStory = async () => {
     try {
-      const { error } = await supabase
-        .from('alumni_success_stories')
-        .insert({
-          ...storyForm,
-          alumni_id: user?.id
-        });
-
-      if (error) throw error;
-
+      // For now, show error since alumni success stories table doesn't exist yet
       toast({
-        title: "Success",
-        description: "Success story shared!",
+        title: "Error",
+        description: "Alumni system not set up yet. Please contact admin.",
+        variant: "destructive",
       });
-
-      setIsCreateStoryOpen(false);
-      setStoryForm({
-        title: "",
-        story: "",
-        achievement_type: "career_advancement"
-      });
-      fetchSuccessStories();
+      return;
     } catch (error) {
       console.error('Error creating story:', error);
       toast({

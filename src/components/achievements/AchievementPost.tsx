@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -18,7 +18,9 @@ import {
   Video,
   MapPin,
   GraduationCap,
-  Calendar
+  Calendar,
+  ThumbsDown,
+  X
 } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -139,7 +141,7 @@ export function AchievementPost({
     setLoading(true);
     try {
       if (isLiked) {
-        // Unlike
+        // Unlike - remove the like
         const { error } = await supabase
           .from('achievement_likes')
           .delete()
@@ -148,9 +150,15 @@ export function AchievementPost({
 
         if (error) throw error;
         setIsLiked(false);
-        setLikesCount(prev => prev - 1);
+        setLikesCount(prev => Math.max(0, prev - 1));
       } else {
-        // Like
+        // Like - first remove any existing like, then add new one
+        await supabase
+          .from('achievement_likes')
+          .delete()
+          .eq('achievement_id', achievement.id)
+          .eq('user_id', user.id);
+
         const { error } = await supabase
           .from('achievement_likes')
           .insert({
@@ -167,6 +175,40 @@ export function AchievementPost({
       toast({
         title: "Error",
         description: "Failed to update like status.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDislike = async () => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to dislike achievements.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Remove like if exists (dislike = remove like)
+      const { error } = await supabase
+        .from('achievement_likes')
+        .delete()
+        .eq('achievement_id', achievement.id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      setIsLiked(false);
+      setLikesCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Error disliking:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update dislike status.",
         variant: "destructive",
       });
     } finally {
@@ -207,159 +249,225 @@ export function AchievementPost({
   };
 
   return (
-    <Card className="w-full shadow-lg border-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm hover:shadow-xl transition-all duration-300 group">
-      <CardHeader className="pb-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start space-x-3 flex-1 min-w-0">
-            <Avatar className="h-12 w-12 sm:h-14 sm:w-14 flex-shrink-0">
-              <AvatarImage src={achievement.author_picture} />
-              <AvatarFallback className="text-sm font-semibold">
-                {achievement.author_name.split(' ').map(n => n[0]).join('')}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0 space-y-2">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                <h3 className="font-bold text-base sm:text-lg text-slate-900 dark:text-slate-100 truncate">
-                  {achievement.author_name}
-                </h3>
-                {achievement.university_name && (
-                  <Badge variant="outline" className="text-xs w-fit bg-primary/10 text-primary border-primary/20">
-                    {achievement.university_name}
-                  </Badge>
-                )}
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-200 h-full">
+      {media.length > 0 ? (
+        <div className="relative h-80 bg-gradient-to-br from-blue-500 to-purple-600">
+          <img
+            src={media[0].media_url}
+            alt={achievement.title}
+            className="w-full h-full object-cover"
+          />
+          
+          {/* TikTok-style overlay with gradient */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent">
+            
+            {/* Top section - User info and actions */}
+            <div className="absolute top-4 left-4 right-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-8 w-8 border-2 border-white/20">
+                    <AvatarImage src={achievement.author_picture} />
+                    <AvatarFallback className="text-xs bg-white/20 text-white">
+                      {achievement.author_name.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="text-white">
+                    <p className="text-sm font-medium">{achievement.author_name}</p>
+                    <p className="text-xs text-white/80">{achievement.university_name}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {isOwnPost && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-white hover:bg-white/20">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => onEdit?.(achievement)}>
+                          <Edit3 className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={handleDelete}
+                          className="text-red-600 focus:text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+            </div>
+
+            {/* Bottom section - Title and description */}
+            <div className="absolute bottom-4 left-4 right-4">
+              <h3 className="text-white font-bold text-xl mb-2">
+                {achievement.title}
+              </h3>
+              
+              {achievement.description && (
+                <p className="text-white/90 text-sm leading-relaxed line-clamp-2">
+                  {achievement.description}
+                </p>
+              )}
+
+              {/* Achievement details */}
+              <div className="mt-3 space-y-1">
+                {achievement.course_name && (
+                  <div className="flex items-center gap-2 text-white/80 text-xs">
+                    <GraduationCap className="h-3 w-3" />
+                    <span>{achievement.course_name}</span>
+                  </div>
+                )}
+                
+                {achievement.country_name && (
+                  <div className="flex items-center gap-2 text-white/80 text-xs">
+                    <MapPin className="h-3 w-3" />
+                    <span>{achievement.country_name}</span>
+                  </div>
+                )}
+
+                {/* Time posted */}
+                <div className="flex items-center gap-2 text-white/60 text-xs">
+                  <Calendar className="h-3 w-3" />
                   <span>{format(new Date(achievement.created_at), 'MMM dd, yyyy')}</span>
                 </div>
-                {achievement.course_name && (
-                  <>
-                    <span className="hidden sm:inline">•</span>
-                    <div className="flex items-center gap-1">
-                      <GraduationCap className="h-3 w-3 sm:h-4 sm:w-4" />
-                      <span className="truncate">{achievement.course_name}</span>
-                    </div>
-                  </>
-                )}
-                {achievement.country_name && (
-                  <>
-                    <span className="hidden sm:inline">•</span>
-                    <div className="flex items-center gap-1">
-                      <MapPin className="h-3 w-3 sm:h-4 sm:w-4" />
-                      <span className="truncate">{achievement.country_name}</span>
-                    </div>
-                  </>
-                )}
               </div>
             </div>
           </div>
-          
-          {isOwnPost && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onEdit?.(achievement)}>
-                  <Edit3 className="h-4 w-4 mr-2" />
-                  Edit
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={handleDelete}
-                  className="text-red-600 focus:text-red-600"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
         </div>
-      </CardHeader>
-
-      <CardContent className="pt-0 space-y-6">
-        {/* Title and Description */}
-        <div className="space-y-3">
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 leading-tight">
-            {achievement.title}
-          </h2>
-          {achievement.description && (
-            <p className="text-base sm:text-lg text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
-              {achievement.description}
-            </p>
-          )}
-        </div>
-
-        {/* Media Carousel */}
-        {media.length > 0 && (
-          <div className="rounded-xl overflow-hidden">
-            <AchievementMediaCarousel media={media} />
-          </div>
-        )}
-
-        {/* Stats and Actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-          <div className="flex items-center flex-wrap gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-700 px-3 py-1.5 rounded-full">
-              <Eye className="h-4 w-4" />
-              <span className="font-medium">{viewsCount}</span>
-            </div>
-            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-700 px-3 py-1.5 rounded-full">
-              <Heart className="h-4 w-4" />
-              <span className="font-medium">{likesCount}</span>
-            </div>
-            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-700 px-3 py-1.5 rounded-full">
-              <MessageCircle className="h-4 w-4" />
-              <span className="font-medium">{commentsCount}</span>
-            </div>
-            {media.length > 0 && (
-              <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-700 px-3 py-1.5 rounded-full">
-                {getMediaIcon(media[0]?.media_type || 'image')}
-                <span className="font-medium">{media.length}</span>
+      ) : (
+        // Fallback for achievements without media
+        <div className="p-6">
+          <CardHeader className="pb-4">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-2">
+                  <CardTitle className="text-lg">{achievement.title}</CardTitle>
+                  {isOwnPost && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => onEdit?.(achievement)}>
+                          <Edit3 className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={handleDelete}
+                          className="text-red-600 focus:text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage src={achievement.author_picture} />
+                    <AvatarFallback className="text-xs">
+                      {achievement.author_name.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span>{achievement.author_name}</span>
+                  {achievement.university_name && (
+                    <>
+                      <span>•</span>
+                      <span>{achievement.university_name}</span>
+                    </>
+                  )}
+                </div>
               </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="pt-0">
+            {achievement.description && (
+              <p className="text-sm text-muted-foreground mb-4 leading-relaxed line-clamp-3">
+                {achievement.description}
+              </p>
             )}
-          </div>
+          </CardContent>
+        </div>
+      )}
+
+      {/* Bottom section - Action buttons */}
+      <div className="p-3 border-t bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm">
+        <div className="flex items-center justify-center gap-2 sm:gap-3">
+          {/* Like button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLike}
+            disabled={loading}
+            className={`h-8 w-8 p-0 rounded-md transition-all duration-200 ${
+              isLiked 
+                ? 'text-red-500 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30' 
+                : 'text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
+            }`}
+          >
+            <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
+          </Button>
           
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleLike}
-              disabled={loading}
-              className={`h-10 px-4 rounded-xl transition-all duration-200 ${
-                isLiked 
-                  ? 'text-red-500 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30' 
-                  : 'text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
-              }`}
-            >
-              <Heart className={`h-5 w-5 ${isLiked ? 'fill-current' : ''}`} />
-              <span className="ml-2 hidden sm:inline">Like</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowCommentsSection(!showCommentsSection)}
-              className="h-10 px-4 rounded-xl transition-all duration-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600"
-            >
-              <MessageCircle className="h-5 w-5" />
-              <span className="ml-2 hidden sm:inline">Comment</span>
-            </Button>
+          {/* Dislike button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleDislike}
+            disabled={loading}
+            className="h-8 w-8 p-0 rounded-md transition-all duration-200 text-muted-foreground hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+          >
+            <ThumbsDown className="h-4 w-4" />
+          </Button>
+          
+          {/* Comment button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowCommentsSection(!showCommentsSection)}
+            className="h-8 w-8 p-0 rounded-md transition-all duration-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600"
+          >
+            <MessageCircle className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Comments Popup Modal */}
+      {showCommentsSection && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold">Comments</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowCommentsSection(false)}
+                className="h-8 w-8 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            {/* Comments Content */}
+            <div className="flex-1 overflow-hidden">
+              <AchievementComments 
+                achievementId={achievement.id}
+                onCommentAdded={() => setCommentsCount(prev => prev + 1)}
+              />
+            </div>
           </div>
         </div>
-
-        {/* Comments Section */}
-        {showCommentsSection && (
-          <div className="mt-4 pt-4 border-t">
-            <AchievementComments 
-              achievementId={achievement.id}
-              onCommentAdded={() => setCommentsCount(prev => prev + 1)}
-            />
-          </div>
-        )}
-      </CardContent>
+      )}
     </Card>
   );
 }

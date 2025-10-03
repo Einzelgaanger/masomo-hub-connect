@@ -84,56 +84,101 @@ const ClassManagement = () => {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase
+      // First, fetch classes (limit to 50 for better performance)
+      const { data: classesData, error: classesError } = await supabase
         .from('classes')
-        .select(`
-          *,
-          profiles!classes_creator_id_fkey(full_name, email)
-        `)
-        .order('created_at', { ascending: false });
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
 
-      if (error) throw error;
+      if (classesError) throw classesError;
 
-      // Get additional stats for each class
-      const classesWithStats = await Promise.all(
-        (data || []).map(async (classItem) => {
-          const [membersResult, unitsResult, messagesResult, requestsResult] = await Promise.all([
-            supabase
-              .from('class_members')
-              .select('id', { count: 'exact', head: true })
-              .eq('class_id', classItem.id),
-            supabase
-              .from('class_units')
-              .select('id', { count: 'exact', head: true })
-              .eq('class_id', classItem.id),
-            supabase
-              .from('class_chat_messages')
-              .select('id', { count: 'exact', head: true })
-              .eq('class_id', classItem.id),
-            supabase
-              .from('class_join_requests')
-              .select('id', { count: 'exact', head: true })
-              .eq('class_id', classItem.id)
-              .eq('status', 'pending')
-          ]);
+      // Early return if no classes found
+      if (!classesData || classesData.length === 0) {
+        setClasses([]);
+        setLoading(false);
+        return;
+      }
 
-          return {
-            id: classItem.id,
-            name: classItem.name,
-            description: classItem.description,
-            class_code: classItem.class_code,
-            creator_id: classItem.creator_id,
-            created_at: classItem.created_at,
-            is_active: classItem.is_active,
-            creator_name: classItem.profiles?.full_name || 'Unknown',
-            creator_email: classItem.profiles?.email || 'Unknown',
-            members_count: membersResult.count || 0,
-            units_count: unitsResult.count || 0,
-            messages_count: messagesResult.count || 0,
-            join_requests_count: requestsResult.count || 0
-          };
-        })
-      );
+      // Then fetch creator profiles separately
+      const creatorIds = classesData?.map(c => c.creator_id) || [];
+      const { data: creatorsData, error: creatorsError } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, email')
+        .in('user_id', creatorIds);
+
+      if (creatorsError) throw creatorsError;
+
+      // Combine the data
+      const data = classesData?.map(classItem => ({
+        ...classItem,
+        profiles: creatorsData?.find(creator => creator.user_id === classItem.creator_id) || null
+      }));
+
+      // Get stats for all classes in bulk (much faster!)
+      const classIds = data?.map(c => c.id) || [];
+      
+      const [membersData, unitsData, messagesData, requestsData] = await Promise.all([
+        supabase
+          .from('class_members')
+          .select('class_id')
+          .in('class_id', classIds)
+          .then(result => result.error ? { data: [] } : result),
+        supabase
+          .from('class_units')
+          .select('class_id')
+          .in('class_id', classIds)
+          .then(result => result.error ? { data: [] } : result),
+        supabase
+          .from('class_chat_messages')
+          .select('class_id')
+          .in('class_id', classIds)
+          .then(result => result.error ? { data: [] } : result),
+        supabase
+          .from('class_join_requests')
+          .select('class_id')
+          .in('class_id', classIds)
+          .eq('status', 'pending')
+          .then(result => result.error ? { data: [] } : result)
+      ]);
+
+      // Count stats by class_id
+      const membersCounts = membersData.data?.reduce((acc, item) => {
+        acc[item.class_id] = (acc[item.class_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>) || {};
+
+      const unitsCounts = unitsData.data?.reduce((acc, item) => {
+        acc[item.class_id] = (acc[item.class_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>) || {};
+
+      const messagesCounts = messagesData.data?.reduce((acc, item) => {
+        acc[item.class_id] = (acc[item.class_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>) || {};
+
+      const requestsCounts = requestsData.data?.reduce((acc, item) => {
+        acc[item.class_id] = (acc[item.class_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>) || {};
+
+      // Combine data with stats
+      const classesWithStats = data?.map(classItem => ({
+        id: classItem.id,
+        name: classItem.name,
+        description: classItem.description,
+        class_code: classItem.class_code,
+        creator_id: classItem.creator_id,
+        created_at: classItem.created_at,
+        is_active: classItem.is_active,
+        creator_name: classItem.profiles?.full_name || 'Unknown',
+        creator_email: classItem.profiles?.email || 'Unknown',
+        members_count: membersCounts[classItem.id] || 0,
+        units_count: unitsCounts[classItem.id] || 0,
+        messages_count: messagesCounts[classItem.id] || 0,
+        join_requests_count: requestsCounts[classItem.id] || 0
+      })) || [];
 
       setClasses(classesWithStats);
     } catch (error) {
@@ -152,26 +197,36 @@ const ClassManagement = () => {
     try {
       setLoadingMembers(true);
       
-      const { data, error } = await supabase
+      // First, fetch class members
+      const { data: membersData, error: membersError } = await supabase
         .from('class_members')
-        .select(`
-          *,
-          profiles!class_members_user_id_fkey(full_name, email, profile_picture_url)
-        `)
+        .select('*')
         .eq('class_id', classId)
         .order('joined_at', { ascending: false });
 
-      if (error) throw error;
+      if (membersError) throw membersError;
 
-      const transformedMembers = (data || []).map(member => ({
-        id: member.id,
-        user_id: member.user_id,
-        role: member.role,
-        joined_at: member.joined_at,
-        full_name: member.profiles?.full_name || 'Unknown',
-        email: member.profiles?.email || 'Unknown',
-        profile_picture_url: member.profiles?.profile_picture_url
-      }));
+      // Then fetch member profiles separately
+      const memberIds = membersData?.map(m => m.user_id) || [];
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, email, profile_picture_url')
+        .in('user_id', memberIds);
+
+      if (profilesError) throw profilesError;
+
+      const transformedMembers = (membersData || []).map(member => {
+        const profile = profilesData?.find(p => p.user_id === member.user_id);
+        return {
+          id: member.id,
+          user_id: member.user_id,
+          role: member.role,
+          joined_at: member.joined_at,
+          full_name: profile?.full_name || 'Unknown',
+          email: profile?.email || 'Unknown',
+          profile_picture_url: profile?.profile_picture_url
+        };
+      });
 
       setClassMembers(transformedMembers);
     } catch (error) {

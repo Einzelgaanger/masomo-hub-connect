@@ -144,26 +144,35 @@ export default function Sifa() {
       // Transform data and fetch profile info separately
       const transformedData = await Promise.all(
         (data || []).map(async (achievement) => {
-          // Fetch profile data for each achievement
-          const { data: profileData } = await supabase
+          // Fetch profile data for each achievement (basic data first)
+          const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .select(`
-              full_name,
-              email,
-              profile_picture_url,
-              classes(
-                course_name,
-                course_year,
-                semester,
-                course_group,
-                universities(
-                  name,
-                  countries(name)
-                )
-              )
-            `)
+            .select('*')
             .eq('user_id', achievement.user_id)
             .single();
+
+          if (profileError) {
+            console.error('Error fetching profile for user:', achievement.user_id, profileError);
+          }
+
+          // Fetch related data separately to avoid foreign key ambiguity
+          const [countryData, universityData, courseData] = await Promise.all([
+            profileData?.country_id ? supabase
+              .from('countries')
+              .select('name')
+              .eq('id', profileData.country_id)
+              .single() : { data: null },
+            profileData?.university_id ? supabase
+              .from('universities')
+              .select('name')
+              .eq('id', profileData.university_id)
+              .single() : { data: null },
+            profileData?.course_id ? supabase
+              .from('courses')
+              .select('name')
+              .eq('id', profileData.course_id)
+              .single() : { data: null }
+          ]);
 
           return {
             id: achievement.id,
@@ -175,12 +184,12 @@ export default function Sifa() {
             author_name: profileData?.full_name || 'Unknown',
             author_email: profileData?.email || '',
             author_picture: profileData?.profile_picture_url,
-            university_name: profileData?.classes?.universities?.name,
-            course_name: profileData?.classes?.course_name,
-            course_year: profileData?.classes?.course_year,
-            semester: profileData?.classes?.semester,
-            course_group: profileData?.classes?.course_group,
-            country_name: profileData?.classes?.universities?.countries?.name,
+            university_name: universityData?.data?.name || 'N/A',
+            course_name: courseData?.data?.name || 'N/A',
+            course_year: profileData?.year || 'N/A',
+            semester: profileData?.semester || 'N/A',
+            course_group: profileData?.course_group || 'N/A',
+            country_name: countryData?.data?.name || 'N/A',
             media_count: 0, // Will be fetched separately
             likes_count: 0, // Will be fetched separately
             comments_count: 0, // Will be fetched separately
@@ -220,18 +229,17 @@ export default function Sifa() {
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select(`
-          classes!inner(
-            universities(name)
-          )
+          university_id,
+          universities!fk_profiles_university(name)
         `)
-        .not('class_id', 'is', null);
+        .not('university_id', 'is', null);
 
       if (profilesError) throw profilesError;
 
       const uniqueUniversities = new Set<string>();
 
       profilesData?.forEach(profile => {
-        const university = profile.classes?.universities?.name;
+        const university = profile.universities?.name;
         if (university) uniqueUniversities.add(university);
       });
 
@@ -250,10 +258,9 @@ export default function Sifa() {
           .from('achievements')
           .select(`
             profiles!inner(
-              classes!inner(
-                universities(name),
-                course_name
-              )
+              university_id,
+              universities!fk_profiles_university(name),
+              course_name
             )
           `);
 
@@ -266,13 +273,13 @@ export default function Sifa() {
         
         if (universityName === "all") {
           achievementsData?.forEach(achievement => {
-            const course = achievement.profiles?.classes?.course_name;
+            const course = achievement.profiles?.course_name;
             if (course) uniqueCourses.add(course);
           });
         } else {
           achievementsData?.forEach(achievement => {
-            const university = achievement.profiles?.classes?.universities?.name;
-            const course = achievement.profiles?.classes?.course_name;
+            const university = achievement.profiles?.universities?.name;
+            const course = achievement.profiles?.course_name;
             
             if (university === universityName && course) {
               uniqueCourses.add(course);
@@ -303,19 +310,18 @@ export default function Sifa() {
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select(`
-          classes!inner(
-            universities(name),
-            course_name
-          )
+          university_id,
+          course_name,
+          universities!fk_profiles_university(name)
         `)
-        .not('class_id', 'is', null);
+        .not('university_id', 'is', null);
 
       if (profilesError) throw profilesError;
 
       const uniqueCourses = new Set<string>();
       profilesData?.forEach(profile => {
-        const university = profile.classes?.universities?.name;
-        const course = profile.classes?.course_name;
+        const university = profile.universities?.name;
+        const course = profile.course_name;
         
         if ((universityName === "all" || university === universityName) && course) {
           uniqueCourses.add(course);
@@ -511,7 +517,7 @@ export default function Sifa() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-6">
               {filteredAchievements.map((achievement, index) => (
                 <div 
                   key={achievement.id}

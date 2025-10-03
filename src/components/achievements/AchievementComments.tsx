@@ -60,37 +60,47 @@ export function AchievementComments({
     try {
       setLoading(true);
       
-      // Use direct query for now (RPC functions will be available after SQL script is run)
-      console.log('Using direct query for achievement comments');
-      const directResult = await supabase
+      // Fetch comments and profiles separately to avoid foreign key issues
+      const { data: commentsData, error: commentsError } = await supabase
         .from('achievement_comments')
-        .select(`
-          *,
-          profiles!inner(
-            full_name,
-            profile_picture_url
-          )
-        `)
+        .select('*')
         .eq('achievement_id', achievementId)
         .order('created_at', { ascending: true })
         .limit(limit);
-      
-      const data = directResult.data;
-      const error = directResult.error;
 
-      if (error) throw error;
+      if (commentsError) throw commentsError;
+
+      if (!commentsData || commentsData.length === 0) {
+        setComments([]);
+        return;
+      }
+
+      // Get unique user IDs
+      const userIds = [...new Set(commentsData.map(comment => comment.user_id))];
       
-      // Transform data if using direct query
-      const transformedData = data?.map(comment => ({
-        id: comment.id,
-        achievement_id: comment.achievement_id,
-        user_id: comment.user_id,
-        content: comment.content,
-        created_at: comment.created_at,
-        updated_at: comment.updated_at,
-        author_name: comment.profiles?.full_name || 'Unknown',
-        author_picture: comment.profiles?.profile_picture_url
-      })) || [];
+      // Fetch profiles for all users
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, profile_picture_url')
+        .in('user_id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Combine data
+      const transformedData = commentsData.map(comment => {
+        const profile = profilesData?.find(p => p.user_id === comment.user_id);
+        console.log('Comment user_id:', comment.user_id, 'Profile found:', profile);
+        return {
+          id: comment.id,
+          achievement_id: comment.achievement_id,
+          user_id: comment.user_id,
+          content: comment.content,
+          created_at: comment.created_at,
+          updated_at: comment.updated_at,
+          author_name: profile?.full_name || 'Unknown',
+          author_picture: profile?.profile_picture_url
+        };
+      });
       
       setComments(transformedData);
     } catch (error) {
@@ -126,6 +136,7 @@ export function AchievementComments({
 
     setIsSubmitting(true);
     try {
+      // Insert comment without foreign key query
       const { data, error } = await supabase
         .from('achievement_comments')
         .insert({
@@ -133,16 +144,21 @@ export function AchievementComments({
           user_id: user.id,
           content: newComment.trim()
         })
-        .select(`
-          *,
-          profiles(
-            full_name,
-            profile_picture_url
-          )
-        `)
+        .select('*')
         .single();
 
       if (error) throw error;
+
+      // Fetch user profile separately
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('full_name, profile_picture_url')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+      }
 
       // Add the new comment to the list
       const newCommentData = {
@@ -152,8 +168,8 @@ export function AchievementComments({
         content: data.content,
         created_at: data.created_at,
         updated_at: data.updated_at,
-        author_name: data.profiles.full_name,
-        author_picture: data.profiles.profile_picture_url
+        author_name: profileData?.full_name || 'Unknown',
+        author_picture: profileData?.profile_picture_url
       };
 
       setComments(prev => [...prev, newCommentData]);
@@ -269,42 +285,44 @@ export function AchievementComments({
   };
 
   return (
-    <div className="space-y-4">
-      {/* Comment Input */}
+    <div className="flex flex-col h-full">
+      {/* Comment Input - Fixed at top */}
       {user && (
-        <div className="flex space-x-3">
-          <Avatar className="h-8 w-8 flex-shrink-0">
-            <AvatarImage src={user.user_metadata?.avatar_url} />
-            <AvatarFallback>
-              {user.user_metadata?.full_name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 space-y-2">
-            <Textarea
-              ref={textareaRef}
-              placeholder="Write a comment..."
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              onKeyPress={handleKeyPress}
-              className="min-h-[80px] resize-none"
-              disabled={isSubmitting}
-            />
-            <div className="flex justify-end">
-              <Button
-                onClick={handleSubmitComment}
-                disabled={!newComment.trim() || isSubmitting}
-                size="sm"
-              >
-                <Send className="h-4 w-4 mr-2" />
-                {isSubmitting ? 'Posting...' : 'Post Comment'}
-              </Button>
+        <div className="p-4 border-b bg-white dark:bg-slate-800">
+          <div className="flex space-x-3">
+            <Avatar className="h-8 w-8 flex-shrink-0">
+              <AvatarImage src={user.user_metadata?.avatar_url} />
+              <AvatarFallback>
+                {user.user_metadata?.full_name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 space-y-2">
+              <Textarea
+                ref={textareaRef}
+                placeholder="Write a comment..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                onKeyPress={handleKeyPress}
+                className="min-h-[60px] resize-none"
+                disabled={isSubmitting}
+              />
+              <div className="flex justify-end">
+                <Button
+                  onClick={handleSubmitComment}
+                  disabled={!newComment.trim() || isSubmitting}
+                  size="sm"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  {isSubmitting ? 'Posting...' : 'Post'}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Comments List */}
-      <div className="space-y-3">
+      {/* Comments List - Scrollable */}
+      <div className="flex-1 overflow-y-auto p-4">
         {loading ? (
           <div className="text-center py-4">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
@@ -314,84 +332,86 @@ export function AchievementComments({
             No comments yet. Be the first to comment!
           </div>
         ) : (
-          comments.map((comment) => (
-            <div key={comment.id} className="flex space-x-3">
-              <Avatar className="h-8 w-8 flex-shrink-0">
-                <AvatarImage src={comment.author_picture} />
-                <AvatarFallback>
-                  {comment.author_name.split(' ').map(n => n[0]).join('')}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center space-x-2 mb-1">
-                  <span className="font-medium text-sm">{comment.author_name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {format(new Date(comment.created_at), 'MMM dd, yyyy HH:mm')}
-                  </span>
-                  {comment.updated_at !== comment.created_at && (
-                    <span className="text-xs text-muted-foreground">(edited)</span>
-                  )}
-                </div>
-                
-                {editingComment === comment.id ? (
-                  <div className="space-y-2">
-                    <Textarea
-                      value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      className="min-h-[60px] resize-none"
-                      autoFocus
-                    />
-                    <div className="flex space-x-2">
-                      <Button
-                        onClick={() => handleEditComment(comment.id)}
-                        size="sm"
-                        disabled={!editContent.trim()}
-                      >
-                        Save
-                      </Button>
-                      <Button
-                        onClick={cancelEditing}
-                        variant="outline"
-                        size="sm"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-start justify-between">
-                    <p className="text-sm whitespace-pre-wrap break-words">
-                      {comment.content}
-                    </p>
-                    
-                    {user?.id === comment.user_id && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 ml-2">
-                            <MoreHorizontal className="h-3 w-3" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => startEditing(comment)}>
-                            <Edit3 className="h-3 w-3 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleDeleteComment(comment.id)}
-                            className="text-red-600 focus:text-red-600"
-                          >
-                            <Trash2 className="h-3 w-3 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+          <div className="space-y-4">
+            {comments.map((comment) => (
+              <div key={comment.id} className="flex space-x-3">
+                <Avatar className="h-8 w-8 flex-shrink-0">
+                  <AvatarImage src={comment.author_picture} />
+                  <AvatarFallback>
+                    {comment.author_name.split(' ').map(n => n[0]).join('')}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <span className="font-medium text-sm">{comment.author_name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {format(new Date(comment.created_at), 'MMM dd, yyyy HH:mm')}
+                    </span>
+                    {comment.updated_at !== comment.created_at && (
+                      <span className="text-xs text-muted-foreground">(edited)</span>
                     )}
                   </div>
-                )}
+                  
+                  {editingComment === comment.id ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        className="min-h-[60px] resize-none"
+                        autoFocus
+                      />
+                      <div className="flex space-x-2">
+                        <Button
+                          onClick={() => handleEditComment(comment.id)}
+                          size="sm"
+                          disabled={!editContent.trim()}
+                        >
+                          Save
+                        </Button>
+                        <Button
+                          onClick={cancelEditing}
+                          variant="outline"
+                          size="sm"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-start justify-between">
+                      <p className="text-sm whitespace-pre-wrap break-words">
+                        {comment.content}
+                      </p>
+                      
+                      {user?.id === comment.user_id && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 ml-2">
+                              <MoreHorizontal className="h-3 w-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => startEditing(comment)}>
+                              <Edit3 className="h-3 w-3 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleDeleteComment(comment.id)}
+                              className="text-red-600 focus:text-red-600"
+                            >
+                              <Trash2 className="h-3 w-3 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
     </div>

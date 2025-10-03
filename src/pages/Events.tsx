@@ -37,9 +37,7 @@ interface PublicEvent {
       name: string;
     };
   };
-  classes?: {
-    course_name: string;
-  };
+  course_name?: string;
 }
 
 interface Country {
@@ -81,13 +79,12 @@ export default function Events() {
 
   const fetchEvents = async () => {
     try {
-      // First get the current user's university
+      // First get the current user's profile with university info
       const { data: userProfile, error: profileError } = await supabase
         .from('profiles')
         .select(`
-          classes!inner(
-            university_id
-          )
+          university_id,
+          country_id
         `)
         .eq('user_id', user?.id)
         .single();
@@ -102,20 +99,18 @@ export default function Events() {
         .from('public_events')
         .select(`
           *,
-          profiles(
+          profiles!inner(
             full_name,
             profile_picture_url,
-            classes!inner(
-              course_name,
-              university_id,
-              universities!inner(
-                name,
-                countries!inner(name)
-              )
+            university_id,
+            country_id,
+            universities!fk_profiles_university(
+              name,
+              countries!inner(name)
             )
           )
         `)
-        .eq('profiles.classes.university_id', userProfile.classes.university_id)
+        .eq('profiles.university_id', userProfile.university_id)
         .order('event_date', { ascending: true });
 
       // Fetch all events (global, country, and university)
@@ -123,16 +118,14 @@ export default function Events() {
         .from('public_events')
         .select(`
           *,
-          profiles(
+          profiles!inner(
             full_name,
             profile_picture_url,
-            classes!inner(
-              course_name,
-              university_id,
-              universities!inner(
-                name,
-                countries!inner(name)
-              )
+            university_id,
+            country_id,
+            universities!fk_profiles_university(
+              name,
+              countries!inner(name)
             )
           )
         `)
@@ -141,7 +134,7 @@ export default function Events() {
       if (myUniError) throw myUniError;
       if (allEventsError) throw allEventsError;
 
-      const myUniId = userProfile.classes.university_id;
+      const myUniId = userProfile.university_id;
       const now = new Date();
       
       // Sort events to prioritize upcoming events first
@@ -170,7 +163,7 @@ export default function Events() {
       setMyUniversityEvents(sortedMyUniEvents);
       
       // Exclude anything from my own university from the All tab to avoid repetition
-      const filteredAll = (allEventsData || []).filter((ev: any) => ev?.profiles?.classes?.university_id !== myUniId);
+      const filteredAll = (allEventsData || []).filter((ev: any) => ev?.profiles?.university_id !== myUniId);
       const sortedAllEvents = sortEventsByPriority(filteredAll);
       setAllEvents(sortedAllEvents);
       setEvents(sortedMyUniEvents); // Default to university events
@@ -891,7 +884,7 @@ function EventCard({ event, onEdit, onDelete }: {
                   </Avatar>
                   <div className="text-white">
                     <p className="text-sm font-medium">{event.profiles?.full_name}</p>
-                    <p className="text-xs text-white/80">{event.classes?.course_name}</p>
+                    <p className="text-xs text-white/80">{event.profiles?.universities?.name}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

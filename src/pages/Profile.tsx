@@ -26,7 +26,8 @@ import {
   Briefcase,
   Globe,
   Link,
-  Plus
+  Plus,
+  CheckCircle
 } from "lucide-react";
 import { format } from "date-fns";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -236,12 +237,12 @@ const Profile = () => {
             author_name: profileData?.full_name || 'Unknown',
             author_email: profileData?.email || '',
             author_picture: profileData?.profile_picture_url,
-            university_name: profileData?.classes?.universities?.name,
-            course_name: profileData?.classes?.course_name,
-            course_year: profileData?.classes?.course_year,
-            semester: profileData?.classes?.semester,
-            course_group: profileData?.classes?.course_group,
-            country_name: profileData?.classes?.universities?.countries?.name,
+            university_name: profileData?.universities?.name,
+            course_name: profileData?.course_name,
+            course_year: profileData?.year,
+            semester: profileData?.semester,
+            course_group: profileData?.course_group,
+            country_name: profileData?.universities?.countries?.name,
             media_count: 0, // Will be fetched separately
             likes_count: 0, // Will be fetched separately
             comments_count: 0, // Will be fetched separately

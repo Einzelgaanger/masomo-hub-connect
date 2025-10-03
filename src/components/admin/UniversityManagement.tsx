@@ -63,7 +63,26 @@ interface Course {
 
 const UniversityManagement = () => {
   const { toast } = useToast();
-  
+
+  // Smart course parsing function
+  const parseCoursesInput = (input: string): string[] => {
+    if (!input.trim()) return [];
+    
+    // Check if input contains commas (comma-separated format)
+    if (input.includes(',')) {
+      return input
+        .split(',')
+        .map(course => course.trim().replace(/^["']|["']$/g, '')) // Remove quotes
+        .filter(course => course.length > 0);
+    }
+    
+    // Otherwise, treat as line-separated format
+    return input
+      .split('\n')
+      .map(course => course.trim())
+      .filter(course => course.length > 0);
+  };
+
   const [countries, setCountries] = useState<Country[]>([]);
   const [universities, setUniversities] = useState<University[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -71,8 +90,11 @@ const UniversityManagement = () => {
   const [loading, setLoading] = useState(true);
   const [isAddingCountry, setIsAddingCountry] = useState(false);
   const [isAddingUniversity, setIsAddingUniversity] = useState(false);
+  const [isEditingUniversity, setIsEditingUniversity] = useState(false);
+  const [editingUniversityId, setEditingUniversityId] = useState<string>('');
   const [isAddingCourse, setIsAddingCourse] = useState(false);
   const [isBulkImporting, setIsBulkImporting] = useState(false);
+  const [isBulkImportDialogOpen, setIsBulkImportDialogOpen] = useState(false);
   
   const [selectedCountry, setSelectedCountry] = useState<string>('');
   const [selectedUniversity, setSelectedUniversity] = useState<string>('');
@@ -85,7 +107,8 @@ const UniversityManagement = () => {
   const [universityForm, setUniversityForm] = useState({
     name: '',
     website: '',
-    country_id: ''
+    country_id: '',
+    courses: ''
   });
   
   const [courseForm, setCourseForm] = useState({
@@ -109,38 +132,61 @@ const UniversityManagement = () => {
         .select('*')
         .order('name');
       
-      if (countriesError) throw countriesError;
+      if (countriesError) {
+        console.error('UniversityManagement: Error fetching countries:', countriesError);
+        throw countriesError;
+      }
       setCountries(countriesData || []);
       
       // Fetch universities
       const { data: universitiesData, error: universitiesError } = await supabase
         .from('universities')
-        .select(`
-          *,
-          countries(name)
-        `)
+        .select('*')
         .order('name');
       
-      if (universitiesError) throw universitiesError;
-      setUniversities(universitiesData || []);
+      if (universitiesError) {
+        console.error('UniversityManagement: Error fetching universities:', universitiesError);
+        throw universitiesError;
+      }
+      
+      // Combine with country data
+      const universitiesWithCountries = (universitiesData || []).map(university => {
+        const country = countriesData?.find(c => c.id === university.country_id);
+        return {
+          ...university,
+          countries: country ? { name: country.name } : null
+        };
+      });
+      
+      setUniversities(universitiesWithCountries);
       
       // Fetch courses
       const { data: coursesData, error: coursesError } = await supabase
         .from('courses')
-        .select(`
-          *,
-          universities(
-            name,
-            countries(name)
-          )
-        `)
+        .select('*')
         .order('name');
       
-      if (coursesError) throw coursesError;
-      setCourses(coursesData || []);
+      if (coursesError) {
+        console.error('UniversityManagement: Error fetching courses:', coursesError);
+        throw coursesError;
+      }
+      
+      // Combine with university and country data
+      const coursesWithDetails = (coursesData || []).map(course => {
+        const university = universitiesWithCountries.find(u => u.id === course.university_id);
+        return {
+          ...course,
+          universities: university ? {
+            name: university.name,
+            countries: university.countries
+          } : null
+        };
+      });
+      
+      setCourses(coursesWithDetails);
       
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('UniversityManagement: Error fetching data:', error);
       toast({
         title: "Error",
         description: "Failed to load data.",
@@ -200,22 +246,43 @@ const UniversityManagement = () => {
     }
 
     try {
-      const { error } = await supabase
+      // First, create the university
+      const { data: universityData, error: universityError } = await supabase
         .from('universities')
         .insert({
           name: universityForm.name,
           country_id: universityForm.country_id,
           website: universityForm.website || null
-        });
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (universityError) throw universityError;
+
+      // Then, create courses if provided
+      if (universityForm.courses.trim()) {
+        const courseNames = parseCoursesInput(universityForm.courses);
+
+        if (courseNames.length > 0) {
+          const coursesToInsert = courseNames.map(name => ({
+            name,
+            university_id: universityData.id
+          }));
+
+          const { error: coursesError } = await supabase
+            .from('courses')
+            .insert(coursesToInsert);
+
+          if (coursesError) throw coursesError;
+        }
+      }
 
       toast({
         title: "Success",
-        description: "University added successfully.",
+        description: `University added successfully${universityForm.courses.trim() ? ' with courses' : ''}.`,
       });
 
-      setUniversityForm({ name: '', website: '', country_id: '' });
+      setUniversityForm({ name: '', website: '', country_id: '', courses: '' });
       setIsAddingUniversity(false);
       fetchData();
     } catch (error) {
@@ -223,6 +290,106 @@ const UniversityManagement = () => {
       toast({
         title: "Error",
         description: "Failed to add university.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditUniversity = (university: University) => {
+    setEditingUniversityId(university.id);
+    setUniversityForm({
+      name: university.name,
+      website: university.website || '',
+      country_id: university.country_id,
+      courses: '' // Will be populated with existing courses
+    });
+    
+    // Get existing courses for this university
+    const universityCourses = courses
+      .filter(course => course.university_id === university.id)
+      .map(course => course.name)
+      .join(', ');
+    
+    setUniversityForm(prev => ({
+      ...prev,
+      courses: universityCourses
+    }));
+    
+    setIsEditingUniversity(true);
+  };
+
+  const handleUpdateUniversity = async () => {
+    if (!universityForm.name || !universityForm.country_id) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Update university
+      const { error: universityError } = await supabase
+        .from('universities')
+        .update({
+          name: universityForm.name,
+          country_id: universityForm.country_id,
+          website: universityForm.website || null
+        })
+        .eq('id', editingUniversityId);
+
+      if (universityError) throw universityError;
+
+      // Handle courses update
+      if (universityForm.courses.trim()) {
+        const newCourseNames = parseCoursesInput(universityForm.courses);
+        
+        // Delete existing courses for this university
+        const { error: deleteError } = await supabase
+          .from('courses')
+          .delete()
+          .eq('university_id', editingUniversityId);
+
+        if (deleteError) throw deleteError;
+
+        // Insert new courses
+        if (newCourseNames.length > 0) {
+          const coursesToInsert = newCourseNames.map(name => ({
+            name,
+            university_id: editingUniversityId
+          }));
+
+          const { error: coursesError } = await supabase
+            .from('courses')
+            .insert(coursesToInsert);
+
+          if (coursesError) throw coursesError;
+        }
+      } else {
+        // If no courses provided, delete all existing courses
+        const { error: deleteError } = await supabase
+          .from('courses')
+          .delete()
+          .eq('university_id', editingUniversityId);
+
+        if (deleteError) throw deleteError;
+      }
+
+      toast({
+        title: "Success",
+        description: "University updated successfully.",
+      });
+
+      setUniversityForm({ name: '', website: '', country_id: '', courses: '' });
+      setIsEditingUniversity(false);
+      setEditingUniversityId('');
+      fetchData();
+    } catch (error) {
+      console.error('Error updating university:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update university.",
         variant: "destructive",
       });
     }
@@ -278,10 +445,7 @@ const UniversityManagement = () => {
 
     setIsBulkImporting(true);
     try {
-      const courseNames = bulkCourses
-        .split('\n')
-        .map(name => name.trim())
-        .filter(name => name.length > 0);
+      const courseNames = parseCoursesInput(bulkCourses);
 
       if (courseNames.length === 0) {
         toast({
@@ -310,6 +474,7 @@ const UniversityManagement = () => {
 
       setBulkCourses('');
       setSelectedUniversity('');
+      setIsBulkImportDialogOpen(false);
       fetchData();
     } catch (error) {
       console.error('Error bulk importing courses:', error);
@@ -486,7 +651,7 @@ const UniversityManagement = () => {
                 </CardTitle>
                 <Button onClick={() => setIsAddingUniversity(true)}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Add University
+                  Add University & Courses
                 </Button>
               </div>
             </CardHeader>
@@ -502,14 +667,23 @@ const UniversityManagement = () => {
                         </p>
                       </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteUniversity(university.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditUniversity(university)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteUniversity(university.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -531,7 +705,7 @@ const UniversityManagement = () => {
                     <Plus className="h-4 w-4 mr-2" />
                     Add Course
                   </Button>
-                  <Button variant="outline" onClick={() => setSelectedUniversity('')}>
+                  <Button variant="outline" onClick={() => setIsBulkImportDialogOpen(true)}>
                     <Upload className="h-4 w-4 mr-2" />
                     Bulk Import
                   </Button>
@@ -611,9 +785,9 @@ const UniversityManagement = () => {
       <Dialog open={isAddingUniversity} onOpenChange={setIsAddingUniversity}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add University</DialogTitle>
+            <DialogTitle>Add University & Courses</DialogTitle>
             <DialogDescription>
-              Add a new university to the system.
+              Add a new university to the system and optionally include its courses.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -653,11 +827,101 @@ const UniversityManagement = () => {
                 placeholder="https://university.edu"
               />
             </div>
+            <div>
+              <Label htmlFor="university-courses">Courses (Optional)</Label>
+              <Textarea
+                id="university-courses"
+                value={universityForm.courses}
+                onChange={(e) => setUniversityForm({...universityForm, courses: e.target.value})}
+                placeholder="Enter courses separated by commas or one per line:&#10;Computer Science, Business Administration, Engineering&#10;OR&#10;Computer Science&#10;Business Administration&#10;Engineering"
+                rows={6}
+                className="resize-none"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Enter courses separated by commas (e.g., "Course 1", "Course 2") or one per line.
+              </p>
+            </div>
             <div className="flex gap-2">
               <Button onClick={handleAddUniversity} className="flex-1">
-                Add University
+                Add University & Courses
               </Button>
               <Button variant="outline" onClick={() => setIsAddingUniversity(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit University Dialog */}
+      <Dialog open={isEditingUniversity} onOpenChange={setIsEditingUniversity}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit University & Courses</DialogTitle>
+            <DialogDescription>
+              Update university information and manage its courses.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-university-name">University Name</Label>
+              <Input
+                id="edit-university-name"
+                value={universityForm.name}
+                onChange={(e) => setUniversityForm({...universityForm, name: e.target.value})}
+                placeholder="e.g., Harvard University"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-university-country">Country</Label>
+              <Select 
+                value={universityForm.country_id} 
+                onValueChange={(value) => setUniversityForm({...universityForm, country_id: value})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a country" />
+                </SelectTrigger>
+                <SelectContent>
+                  {countries.map((country) => (
+                    <SelectItem key={country.id} value={country.id}>
+                      {country.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="edit-university-website">Website (Optional)</Label>
+              <Input
+                id="edit-university-website"
+                value={universityForm.website}
+                onChange={(e) => setUniversityForm({...universityForm, website: e.target.value})}
+                placeholder="https://university.edu"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-university-courses">Courses</Label>
+              <Textarea
+                id="edit-university-courses"
+                value={universityForm.courses}
+                onChange={(e) => setUniversityForm({...universityForm, courses: e.target.value})}
+                placeholder="Enter courses separated by commas or one per line:&#10;Computer Science, Business Administration, Engineering&#10;OR&#10;Computer Science&#10;Business Administration&#10;Engineering"
+                rows={6}
+                className="resize-none"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Enter courses separated by commas (e.g., "Course 1", "Course 2") or one per line. This will replace all existing courses.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleUpdateUniversity} className="flex-1">
+                Update University & Courses
+              </Button>
+              <Button variant="outline" onClick={() => {
+                setIsEditingUniversity(false);
+                setEditingUniversityId('');
+                setUniversityForm({ name: '', website: '', country_id: '', courses: '' });
+              }}>
                 Cancel
               </Button>
             </div>
@@ -715,7 +979,7 @@ const UniversityManagement = () => {
       </Dialog>
 
       {/* Bulk Import Dialog */}
-      <Dialog open={selectedUniversity === '' && !isAddingCourse} onOpenChange={() => setSelectedUniversity('')}>
+      <Dialog open={isBulkImportDialogOpen} onOpenChange={setIsBulkImportDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Bulk Import Courses</DialogTitle>
@@ -743,14 +1007,17 @@ const UniversityManagement = () => {
               </Select>
             </div>
             <div>
-              <Label htmlFor="bulk-courses">Course Names (one per line)</Label>
+              <Label htmlFor="bulk-courses">Course Names</Label>
               <Textarea
                 id="bulk-courses"
                 value={bulkCourses}
                 onChange={(e) => setBulkCourses(e.target.value)}
-                placeholder="Computer Science&#10;Business Administration&#10;Medicine&#10;Law&#10;Engineering"
+                placeholder="Enter courses separated by commas or one per line:&#10;Computer Science, Business Administration, Medicine&#10;OR&#10;Computer Science&#10;Business Administration&#10;Medicine"
                 rows={8}
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Enter courses separated by commas (e.g., "Course 1", "Course 2") or one per line.
+              </p>
             </div>
             <div className="flex gap-2">
               <Button 
@@ -760,7 +1027,11 @@ const UniversityManagement = () => {
               >
                 {isBulkImporting ? "Importing..." : "Import Courses"}
               </Button>
-              <Button variant="outline" onClick={() => setSelectedUniversity('')}>
+              <Button variant="outline" onClick={() => {
+                setIsBulkImportDialogOpen(false);
+                setSelectedUniversity('');
+                setBulkCourses('');
+              }}>
                 Cancel
               </Button>
             </div>

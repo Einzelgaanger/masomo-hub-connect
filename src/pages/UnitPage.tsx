@@ -106,15 +106,15 @@ const UnitPage = () => {
                  <div>
                    <h1 className="text-2xl sm:text-3xl font-bold mb-2">{unit.name}</h1>
                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-sm text-muted-foreground">
-                     <span className="font-medium">{unit.classes.course_name}</span>
+                     <span className="font-medium">{unit.course_name}</span>
                      <span className="hidden sm:inline">•</span>
-                     <span>{unit.classes.universities.name}</span>
+                     <span>{unit.universities.name}</span>
                      <span className="hidden sm:inline">•</span>
-                     <span>Year {unit.classes.course_year}, Sem {unit.classes.semester}</span>
-                     {unit.classes.course_group && (
+                     <span>Year {unit.year}, Sem {unit.semester}</span>
+                     {unit.course_group && (
                        <>
                          <span className="hidden sm:inline">•</span>
-                         <span>Group {unit.classes.course_group}</span>
+                         <span>Group {unit.course_group}</span>
                        </>
                      )}
                    </div>

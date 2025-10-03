@@ -131,10 +131,7 @@ const Inbox = () => {
         .from('profiles')
         .select(`
           *,
-          classes!inner(
-            *,
-            universities(*)
-          )
+          universities!fk_profiles_university(*)
         `)
         .eq('user_id', user?.id)
         .single();
@@ -220,12 +217,10 @@ const Inbox = () => {
           email,
           profile_picture_url,
           privacy_level,
-          classes!inner (
-            university_id,
-            course_name,
-            universities (
-              name
-            )
+          university_id,
+          course_name,
+          universities!fk_profiles_university (
+            name
           )
         `)
         .neq('user_id', user?.id)
@@ -708,7 +703,7 @@ const Inbox = () => {
                                 </Button>
                               </div>
                               <p className="text-sm text-muted-foreground truncate">
-                                {user.classes?.course_name} • {user.classes?.universities?.name}
+                                {user.course_name} • {user.universities?.name}
                               </p>
                             </div>
                           </div>
