@@ -23,7 +23,10 @@ import {
   Key,
   RefreshCw,
   Copy,
-  Clock
+  Clock,
+  GraduationCap,
+  Shield,
+  Zap
 } from "lucide-react";
 import {
   Dialog,
@@ -37,6 +40,9 @@ import JoinClassForm from "@/components/classes/JoinClassForm";
 import ClassChatroom from "@/components/classes/ClassChatroom";
 import RoleTransferForm from "@/components/classes/RoleTransferForm";
 import { CodeManagement } from "@/components/classes/CodeManagement";
+import { ClassJoinRequestBadge } from "@/components/classes/ClassJoinRequestBadge";
+import { JoinRequestStatus } from "@/components/classes/JoinRequestStatus";
+import { JoinRequestNotification } from "@/components/classes/JoinRequestNotification";
 
 interface UserClass {
   id: string;
@@ -76,7 +82,6 @@ const Masomo = () => {
   const [isCreateClassOpen, setIsCreateClassOpen] = useState(false);
   const [isJoinClassOpen, setIsJoinClassOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('my-classes');
-  const [selectedClassForChat, setSelectedClassForChat] = useState<UserClass | null>(null);
   const [selectedClassForTransfer, setSelectedClassForTransfer] = useState<UserClass | null>(null);
   const [selectedClassForCodeManagement, setSelectedClassForCodeManagement] = useState<UserClass | null>(null);
 
@@ -377,6 +382,9 @@ const Masomo = () => {
 
   return (
     <AppLayout>
+      {/* Join Request Notifications */}
+      <JoinRequestNotification />
+      
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -439,9 +447,10 @@ const Masomo = () => {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="my-classes">My Classes</TabsTrigger>
             <TabsTrigger value="requests">Join Requests</TabsTrigger>
+            <TabsTrigger value="my-requests">My Requests</TabsTrigger>
           </TabsList>
 
           {/* My Classes Tab */}
@@ -472,7 +481,7 @@ const Masomo = () => {
                   <Card 
                     key={classItem.id} 
                     className="hover:shadow-lg transition-all cursor-pointer group"
-                    onClick={() => navigate(`/class/${classItem.id}/units`)}
+                    onClick={() => navigate(`/class/${classItem.id}`)}
                   >
                     <CardHeader>
                       <div className="flex items-center justify-between">
@@ -501,35 +510,44 @@ const Masomo = () => {
                       </div>
                       
                       <div className="flex items-center justify-between">
-                        <Badge variant="outline" className="text-xs">
-                          {classItem.class_code}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            {classItem.class_code}
+                          </Badge>
+                          {classItem.role === 'creator' && (
+                            <ClassJoinRequestBadge 
+                              classId={classItem.id} 
+                              className={classItem.name}
+                              onRequestProcessed={fetchJoinRequests}
+                            />
+                          )}
+                        </div>
                         <div className="flex gap-1">
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => setSelectedClassForChat(classItem)}
-                          >
-                            <MessageSquare className="h-4 w-4 mr-1" />
-                            Chat
-                          </Button>
                           {classItem.role === 'creator' && (
                             <>
                               <Button 
                                 size="sm" 
-                                variant="outline"
-                                onClick={() => setSelectedClassForCodeManagement(classItem)}
+                                variant="ghost"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedClassForCodeManagement(classItem);
+                                }}
+                                className="h-8 w-8 p-0 hover:bg-green-100 hover:text-green-600"
                                 title="Manage Class Code"
                               >
-                                <Key className="h-4 w-4" />
+                                <Zap className="h-4 w-4" />
                               </Button>
                               <Button 
                                 size="sm" 
-                                variant="outline"
-                                onClick={() => setSelectedClassForTransfer(classItem)}
+                                variant="ghost"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedClassForTransfer(classItem);
+                                }}
+                                className="h-8 w-8 p-0 hover:bg-orange-100 hover:text-orange-600"
                                 title="Transfer Role"
                               >
-                                <Settings className="h-4 w-4" />
+                                <Shield className="h-4 w-4" />
                               </Button>
                             </>
                           )}
@@ -611,6 +629,11 @@ const Masomo = () => {
               </div>
             )}
           </TabsContent>
+
+          {/* My Requests Tab - For applicants to track their join requests */}
+          <TabsContent value="my-requests" className="space-y-4">
+            <JoinRequestStatus />
+          </TabsContent>
         </Tabs>
 
         {/* Create Class Dialog */}
@@ -645,23 +668,6 @@ const Masomo = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Class Chatroom Dialog */}
-        <Dialog open={!!selectedClassForChat} onOpenChange={() => setSelectedClassForChat(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
-            <DialogHeader>
-              <DialogTitle>Class Chat - {selectedClassForChat?.name}</DialogTitle>
-              <DialogDescription>
-                Chat with your classmates about {selectedClassForChat?.name}
-              </DialogDescription>
-            </DialogHeader>
-            {selectedClassForChat && (
-              <ClassChatroom
-                classId={selectedClassForChat.id}
-                className={selectedClassForChat.name}
-              />
-            )}
-          </DialogContent>
-        </Dialog>
 
         {/* Role Transfer Dialog */}
         <Dialog open={!!selectedClassForTransfer} onOpenChange={() => setSelectedClassForTransfer(null)}>

@@ -44,12 +44,19 @@ export function DashboardHeader({ profile }: DashboardHeaderProps) {
           </div>
         </div>
         
-        <Avatar className="h-10 w-10">
-          <AvatarImage src={profile?.profile_picture_url} />
-          <AvatarFallback>
-            {profile?.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
+        <div className="h-10 w-10 shadow-md overflow-hidden" style={{ borderRadius: '20%' }}>
+          {profile?.profile_picture_url ? (
+            <img 
+              src={profile.profile_picture_url} 
+              alt="Profile"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-sm font-semibold bg-gradient-to-br from-blue-500 to-purple-500 text-white">
+              {profile?.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

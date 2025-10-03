@@ -29,10 +29,19 @@ export function ProfilePictureModal({
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         {children || (
-          <Avatar className={className}>
-            <AvatarImage src={src} alt={alt} />
-            <AvatarFallback>{fallback}</AvatarFallback>
-          </Avatar>
+          <div className={`${className} shadow-md overflow-hidden`} style={{ borderRadius: '20%' }}>
+            {src ? (
+              <img 
+                src={src} 
+                alt={alt}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center font-semibold bg-gradient-to-br from-blue-500 to-purple-500 text-white">
+                {fallback}
+              </div>
+            )}
+          </div>
         )}
       </DialogTrigger>
       <DialogContent className="max-w-md p-0 bg-black border-0">

@@ -28,6 +28,8 @@ import Alumni from "./pages/Alumni";
 import Profile from "./pages/Profile";
 import Sifa from "./pages/Sifa";
 import Masomo from "./pages/Masomo";
+import ClassPage from "./pages/ClassPage";
+import UnitPage from "./pages/UnitPage";
 import ClassUnits from "./pages/ClassUnits";
 import UnitContent from "./pages/UnitContent";
 import Admin from "./pages/Admin";
@@ -124,6 +126,16 @@ const App = () => (
                 <Masomo />
               </ProtectedRoute>
             } />
+        <Route path="/class/:classId" element={
+          <ProtectedRoute>
+            <ClassPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/class/:classId/unit/:unitId" element={
+          <ProtectedRoute>
+            <UnitPage />
+          </ProtectedRoute>
+        } />
             <Route path="/class/:classId/units" element={
               <ProtectedRoute>
                 <ClassUnits />

@@ -43,6 +43,7 @@ import { CHARACTERS } from "@/data/characters";
 import { AchievementPost } from "@/components/achievements/AchievementPost";
 import { CreateAchievementForm } from "@/components/achievements/CreateAchievementForm";
 import ProfileEditForm from "@/components/profile/ProfileEditForm";
+import { SimpleProfilePictureUpload } from "@/components/profile/SimpleProfilePictureUpload";
 import {
   Dialog,
   DialogContent,
@@ -199,60 +200,18 @@ const Profile = () => {
     try {
       setAchievementsLoading(true);
       
-      // Use simple query without complex joins for now
-      console.log('Using simple query for user achievements');
-      const directResult = await supabase
-        .from('achievements')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(20);
-      
-      const data = directResult.data;
-      const error = directResult.error;
+      // Use the ultra simple function to get user achievements with accurate counts
+      console.log('Using ultra simple query for user achievements');
+      const { data, error } = await supabase
+        .rpc('get_all_achievements_with_counts_ultra_simple', {
+          user_id_param: user?.id || null
+        });
 
       if (error) throw error;
       
-      // Transform data and fetch profile info separately
-      const transformedData = await Promise.all(
-        (data || []).map(async (achievement) => {
-          // Fetch profile data for each achievement
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select(`
-              full_name,
-              email,
-              profile_picture_url
-            `)
-            .eq('user_id', achievement.user_id)
-            .single();
-
-          return {
-            id: achievement.id,
-            user_id: achievement.user_id,
-            title: achievement.title,
-            description: achievement.description,
-            created_at: achievement.created_at,
-            updated_at: achievement.updated_at,
-            author_name: profileData?.full_name || 'Unknown',
-            author_email: profileData?.email || '',
-            author_picture: profileData?.profile_picture_url,
-            university_name: profileData?.universities?.name,
-            course_name: profileData?.course_name,
-            course_year: profileData?.year,
-            semester: profileData?.semester,
-            course_group: profileData?.course_group,
-            country_name: profileData?.universities?.countries?.name,
-            media_count: 0, // Will be fetched separately
-            likes_count: 0, // Will be fetched separately
-            comments_count: 0, // Will be fetched separately
-            views_count: 0, // Will be fetched separately
-            user_liked: false // Will be fetched separately
-          };
-        })
-      );
-      
-      setAchievements(transformedData);
+      // Filter to only show achievements by this user
+      const userAchievements = (data || []).filter(achievement => achievement.user_id === userId);
+      setAchievements(userAchievements);
     } catch (error) {
       console.error('Error fetching achievements:', error);
     } finally {
@@ -486,39 +445,28 @@ const Profile = () => {
           <CardHeader>
             <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
               <div className="relative">
-                <Avatar className="h-24 w-24">
-                  <AvatarImage src={profile.profile_picture_url} />
-                  <AvatarFallback className="text-2xl">
-                    {profile.full_name.split(' ').map((n: string) => n[0]).join('')}
-                  </AvatarFallback>
-                </Avatar>
-                {isOwnProfile && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="absolute top-0 right-0 h-8 w-8 rounded-full p-0 bg-background shadow-lg"
-                      >
-                        <Edit3 className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => document.getElementById('profile-picture-input')?.click()}>
-                        <Image className="h-4 w-4 mr-2" />
-                        Update Photo
-                      </DropdownMenuItem>
-                      {profile?.profile_picture_url && (
-                        <DropdownMenuItem 
-                          onClick={handleRemoveProfilePicture}
-                          className="text-red-600 focus:text-red-600"
-                        >
-                          <X className="h-4 w-4 mr-2" />
-                          Remove Photo
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                {isOwnProfile ? (
+                  <SimpleProfilePictureUpload
+                    currentImageUrl={profile.profile_picture_url}
+                    onImageUpdate={(newImageUrl) => {
+                      setProfile(prev => prev ? { ...prev, profile_picture_url: newImageUrl } : null);
+                    }}
+                    className="h-24 w-24"
+                  />
+                ) : (
+                  <div className="h-24 w-24 shadow-lg overflow-hidden" style={{ borderRadius: '20%' }}>
+                    {profile.profile_picture_url ? (
+                      <img 
+                        src={profile.profile_picture_url} 
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-2xl font-semibold bg-gradient-to-br from-blue-500 to-purple-500 text-white">
+                        {profile.full_name.split(' ').map((n: string) => n[0]).join('')}
+                      </div>
+                    )}
+                  </div>
                 )}
                 {profile.character_id && (
                   <div className="absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4 bg-background rounded-full p-0.5 shadow-lg ring-2 ring-background">

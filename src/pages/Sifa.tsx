@@ -56,9 +56,11 @@ interface Achievement {
   country_name?: string;
   media_count: number;
   likes_count: number;
+  dislikes_count: number;
   comments_count: number;
   views_count: number;
   user_liked: boolean;
+  user_disliked?: boolean;
 }
 
 export default function Sifa() {
@@ -123,16 +125,12 @@ export default function Sifa() {
     try {
       setLoading(true);
       
-      // Use simple query without complex joins for now
-      console.log('Using simple query for achievements');
-      const directResult = await supabase
-        .from('achievements')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50);
-      
-      const data = directResult.data;
-      const error = directResult.error;
+      // Use the ultra simple function to get all achievements with accurate counts
+      console.log('Using ultra simple query for achievements with counts');
+      const { data, error } = await supabase
+        .rpc('get_all_achievements_with_counts_ultra_simple', {
+          user_id_param: user?.id || null
+        });
 
       console.log('Achievements query result:', { data, error });
 
@@ -141,65 +139,7 @@ export default function Sifa() {
         throw error;
       }
       
-      // Transform data and fetch profile info separately
-      const transformedData = await Promise.all(
-        (data || []).map(async (achievement) => {
-          // Fetch profile data for each achievement (basic data first)
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('user_id', achievement.user_id)
-            .single();
-
-          if (profileError) {
-            console.error('Error fetching profile for user:', achievement.user_id, profileError);
-          }
-
-          // Fetch related data separately to avoid foreign key ambiguity
-          const [countryData, universityData, courseData] = await Promise.all([
-            profileData?.country_id ? supabase
-              .from('countries')
-              .select('name')
-              .eq('id', profileData.country_id)
-              .single() : { data: null },
-            profileData?.university_id ? supabase
-              .from('universities')
-              .select('name')
-              .eq('id', profileData.university_id)
-              .single() : { data: null },
-            profileData?.course_id ? supabase
-              .from('courses')
-              .select('name')
-              .eq('id', profileData.course_id)
-              .single() : { data: null }
-          ]);
-
-          return {
-            id: achievement.id,
-            user_id: achievement.user_id,
-            title: achievement.title,
-            description: achievement.description,
-            created_at: achievement.created_at,
-            updated_at: achievement.updated_at,
-            author_name: profileData?.full_name || 'Unknown',
-            author_email: profileData?.email || '',
-            author_picture: profileData?.profile_picture_url,
-            university_name: universityData?.data?.name || 'N/A',
-            course_name: courseData?.data?.name || 'N/A',
-            course_year: profileData?.year || 'N/A',
-            semester: profileData?.semester || 'N/A',
-            course_group: profileData?.course_group || 'N/A',
-            country_name: countryData?.data?.name || 'N/A',
-            media_count: 0, // Will be fetched separately
-            likes_count: 0, // Will be fetched separately
-            comments_count: 0, // Will be fetched separately
-            views_count: 0, // Will be fetched separately
-            user_liked: false // Will be fetched separately
-          };
-        })
-      );
-      
-      setAchievements(transformedData);
+      setAchievements(data || []);
     } catch (error) {
       console.error('Error fetching achievements:', error);
       toast({
@@ -369,56 +309,56 @@ export default function Sifa() {
   try {
     return (
       <AppLayout>
-        {/* Floating Achievement Button */}
+        {/* Floating Achievement Button - Mobile Optimized */}
         {canCreate && (
           <button
             onClick={() => setIsCreateDialogOpen(true)}
-            className="fixed top-1/2 right-4 sm:right-6 z-50 transform -translate-y-1/2 -translate-y-16 w-12 h-12 sm:w-14 sm:h-14 text-white rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 flex items-center justify-center group hover:scale-110"
+            className="fixed bottom-4 right-4 sm:top-1/2 sm:right-6 z-50 transform sm:-translate-y-1/2 sm:-translate-y-16 w-14 h-14 sm:w-16 sm:h-16 text-white rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 flex items-center justify-center group hover:scale-110 touch-manipulation"
             style={{ backgroundColor: '#f59e0b' }}
             title="Share achievement"
           >
-            <Trophy className="h-5 w-5 sm:h-6 sm:w-6 group-hover:rotate-12 transition-transform duration-300" />
+            <Trophy className="h-6 w-6 sm:h-7 sm:w-7 group-hover:rotate-12 transition-transform duration-300" />
           </button>
         )}
         
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
           <div className="max-w-7xl mx-auto space-y-6 px-3 sm:px-6 py-6 sm:py-8">
 
-        {/* Search and Filters */}
+        {/* Search and Filters - Mobile Optimized */}
         <Card className="shadow-lg border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-          <CardContent className="p-4 sm:p-6">
-            <div className="space-y-4 sm:space-y-6">
-              {/* Search Bar with Filter Toggle */}
-              <div className="flex items-center gap-3">
+          <CardContent className="p-3 sm:p-6">
+            <div className="space-y-3 sm:space-y-6">
+              {/* Search Bar with Filter Toggle - Mobile Stack */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <div className="relative flex-1">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search achievements, projects, skills..."
+                    placeholder="Search achievements..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-12 h-12 sm:h-14 text-base border-2 focus:border-primary/50 transition-colors duration-200 rounded-xl"
+                    className="pl-10 sm:pl-12 h-11 sm:h-14 text-sm sm:text-base border-2 focus:border-primary/50 transition-colors duration-200 rounded-xl"
                   />
                 </div>
                 
-                {/* Filter Toggle Button */}
+                {/* Filter Toggle Button - Mobile Full Width */}
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`h-12 sm:h-14 px-4 rounded-xl border-2 transition-all duration-200 ${
+                  className={`h-11 sm:h-14 px-4 rounded-xl border-2 transition-all duration-200 w-full sm:w-auto ${
                     showFilters 
                       ? 'bg-primary text-primary-foreground border-primary' 
                       : 'hover:border-primary/50'
                   }`}
                 >
                   <SlidersHorizontal className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Filters</span>
+                  <span className="text-sm sm:text-base">Filters</span>
                 </Button>
               </div>
               
-              {/* Collapsible Filter Dropdowns */}
+              {/* Collapsible Filter Dropdowns - Mobile Optimized */}
               {showFilters && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-200 dark:border-slate-700 animate-in slide-in-from-top-2 duration-300">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-3 sm:pt-4 border-t border-slate-200 dark:border-slate-700 animate-in slide-in-from-top-2 duration-300">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">University</label>
                     <Select 
@@ -429,13 +369,13 @@ export default function Sifa() {
                         fetchCoursesForUniversity(value);
                       }}
                     >
-                      <SelectTrigger className="h-12 border-2 rounded-xl focus:border-primary/50 transition-colors duration-200">
+                      <SelectTrigger className="h-11 sm:h-12 border-2 rounded-xl focus:border-primary/50 transition-colors duration-200 text-sm">
                         <SelectValue placeholder="Select university" />
                       </SelectTrigger>
-                      <SelectContent className="rounded-xl">
-                        <SelectItem value="all" className="rounded-lg">All Universities</SelectItem>
+                      <SelectContent className="rounded-xl max-h-60">
+                        <SelectItem value="all" className="rounded-lg text-sm">All Universities</SelectItem>
                         {universities.map(university => (
-                          <SelectItem key={university} value={university} className="rounded-lg">
+                          <SelectItem key={university} value={university} className="rounded-lg text-sm">
                             {university}
                           </SelectItem>
                         ))}
@@ -446,13 +386,13 @@ export default function Sifa() {
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Course</label>
                     <Select value={filterCourse} onValueChange={setFilterCourse}>
-                      <SelectTrigger className="h-12 border-2 rounded-xl focus:border-primary/50 transition-colors duration-200">
+                      <SelectTrigger className="h-11 sm:h-12 border-2 rounded-xl focus:border-primary/50 transition-colors duration-200 text-sm">
                         <SelectValue placeholder="Select course" />
                       </SelectTrigger>
-                      <SelectContent className="rounded-xl">
-                        <SelectItem value="all" className="rounded-lg">All Courses</SelectItem>
+                      <SelectContent className="rounded-xl max-h-60">
+                        <SelectItem value="all" className="rounded-lg text-sm">All Courses</SelectItem>
                         {courses.map(course => (
-                          <SelectItem key={course} value={course} className="rounded-lg">
+                          <SelectItem key={course} value={course} className="rounded-lg text-sm">
                             {course}
                           </SelectItem>
                         ))}
@@ -517,7 +457,7 @@ export default function Sifa() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
               {filteredAchievements.map((achievement, index) => (
                 <div 
                   key={achievement.id}
@@ -535,22 +475,22 @@ export default function Sifa() {
           )}
         </div>
 
-        {/* Create Achievement Dialog */}
+        {/* Create Achievement Dialog - Mobile Optimized */}
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogContent className="max-w-5xl max-h-[95vh] overflow-hidden p-0 gap-0">
+          <DialogContent className="max-w-5xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden p-0 gap-0 mx-2 sm:mx-0">
             <div className="flex flex-col h-full">
-              <DialogHeader className="p-6 pb-4 border-b border-slate-200 dark:border-slate-700">
-                <DialogTitle className="text-2xl font-bold flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full flex items-center justify-center">
-                    <Trophy className="h-5 w-5 text-primary" />
+              <DialogHeader className="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-700">
+                <DialogTitle className="text-lg sm:text-2xl font-bold flex items-center gap-2 sm:gap-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full flex items-center justify-center">
+                    <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                   </div>
-                  Share Your Achievement
+                  <span className="text-base sm:text-2xl">Share Your Achievement</span>
                 </DialogTitle>
-                <DialogDescription className="text-base text-muted-foreground mt-2">
+                <DialogDescription className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">
                   Share your accomplishments with the community. Upload photos or videos to showcase your achievements and inspire others.
                 </DialogDescription>
               </DialogHeader>
-              <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6">
                 <CreateAchievementForm
                   onSuccess={handleAchievementCreated}
                   onCancel={() => setIsCreateDialogOpen(false)}

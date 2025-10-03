@@ -312,7 +312,7 @@ export function Sidebar({ profile }: SidebarProps) {
               src={profile.profile_picture_url}
               fallback={profile.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
               alt={profile.full_name}
-              className="h-10 w-10"
+              className="h-10 w-10 border-2 border-background shadow-md"
             />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{profile.full_name}</p>
