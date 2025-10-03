@@ -73,7 +73,7 @@ export default function UnitPage() {
   const [materials, setMaterials] = useState<UnitMaterial[]>([]);
   const [assignments, setAssignments] = useState<UnitAssignment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('notes');
 
   useEffect(() => {
     if (classId && unitId) {
@@ -309,103 +309,44 @@ export default function UnitPage() {
         {/* Unit Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-6">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4" />
-              <span className="hidden sm:inline">Overview</span>
-            </TabsTrigger>
-            <TabsTrigger value="materials" className="flex items-center gap-2">
+            <TabsTrigger value="notes" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">Materials</span>
+              <span className="hidden sm:inline">Notes</span>
             </TabsTrigger>
             <TabsTrigger value="assignments" className="flex items-center gap-2">
               <Award className="h-4 w-4" />
               <span className="hidden sm:inline">Assignments</span>
             </TabsTrigger>
-            <TabsTrigger value="discussion" className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
-              <span className="hidden sm:inline">Discussion</span>
+            <TabsTrigger value="events" className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              <span className="hidden sm:inline">Events</span>
+            </TabsTrigger>
+            <TabsTrigger value="past-papers" className="flex items-center gap-2">
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">Past Papers</span>
             </TabsTrigger>
           </TabsList>
 
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5" />
-                  Unit Overview
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <FileText className="h-8 w-8 text-blue-600" />
-                    <div>
-                      <p className="text-2xl font-bold">{materials.length}</p>
-                      <p className="text-sm text-muted-foreground">Materials</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                    <Award className="h-8 w-8 text-green-600" />
-                    <div>
-                      <p className="text-2xl font-bold">{assignments.length}</p>
-                      <p className="text-sm text-muted-foreground">Assignments</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                    <Clock className="h-8 w-8 text-purple-600" />
-                    <div>
-                      <p className="text-2xl font-bold">2-3</p>
-                      <p className="text-sm text-muted-foreground">Hours</p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Learning Objectives</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <span>Understand core concepts and principles</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <span>Apply knowledge through practical exercises</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <span>Demonstrate understanding through assessments</span>
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Materials Tab */}
-          <TabsContent value="materials" className="space-y-4">
+          {/* Notes Tab */}
+          <TabsContent value="notes" className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-xl font-semibold">Learning Materials</h3>
+              <h3 className="text-xl font-semibold">Unit Notes</h3>
               {unitDetails.role === 'creator' && (
                 <Button size="sm">
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Material
+                  Add Notes
                 </Button>
               )}
             </div>
             
             <div className="grid gap-4">
-              {materials.map((material) => (
+              {materials.filter(m => m.material_type === 'document').map((material) => (
                 <Card key={material.id} className="hover:shadow-lg transition-all cursor-pointer">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-primary/10 rounded-lg">
-                          {getMaterialIcon(material.material_type)}
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <FileText className="h-5 w-5 text-blue-600" />
                         </div>
                         <div className="flex-1">
                           <h4 className="font-semibold">{material.title}</h4>
@@ -421,25 +362,25 @@ export default function UnitPage() {
                         </div>
                       </div>
                       <Button variant="outline" size="sm">
-                        <Play className="h-4 w-4 mr-1" />
-                        Open
+                        <Download className="h-4 w-4 mr-1" />
+                        Download
                       </Button>
                     </div>
                   </CardContent>
                 </Card>
               ))}
               
-              {materials.length === 0 && (
+              {materials.filter(m => m.material_type === 'document').length === 0 && (
                 <Card className="text-center py-12">
                   <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Materials Yet</h3>
+                  <h3 className="text-lg font-semibold mb-2">No Notes Yet</h3>
                   <p className="text-muted-foreground mb-4">
-                    Learning materials will appear here when they're added.
+                    Unit notes will appear here when they're added.
                   </p>
                   {unitDetails.role === 'creator' && (
                     <Button variant="outline" size="sm">
                       <Plus className="h-4 w-4 mr-2" />
-                      Add First Material
+                      Add First Note
                     </Button>
                   )}
                 </Card>
@@ -510,18 +451,57 @@ export default function UnitPage() {
             </div>
           </TabsContent>
 
-          {/* Discussion Tab */}
-          <TabsContent value="discussion" className="space-y-4">
+          {/* Events Tab */}
+          <TabsContent value="events" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-semibold">Unit Events</h3>
+              {unitDetails.role === 'creator' && (
+                <Button size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Event
+                </Button>
+              )}
+            </div>
+            
             <Card className="text-center py-12">
-              <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Unit Discussion</h3>
+              <Clock className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No Events Yet</h3>
               <p className="text-muted-foreground mb-4">
-                Discussion features will be available here soon.
+                Unit events like lectures, tutorials, and deadlines will appear here.
               </p>
-              <Button variant="outline" size="sm" disabled>
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Coming Soon
-              </Button>
+              {unitDetails.role === 'creator' && (
+                <Button variant="outline" size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add First Event
+                </Button>
+              )}
+            </Card>
+          </TabsContent>
+
+          {/* Past Papers Tab */}
+          <TabsContent value="past-papers" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-semibold">Past Papers</h3>
+              {unitDetails.role === 'creator' && (
+                <Button size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Upload Past Paper
+                </Button>
+              )}
+            </div>
+            
+            <Card className="text-center py-12">
+              <Download className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No Past Papers Yet</h3>
+              <p className="text-muted-foreground mb-4">
+                Past exam papers and practice tests will appear here.
+              </p>
+              {unitDetails.role === 'creator' && (
+                <Button variant="outline" size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Upload First Past Paper
+                </Button>
+              )}
             </Card>
           </TabsContent>
         </Tabs>

@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Trophy, Medal, Award, Building, Globe } from "lucide-react";
@@ -212,12 +211,19 @@ export function WallOfFameSectionFast() {
                   {getRankIcon(index)}
                 </div>
                 
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={profile.profile_picture_url} />
-                  <AvatarFallback>
-                    {profile.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="h-10 w-10 rounded-[20%] overflow-hidden flex-shrink-0">
+                  {profile.profile_picture_url ? (
+                    <img
+                      src={profile.profile_picture_url}
+                      alt={profile.full_name || 'User'}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
+                      {profile.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+                    </div>
+                  )}
+                </div>
                 
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">

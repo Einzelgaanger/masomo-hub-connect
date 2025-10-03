@@ -39,7 +39,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { CHARACTERS } from "@/data/characters";
+import { getCharacter, getCharacterImage, getCharacterName } from "@/utils/characterUtils";
 import { AchievementPost } from "@/components/achievements/AchievementPost";
 import { CreateAchievementForm } from "@/components/achievements/CreateAchievementForm";
 import ProfileEditForm from "@/components/profile/ProfileEditForm";
@@ -468,27 +468,20 @@ const Profile = () => {
                     )}
                   </div>
                 )}
-                {profile.character_id && (
-                  <div className="absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4 bg-background rounded-full p-0.5 shadow-lg ring-2 ring-background">
-                    <img
-                      src={getCharacterImage(profile.character_id)}
-                      alt="Character"
-                      className="h-7 w-7 rounded-full"
-                      onError={(e) => {
-                        console.log('Character image failed to load:', profile.character_id, getCharacterImage(profile.character_id));
-                        e.currentTarget.src = '/characters/anonymous.png'; // Fallback
-                      }}
-                      onLoad={() => {
-                        console.log('Character image loaded successfully:', profile.character_id, getCharacterImage(profile.character_id));
-                      }}
-                    />
-                  </div>
-                )}
-                {!profile.character_id && (
-                  <div className="absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4 bg-red-500 rounded-full p-1">
-                    <span className="text-white text-xs">No Char</span>
-                  </div>
-                )}
+                <div className="absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4 bg-background rounded-full p-0.5 shadow-lg ring-2 ring-background">
+                  <img
+                    src={getCharacterImage(profile)}
+                    alt="Character"
+                    className="h-7 w-7 rounded-full"
+                    onError={(e) => {
+                      console.log('Character image failed to load:', profile.character_id, getCharacterImage(profile));
+                      e.currentTarget.src = '/characters/anonymous.png'; // Fallback
+                    }}
+                    onLoad={() => {
+                      console.log('Character image loaded successfully:', profile.character_id, getCharacterImage(profile));
+                    }}
+                  />
+                </div>
                 <Input
                   id="profile-picture-input"
                   type="file"
@@ -984,34 +977,5 @@ const Profile = () => {
   );
 };
 
-// Helper function to get character image
-const getCharacterImage = (characterId: number | string): string => {
-  console.log('Looking for character:', characterId, typeof characterId);
-  
-  // Handle common character ID variations
-  let searchId = characterId;
-  if (characterId === 'guard') {
-    searchId = 'guardian'; // Map 'guard' to 'guardian'
-  }
-  
-  // Find character by ID or rank in the CHARACTERS array
-  const character = CHARACTERS.find(char => 
-    char.id === searchId || 
-    char.rank === searchId ||
-    char.id === characterId || 
-    char.rank === characterId
-  );
-  
-  console.log('Found character:', character?.name, character?.image);
-  
-  if (character) {
-    return character.image;
-  }
-  
-  // Fallback to anonymous if character not found
-  const anonymousCharacter = CHARACTERS.find(char => char.id === 'anonymous');
-  console.log('Using fallback character:', anonymousCharacter?.name, anonymousCharacter?.image);
-  return anonymousCharacter?.image || '/characters/anonymous.png';
-};
 
 export default Profile;

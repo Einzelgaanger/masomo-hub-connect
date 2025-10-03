@@ -2,26 +2,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Crown, Star, Flame } from "lucide-react";
 import { useProfile } from "@/components/layout/AppLayout";
-import { CHARACTERS } from "@/data/characters";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
-
-// Helper function to get character by points using new system
-const getCharacterByPoints = (points: number) => {
-  // Sort characters by points required and find the highest one the user can unlock
-  const availableCharacters = CHARACTERS
-    .filter(char => {
-      const pointsReq = char.unlockRequirements.find(req => req.type === 'points');
-      return pointsReq ? points >= pointsReq.value : true;
-    })
-    .sort((a, b) => {
-      const aPoints = a.unlockRequirements.find(req => req.type === 'points')?.value || 0;
-      const bPoints = b.unlockRequirements.find(req => req.type === 'points')?.value || 0;
-      return aPoints - bPoints;
-    });
-  
-  return availableCharacters[availableCharacters.length - 1] || CHARACTERS[0];
-};
+import { getCharacter, getCharacterImage, getCharacterName } from "@/utils/characterUtils";
 
 export function WelcomeSection() {
   const profile = useProfile();
@@ -99,14 +82,16 @@ export function WelcomeSection() {
     }
   };
 
-  // Debug logging
+  // Debug logging (only in development)
   useEffect(() => {
-    if (profile) {
+    if (profile && process.env.NODE_ENV === 'development') {
+      const character = getCharacter(profile);
       console.log('WelcomeSection Profile Data:', {
         full_name: profile.full_name,
         points: profile.points,
         rank: profile.rank,
-        character: getCharacterByPoints(profile.points || 0)
+        character_id: profile.character_id,
+        character: character
       });
     }
   }, [profile]);
@@ -143,12 +128,12 @@ export function WelcomeSection() {
               <div className="flex flex-col items-center">
                 <div className="relative">
                   {(() => {
-                    const character = getCharacterByPoints(profile?.points || 0);
+                    const character = getCharacter(profile);
                     return (
                       <>
                         <img 
-                          src={character?.image || '/characters/people.png'} 
-                          alt={character?.name || 'Regular'}
+                          src={getCharacterImage(profile) || '/characters/people.png'} 
+                          alt={getCharacterName(profile) || 'Regular'}
                           className="w-16 h-16 lg:w-24 lg:h-24 object-contain drop-shadow-lg"
                           onError={(e) => {
                             e.currentTarget.src = '/characters/people.png';
@@ -164,7 +149,7 @@ export function WelcomeSection() {
                   })()}
                 </div>
                 <h3 className="font-bold text-base lg:text-lg mt-2 text-center">
-                  {getCharacterByPoints(profile?.points || 0).name || 'Regular'}
+                  {getCharacterName(profile) || 'Regular'}
                 </h3>
                 <p className="text-xs lg:text-sm text-muted-foreground text-center">
                   Your Current Character
@@ -202,7 +187,7 @@ export function WelcomeSection() {
                 Rank: <span className="font-bold capitalize">{profile?.rank || 'bronze'}</span>
               </p>
               <p className="text-xs lg:text-sm text-muted-foreground">
-                Character: <span className="font-bold">{getCharacterByPoints(profile?.points || 0).name || 'Regular'}</span>
+                Character: <span className="font-bold">{getCharacterName(profile) || 'Regular'}</span>
               </p>
             </div>
           </div>

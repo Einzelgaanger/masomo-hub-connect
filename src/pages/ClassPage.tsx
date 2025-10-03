@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { retryRequest, testSupabaseConnection } from "@/utils/networkUtils";
+import { ChatTableManager } from "@/utils/chatTableManager";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -201,36 +203,11 @@ export default function ClassPage() {
   };
 
   const setupRealtimeSubscription = () => {
-    const channel = supabase
-      .channel(`class-chat-${classId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'class_chat_messages',
-          filter: `class_id=eq.${classId}`
-        },
-        (payload) => {
-          const newMessage = payload.new as any;
-          setMessages(prev => [...prev, {
-            id: newMessage.id,
-            sender_id: newMessage.sender_id,
-            message: newMessage.message,
-            message_type: newMessage.message_type,
-            file_url: newMessage.file_url,
-            file_name: newMessage.file_name,
-            created_at: newMessage.created_at,
-            sender_name: 'You',
-            sender_avatar: undefined
-          }]);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const chatManager = ChatTableManager.getInstance();
+    
+    return chatManager.setupRealtimeSubscription(classId!, (message) => {
+      setMessages(prev => [...prev, message]);
+    });
   };
 
   const sendMessage = async () => {
@@ -238,23 +215,34 @@ export default function ClassPage() {
 
     try {
       setSending(true);
-      const { error } = await supabase
-        .from('class_chat_messages')
-        .insert({
-          class_id: classId,
-          sender_id: user?.id,
-          message: newMessage.trim(),
-          message_type: 'text'
+      
+      const chatManager = ChatTableManager.getInstance();
+      const result = await chatManager.sendMessage(classId!, newMessage.trim(), user?.id!);
+
+      if (result.success) {
+        setNewMessage('');
+        toast({
+          title: "Message Sent",
+          description: "Your message has been sent successfully.",
+        });
+      } else {
+        // Show detailed error message
+        toast({
+          title: "Error",
+          description: result.error || "Failed to send message",
+          variant: "destructive",
         });
 
-      if (error) throw error;
-
-      setNewMessage('');
+        // If table doesn't exist, show instructions
+        if (result.error?.includes('table does not exist')) {
+          console.log(chatManager.getTableCreationInstructions());
+        }
+      }
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Unexpected error sending message:', error);
       toast({
         title: "Error",
-        description: "Failed to send message. Please try again.",
+        description: `Unexpected error: ${error.message || 'Unknown error'}`,
         variant: "destructive",
       });
     } finally {

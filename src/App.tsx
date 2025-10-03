@@ -29,7 +29,6 @@ import Profile from "./pages/Profile";
 import Sifa from "./pages/Sifa";
 import Masomo from "./pages/Masomo";
 import ClassPage from "./pages/ClassPage";
-import UnitPage from "./pages/UnitPage";
 import ClassUnits from "./pages/ClassUnits";
 import UnitContent from "./pages/UnitContent";
 import Admin from "./pages/Admin";
