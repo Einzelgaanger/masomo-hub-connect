@@ -524,8 +524,8 @@ export function AchievementPost({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] sm:max-h-[80vh] flex flex-col">
             {/* Header - Mobile Optimized */}
-            <div className="flex items-center justify-between p-3 sm:p-4 border-b">
-              <h3 className="text-base sm:text-lg font-semibold">Comments</h3>
+            <div className="flex items-center justify-between p-2 sm:p-3 border-b">
+              <h3 className="text-sm sm:text-base font-semibold">Comments</h3>
               <Button
                 variant="ghost"
                 size="sm"
@@ -540,7 +540,10 @@ export function AchievementPost({
             <div className="flex-1 overflow-hidden">
               <AchievementComments 
                 achievementId={achievement.id}
-                onCommentAdded={() => setCommentsCount(prev => prev + 1)}
+                onCommentAdded={() => {
+                  setCommentsCount(prev => prev + 1);
+                  // Keep modal open and ensure comments are visible
+                }}
               />
             </div>
           </div>

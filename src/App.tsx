@@ -135,16 +135,6 @@ const App = () => (
             <UnitPage />
           </ProtectedRoute>
         } />
-            <Route path="/class/:classId/units" element={
-              <ProtectedRoute>
-                <ClassUnits />
-              </ProtectedRoute>
-            } />
-            <Route path="/class/:classId/unit/:unitId" element={
-              <ProtectedRoute>
-                <UnitContent />
-              </ProtectedRoute>
-            } />
             <Route path="/profile/:userId" element={
               <ApplicationStatusGuard>
                 <ProtectedRoute>
