@@ -87,9 +87,19 @@ const Masomo = () => {
 
   useEffect(() => {
     if (user) {
+      console.log('Masomo: User authenticated, initializing...');
       fetchUserClasses();
       fetchJoinRequests();
+      
+      // Fallback timeout to prevent infinite loading
+      const timeout = setTimeout(() => {
+        console.log('Masomo: Timeout reached, forcing loading to false');
+        setLoading(false);
+      }, 5000);
+      
+      return () => clearTimeout(timeout);
     } else {
+      console.log('Masomo: No user, setting loading to false');
       setLoading(false);
     }
   }, [user]);
@@ -102,6 +112,7 @@ const Masomo = () => {
 
     try {
       setLoading(true);
+      console.log('Masomo: Fetching user classes...');
       const { data, error } = await supabase
         .from('class_members')
         .select(`
@@ -173,8 +184,9 @@ const Masomo = () => {
       );
 
       setUserClasses(classesWithInfo);
+      console.log('Masomo: Classes loaded successfully:', classesWithInfo.length);
     } catch (error) {
-      console.error('Error fetching user classes:', error);
+      console.error('Masomo: Error fetching user classes:', error);
       setUserClasses([]); // Set empty array on error
       toast({
         title: "Error",
@@ -183,6 +195,7 @@ const Masomo = () => {
       });
     } finally {
       setLoading(false);
+      console.log('Masomo: Loading finished');
     }
   };
 
@@ -190,6 +203,7 @@ const Masomo = () => {
     if (!user) return;
 
     try {
+      console.log('Masomo: Fetching join requests...');
       // Get classes where user is creator
       const { data: userClasses, error: classesError } = await supabase
         .from('class_members')
@@ -370,11 +384,16 @@ const Masomo = () => {
     }
   };
 
+  // Debug logging
+  console.log('Masomo render:', { user, loading, userClasses: userClasses.length, joinRequests: joinRequests.length });
+
   if (loading) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <p className="text-sm text-gray-500 mt-4">Loading Masomo...</p>
+          <p className="text-xs text-gray-400 mt-2">User: {user ? 'Authenticated' : 'Not authenticated'}</p>
         </div>
       </AppLayout>
     );

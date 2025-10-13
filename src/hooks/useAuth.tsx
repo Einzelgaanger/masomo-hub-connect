@@ -7,6 +7,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  clearAuthData: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -14,6 +15,7 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   loading: true,
   signOut: async () => {},
+  clearAuthData: () => {},
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -25,16 +27,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('Auth state change:', event, session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
       }
     );
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Get initial session with error handling
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Auth session error:', error);
+        // Clear any corrupted session data
+        setSession(null);
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+      
       setSession(session);
       setUser(session?.user ?? null);
+      setLoading(false);
+    }).catch((error) => {
+      console.error('Auth session error:', error);
+      // Clear any corrupted session data
+      setSession(null);
+      setUser(null);
       setLoading(false);
     });
 
@@ -42,11 +60,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Sign out error:', error);
+      // Force clear local state even if signOut fails
+      setSession(null);
+      setUser(null);
+    }
+  };
+
+  const clearAuthData = () => {
+    console.log('Clearing corrupted auth data...');
+    setSession(null);
+    setUser(null);
+    // Clear any stored auth data
+    localStorage.removeItem('sb-ztxgmqunqsookgpmluyp-auth-token');
+    sessionStorage.clear();
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signOut, clearAuthData }}>
       {children}
     </AuthContext.Provider>
   );

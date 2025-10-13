@@ -1,3 +1,4 @@
+import { Suspense, lazy, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,32 +10,56 @@ import AdminGuard from "@/components/AdminGuard";
 import ProfileGuard from "@/components/ProfileGuard";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { FloatingConcernsButton } from "@/components/ui/FloatingConcernsButton";
+import { AuthErrorHandler } from "@/components/AuthErrorHandler";
+import { initSentry, Sentry } from "@/lib/sentry";
+import { initPerformanceMonitoring } from "@/lib/performance";
+
+// Eager load critical pages
 import Index from "./pages/Index";
 import Login from "./pages/Login";
-import MyLogin from "./pages/MyLogin";
-import Dashboard from "./pages/Dashboard";
-import AdminLogin from "./pages/AdminLogin";
-import ApplicationForm from "./pages/ApplicationForm";
-import ApplicationStatus from "./pages/ApplicationStatus";
-import ApplicationRejected from "./pages/ApplicationRejected";
-import AuthCallback from "./pages/AuthCallback";
-import UnitPage from "./pages/UnitPage";
-import Info from "./pages/Info";
-import Ukumbi from "./pages/Ukumbi";
-import Events from "./pages/Events";
-import Ajira from "./pages/Ajira";
-import Inbox from "./pages/Inbox";
-import Alumni from "./pages/Alumni";
-import Profile from "./pages/Profile";
-import Sifa from "./pages/Sifa";
-import Masomo from "./pages/Masomo";
-import ClassPage from "./pages/ClassPage";
-import ClassUnits from "./pages/ClassUnits";
-import UnitContent from "./pages/UnitContent";
-import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+// Lazy load non-critical pages
+const MyLogin = lazy(() => import("./pages/MyLogin"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const AdminLogin = lazy(() => import("./pages/AdminLogin"));
+const ApplicationForm = lazy(() => import("./pages/ApplicationForm"));
+const ApplicationStatus = lazy(() => import("./pages/ApplicationStatus"));
+const ApplicationRejected = lazy(() => import("./pages/ApplicationRejected"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
+const UnitPage = lazy(() => import("./pages/UnitPage"));
+const Info = lazy(() => import("./pages/Info"));
+const Ukumbi = lazy(() => import("./pages/Ukumbi"));
+const Events = lazy(() => import("./pages/Events"));
+const Ajira = lazy(() => import("./pages/Ajira"));
+const Inbox = lazy(() => import("./pages/Inbox"));
+const Alumni = lazy(() => import("./pages/Alumni"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Sifa = lazy(() => import("./pages/Sifa"));
+const Masomo = lazy(() => import("./pages/Masomo"));
+const ClassPage = lazy(() => import("./pages/ClassPage"));
+const Admin = lazy(() => import("./pages/Admin"));
+
+// Loading component
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+  </div>
+);
+
+// Initialize Sentry and Performance Monitoring
+initSentry();
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   
@@ -49,9 +74,16 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return user ? <>{children}</> : <Navigate to="/login" replace />;
 };
 
-const App = () => (
+const App = () => {
+  useEffect(() => {
+    // Initialize performance monitoring
+    initPerformanceMonitoring();
+  }, []);
+
+  return (
   <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <AuthErrorHandler />
         <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -64,7 +96,8 @@ const App = () => (
               }}
             >
               <ProfileGuard>
-                <Routes>
+                <Suspense fallback={<PageLoader />}>
+                  <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/mylogin" element={<MyLogin />} />
@@ -172,7 +205,8 @@ const App = () => (
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
-                </Routes>
+                  </Routes>
+                </Suspense>
                 
                 {/* Floating Concerns Button - appears on all pages */}
                 <FloatingConcernsButton />
@@ -183,6 +217,7 @@ const App = () => (
         </TooltipProvider>
       </AuthProvider>
   </QueryClientProvider>
-);
+  );
+};
 
-export default App;
+export default Sentry.withProfiler(App);

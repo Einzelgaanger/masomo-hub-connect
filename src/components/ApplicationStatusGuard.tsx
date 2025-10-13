@@ -128,15 +128,21 @@ const ApplicationStatusGuard = ({ children }: ApplicationStatusGuardProps) => {
     };
   }, [user, authLoading, statusLoading, status, hasApplication, location.pathname, navigate]);
 
+  // Handle navigation to login when no user
+  useEffect(() => {
+    if (!authLoading && !statusLoading && !user) {
+      navigate('/login', { replace: true });
+    }
+  }, [user, authLoading, statusLoading, navigate]);
+
   // Show loading while checking application status
   if (authLoading || statusLoading) {
     return <LoadingSpinner message="Checking application status..." variant="fullscreen" />;
   }
 
-  // If no user after auth is loaded, redirect to login
+  // If no user after auth is loaded, show loading while redirecting
   if (!user) {
-    navigate('/login', { replace: true });
-    return null;
+    return <LoadingSpinner message="Redirecting to login..." variant="fullscreen" />;
   }
 
   return <>{children}</>;

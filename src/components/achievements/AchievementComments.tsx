@@ -118,23 +118,31 @@ export function AchievementComments({
   const scrollToBottom = () => {
     if (commentsScrollRef.current) {
       const element = commentsScrollRef.current;
-      console.log('Scrolling to bottom:', element.scrollHeight, element.scrollTop);
+      console.log('Scrolling to bottom:', element.scrollHeight, element.scrollTop, element.clientHeight);
       
-      // Force scroll to absolute bottom with extra padding
-      const targetScroll = element.scrollHeight + 100; // Add extra space
-      element.scrollTop = targetScroll;
+      // Use requestAnimationFrame to ensure DOM is updated
+      requestAnimationFrame(() => {
+        // Force scroll to absolute bottom
+        element.scrollTop = element.scrollHeight;
+        console.log('First scroll attempt:', element.scrollHeight, element.scrollTop);
+        
+        // Try again after a frame
+        requestAnimationFrame(() => {
+          element.scrollTop = element.scrollHeight;
+          console.log('Second scroll attempt:', element.scrollHeight, element.scrollTop);
+        });
+      });
       
-      // Double-check with a small delay to ensure it reaches the bottom
-      setTimeout(() => {
-        element.scrollTop = element.scrollHeight + 100;
-        console.log('Double-check scroll:', element.scrollHeight, element.scrollTop);
-      }, 50);
-      
-      // Final check after DOM updates
+      // Additional attempts with delays
       setTimeout(() => {
         element.scrollTop = element.scrollHeight;
-        console.log('Final scroll check:', element.scrollHeight, element.scrollTop);
-      }, 200);
+        console.log('Delayed scroll attempt:', element.scrollHeight, element.scrollTop);
+      }, 100);
+      
+      setTimeout(() => {
+        element.scrollTop = element.scrollHeight;
+        console.log('Final scroll attempt:', element.scrollHeight, element.scrollTop);
+      }, 300);
     }
   };
 
@@ -312,18 +320,7 @@ export function AchievementComments({
         setComments(prev => [...prev]);
       }, 10);
 
-      // Auto-scroll to bottom to show new comment - multiple attempts
-      setTimeout(() => {
-        scrollToBottom();
-      }, 100);
-      
-      setTimeout(() => {
-        scrollToBottom();
-      }, 300);
-      
-      setTimeout(() => {
-        scrollToBottom();
-      }, 500);
+      // No need to scroll - newest comments appear at the top automatically
 
       // Remove highlight after 3 seconds
       setTimeout(() => {
@@ -521,7 +518,7 @@ export function AchievementComments({
           className="h-full max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent"
           onScroll={handleScroll}
         >
-          <div className="p-2 pb-8">
+          <div className="p-2 pb-16">
             {loading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -542,10 +539,10 @@ export function AchievementComments({
               </div>
             ) : (
               <div className="space-y-1">
-                {comments.map((comment) => (
+                {comments.slice().reverse().map((comment) => (
                   <div 
                     key={comment.id} 
-                    className={`flex space-x-2 group hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-md p-1 -m-1 transition-all duration-500 border-l-2 ${
+                    className={`comment-item flex space-x-2 group hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-md p-1 -m-1 transition-all duration-500 border-l-2 ${
                       newlyAddedCommentId === comment.id 
                         ? 'bg-green-100 dark:bg-green-900/30 border-l-4 border-green-500 shadow-md' 
                         : comment.id.endsWith('1') || comment.id.endsWith('3') || comment.id.endsWith('5')
@@ -615,21 +612,21 @@ export function AchievementComments({
                           
                           <div className="flex items-center space-x-1 flex-shrink-0">
                             {/* Like Button */}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleCommentLike(comment.id)}
-                              className={`h-5 px-1 text-xs transition-all duration-200 ${
-                                commentLikes[comment.id]?.liked 
-                                  ? 'text-red-500 hover:text-red-600' 
-                                  : 'text-gray-500 hover:text-red-500'
-                              }`}
-                            >
-                              <Heart className={`h-3 w-3 mr-1 ${
-                                commentLikes[comment.id]?.liked ? 'fill-current' : ''
-                              }`} />
-                              {commentLikes[comment.id]?.count || 0}
-                            </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleCommentLike(comment.id)}
+                                className={`h-5 px-1 text-xs transition-all duration-200 ${
+                                  commentLikes[comment.id]?.liked 
+                                    ? 'text-red-500 hover:text-red-600' 
+                                    : 'text-gray-500 hover:text-red-500'
+                                }`}
+                              >
+                                <Heart className={`h-3 w-3 ${(commentLikes[comment.id]?.count || 0) > 0 ? 'mr-1' : ''} ${
+                                  commentLikes[comment.id]?.liked ? 'fill-current' : ''
+                                }`} />
+                                {(commentLikes[comment.id]?.count || 0) > 0 && (commentLikes[comment.id]?.count || 0)}
+                              </Button>
                             
                             {user?.id === comment.user_id && (
                               <DropdownMenu>
@@ -665,7 +662,7 @@ export function AchievementComments({
                 ))}
                 
                 {/* Bottom spacer to ensure last comment is fully visible */}
-                <div className="h-4"></div>
+                <div className="h-8"></div>
               </div>
             )}
             

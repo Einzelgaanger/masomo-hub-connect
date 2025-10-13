@@ -108,6 +108,19 @@ const Inbox = () => {
     scrollToBottom();
   }, [messages]);
 
+  // Auto-scroll to bottom when messages load
+  useEffect(() => {
+    if (messages.length > 0) {
+      const messagesContainer = document.querySelector('.messages-container');
+      if (messagesContainer) {
+        // Small delay to ensure DOM is updated
+        setTimeout(() => {
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }, 100);
+      }
+    }
+  }, [messages]);
+
   useEffect(() => {
     if (searchQuery.trim() && userProfile?.classes?.university_id) {
       const timeoutId = setTimeout(() => {
@@ -122,6 +135,14 @@ const Inbox = () => {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // Scroll to bottom function for messages container
+  const scrollToBottomContainer = () => {
+    const messagesContainer = document.querySelector('.messages-container');
+    if (messagesContainer) {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
   };
 
   const fetchUserProfile = async () => {
@@ -369,6 +390,10 @@ const Inbox = () => {
             fetchMessages(selectedConversation);
             // Refresh conversations to update unread counts
             fetchConversations();
+            // Auto-scroll to bottom when new message arrives
+            setTimeout(() => {
+              scrollToBottomContainer();
+            }, 100);
           }
         }
       )
@@ -445,6 +470,10 @@ const Inbox = () => {
       setNewMessage("");
       fetchMessages(selectedConversation);
       fetchConversations(); // Refresh conversations to update last message
+      // Auto-scroll to bottom after sending
+      setTimeout(() => {
+        scrollToBottomContainer();
+      }, 100);
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -718,11 +747,11 @@ const Inbox = () => {
         </div>
 
         {/* Messages Area */}
-        <div className={`${selectedConversation ? 'flex' : 'hidden md:flex'} flex-1 flex-col`}>
+        <div className={`${selectedConversation ? 'flex' : 'hidden md:flex'} flex-1 flex-col bg-green-50 dark:bg-green-900/20`}>
           {selectedConversation ? (
             <>
               {/* Chat Header */}
-              <div className="p-4 border-b bg-background flex items-center justify-between">
+              <div className="p-4 border-b bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {selectedConvData && (
                     <button className="flex items-center gap-2" onClick={() => navigate(`/profile/${selectedConvData.participant_id}`)}>
@@ -745,29 +774,43 @@ const Inbox = () => {
               </div>
 
               {/* Messages */}
-              <ScrollArea className="flex-1 p-4" ref={messagesRef}>
-                <div className="space-y-4">
+              <div className="flex-1 p-6 overflow-y-auto scrollbar-hide messages-container" style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
+                <div className="space-y-1">
                   {messages.map((message) => {
                     const isOwnMessage = message.sender_id === user?.id;
                     return (
                       <div
                         key={message.id}
-                        className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
+                        className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} group hover:bg-slate-50/50 dark:hover:bg-slate-700/50 rounded-md p-1 -m-1 border-l-2 transition-all duration-500 ${
+                          message.id.endsWith('1') || message.id.endsWith('3') || message.id.endsWith('5')
+                            ? 'border-blue-200 dark:border-blue-800'
+                            : message.id.endsWith('2') || message.id.endsWith('4') || message.id.endsWith('6')
+                            ? 'border-purple-200 dark:border-purple-800'
+                            : 'border-orange-200 dark:border-orange-800'
+                        }`}
                       >
-                        <div className={`flex gap-2 max-w-[70%] ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'}`}>
+                        <div className={`flex gap-1 max-w-[70%] ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'}`}>
                           {!isOwnMessage && (
-                            <Avatar className="h-8 w-8 mt-1">
-                              <AvatarImage src={message.profiles?.profile_picture_url} />
-                              <AvatarFallback>
-                                {message.profiles?.full_name?.split(' ').map((n: string) => n[0]).join('')}
-                              </AvatarFallback>
-                            </Avatar>
+                            <div className="relative">
+                              <img 
+                                src={message.profiles?.profile_picture_url} 
+                                alt={message.profiles?.full_name}
+                                className="h-6 w-6 rounded-md object-cover"
+                              />
+                            </div>
                           )}
-                          <div className={`rounded-lg px-3 py-2 ${
+                          <div className={`relative rounded-lg px-2 py-2 ${
                             isOwnMessage 
-                              ? 'bg-primary text-primary-foreground' 
-                              : 'bg-muted'
+                              ? 'bg-gradient-to-r from-orange-100 to-orange-200 text-orange-900' 
+                              : 'bg-gradient-to-r from-purple-100 to-purple-200 text-purple-900'
                           }`}>
+                            {/* Custom triangle tail for message bubble */}
+                            <div className={`absolute top-1 w-0 h-0 ${
+                              isOwnMessage 
+                                ? 'right-[-6px] border-l-[6px] border-l-orange-200 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent'
+                                : 'left-[-6px] border-r-[6px] border-r-purple-200 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent'
+                            }`}></div>
+                            
                             {/* Image display - check if content contains image URL */}
                             {message.content.includes('📎 Image:') && (
                               <div className="mb-2">
@@ -799,21 +842,30 @@ const Inbox = () => {
                               <p className="text-sm">{message.content}</p>
                             )}
                             <p className={`text-xs mt-1 ${
-                              isOwnMessage ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                              isOwnMessage ? 'text-orange-700' : 'text-purple-700'
                             }`}>
                               {format(new Date(message.created_at), 'HH:mm')}
                             </p>
                           </div>
+                          {isOwnMessage && (
+                            <div className="relative">
+                              <img 
+                                src={userProfile?.profile_picture_url} 
+                                alt={userProfile?.full_name}
+                                className="h-6 w-6 rounded-md object-cover"
+                              />
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
                   })}
                   <div ref={messagesEndRef} />
                 </div>
-              </ScrollArea>
+              </div>
 
               {/* Message Input */}
-              <div className="p-4 border-t bg-background">
+              <div className="p-4 border-t bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
                 <div className="flex items-end gap-2">
                   <Button
                     type="button"

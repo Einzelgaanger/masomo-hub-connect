@@ -1,0 +1,46 @@
+{
+  "common": {
+    "welcome": "Karibu",
+    "login": "Ingia",
+    "logout": "Toka",
+    "dashboard": "Dashibodi",
+    "profile": "Wasifu",
+    "settings": "Mipangilio",
+    "loading": "Inapakia...",
+    "error": "Kosa",
+    "success": "Mafanikio",
+    "cancel": "Ghairi",
+    "save": "Hifadhi",
+    "delete": "Futa",
+    "edit": "Hariri",
+    "search": "Tafuta",
+    "filter": "Chuja",
+    "submit": "Wasilisha"
+  },
+  "navigation": {
+    "masomo": "Masomo",
+    "ukumbi": "Ukumbi",
+    "inbox": "Barua Pepe",
+    "tukio": "Matukio",
+    "ajira": "Ajira",
+    "sifa": "Mafanikio",
+    "alumni": "Wazee"
+  },
+  "auth": {
+    "signIn": "Ingia",
+    "signUp": "Jisajili",
+    "email": "Barua Pepe",
+    "password": "Nywila",
+    "forgotPassword": "Umesahau Nywila?",
+    "rememberMe": "Nikumbuke",
+    "noAccount": "Huna akaunti?",
+    "haveAccount": "Tayari una akaunti?"
+  },
+  "errors": {
+    "generic": "Kuna tatizo. Tafadhali jaribu tena.",
+    "network": "Kosa la mtandao. Tafadhali angalia muunganisho wako.",
+    "unauthorized": "Huna ruhusa ya kufanya kitendo hiki.",
+    "notFound": "Rasilimali iliyoombwa haikupatikana.",
+    "rateLimited": "Maombi mengi sana. Tafadhali jaribu baadaye."
+  }
+}

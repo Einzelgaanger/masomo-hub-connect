@@ -5,6 +5,7 @@ import { useProfile } from "@/components/layout/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { getCharacter, getCharacterImage, getCharacterName } from "@/utils/characterUtils";
+import { VideoPlayer } from "@/components/ui/VideoPlayer";
 
 export function WelcomeSection() {
   const profile = useProfile();
@@ -122,10 +123,9 @@ export function WelcomeSection() {
       {/* Character & Rank Showcase */}
       <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
         <CardContent className="p-4 lg:p-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div className="flex flex-col sm:flex-row items-center gap-4 lg:gap-6">
-              {/* Character Display */}
-              <div className="flex flex-col items-center">
+          <div className="flex flex-col lg:flex-row lg:items-stretch lg:justify-between gap-6">
+            {/* Character Display - Left */}
+            <div className="flex flex-col items-center justify-center lg:flex-2">
                 <div className="relative">
                   {(() => {
                     const character = getCharacter(profile);
@@ -134,7 +134,7 @@ export function WelcomeSection() {
                         <img 
                           src={getCharacterImage(profile) || '/characters/people.png'} 
                           alt={getCharacterName(profile) || 'Regular'}
-                          className="w-16 h-16 lg:w-24 lg:h-24 object-contain drop-shadow-lg"
+                          className="w-24 h-24 lg:w-32 lg:h-32 object-contain drop-shadow-lg"
                           onError={(e) => {
                             e.currentTarget.src = '/characters/people.png';
                           }}
@@ -148,46 +148,70 @@ export function WelcomeSection() {
                     );
                   })()}
                 </div>
-                <h3 className="font-bold text-base lg:text-lg mt-2 text-center">
+                <h3 className="font-bold text-lg lg:text-xl mt-2 text-center">
                   {getCharacterName(profile) || 'Regular'}
                 </h3>
-                <p className="text-xs lg:text-sm text-muted-foreground text-center">
+                <p className="text-sm lg:text-base text-muted-foreground text-center">
                   Your Current Character
                 </p>
               </div>
 
-              {/* Rank Display */}
-              <div className="flex flex-col items-center">
-                <div className="relative">
-                  <div className={`w-16 h-16 lg:w-20 lg:h-20 rounded-full flex items-center justify-center ${getRankColor(profile?.rank || 'bronze')}`}>
-                    <Crown className="w-8 h-8 lg:w-10 lg:h-10 text-white" />
-                  </div>
-                  <div className="absolute -top-1 -right-1 lg:-top-2 lg:-right-2">
-                    <Badge className={`text-xs ${getRankColor(profile?.rank || 'bronze')} text-white px-1 py-0.5 lg:px-2 lg:py-1`}>
-                      {profile?.points || 0} pts
-                    </Badge>
-                  </div>
+            {/* Progress Info with Rank - Center */}
+            <div className="text-center lg:text-center lg:flex-1 flex flex-col justify-center">
+              <h4 className="font-bold text-sm lg:text-base mb-2">Your Progress</h4>
+              
+              {/* Compact Rank Display */}
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getRankColor(profile?.rank || 'bronze')}`}>
+                  <Crown className="w-4 h-4 text-white" />
                 </div>
-                <h3 className="font-bold text-base lg:text-lg mt-2 text-center capitalize">
-                  {profile?.rank || 'bronze'} Scholar
-                </h3>
-                <p className="text-xs lg:text-sm text-muted-foreground text-center">
-                  Your Current Rank
+                <div className="text-center">
+                  <p className="text-sm font-bold text-purple-600">{profile?.points || 0} pts</p>
+                  <p className="text-xs text-muted-foreground capitalize">{profile?.rank || 'bronze'} Scholar</p>
+                </div>
+              </div>
+              
+              <div className="space-y-1">
+                <p className="text-xs lg:text-sm text-muted-foreground">
+                  Total Points: <span className="font-bold text-purple-600">{profile?.points || 0}</span>
+                </p>
+                <p className="text-xs lg:text-sm text-muted-foreground">
+                  Rank: <span className="font-bold capitalize">{profile?.rank || 'bronze'}</span>
+                </p>
+                <p className="text-xs lg:text-sm text-muted-foreground">
+                  Character: <span className="font-bold">{getCharacterName(profile) || 'Regular'}</span>
                 </p>
               </div>
             </div>
 
-            {/* Progress Info */}
-            <div className="text-center lg:text-right">
-              <h4 className="font-semibold text-base lg:text-lg mb-2">Your Progress</h4>
-              <p className="text-xs lg:text-sm text-muted-foreground mb-1">
-                Total Points: <span className="font-bold text-purple-600">{profile?.points || 0}</span>
-              </p>
-              <p className="text-xs lg:text-sm text-muted-foreground mb-1">
-                Rank: <span className="font-bold capitalize">{profile?.rank || 'bronze'}</span>
-              </p>
-              <p className="text-xs lg:text-sm text-muted-foreground">
-                Character: <span className="font-bold">{getCharacterName(profile) || 'Regular'}</span>
+            {/* Video Section - Right */}
+            <div className="flex flex-col items-center justify-center lg:flex-1">
+              <div className="relative">
+                <div className="relative rounded-2xl overflow-hidden shadow-2xl border-4 border-white/50 bg-gradient-to-br from-purple-100 to-pink-100 p-4">
+                  <div className="relative rounded-xl overflow-hidden">
+                    <VideoPlayer
+                      src="/video/BUNIFU WEBSITE VIDEO FINAL.mp4"
+                      poster="/video/poster.jpg"
+                      className="w-80 h-48 lg:w-96 lg:h-60 rounded-xl"
+                      autoPlay={true}
+                      muted={false}
+                      loop={true}
+                      showControls={true}
+                    />
+                  </div>
+                  
+                  {/* Decorative Elements */}
+                  <div className="absolute -top-2 -left-2 w-5 h-5 bg-purple-400 rounded-full animate-pulse"></div>
+                  <div className="absolute -top-2 -right-2 w-4 h-4 bg-pink-400 rounded-full animate-pulse animation-delay-500"></div>
+                  <div className="absolute -bottom-2 -left-2 w-4 h-4 bg-orange-400 rounded-full animate-pulse animation-delay-1000"></div>
+                  <div className="absolute -bottom-2 -right-2 w-3 h-3 bg-blue-400 rounded-full animate-pulse animation-delay-1500"></div>
+                </div>
+              </div>
+              <h3 className="font-bold text-base lg:text-lg mt-3 text-center text-gray-800">
+                Platform Demo
+              </h3>
+              <p className="text-sm lg:text-base text-muted-foreground text-center">
+                See Bunifu in Action
               </p>
             </div>
           </div>

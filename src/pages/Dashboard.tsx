@@ -12,10 +12,16 @@ const Dashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  // Debug logging
+  console.log('Dashboard render:', { user });
+
   useEffect(() => {
     if (user) {
+      console.log('Dashboard: User authenticated, tracking daily visit...');
       // Track daily visit in background (non-blocking)
       trackDailyVisit();
+    } else {
+      console.log('Dashboard: No user authenticated');
     }
   }, [user]);
 

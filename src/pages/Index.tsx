@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { ArrowRight, Sparkles, Users, BookOpen, MessageSquare, Calendar, Award, Shield, Zap, Heart, Star, Globe, GraduationCap, FileText, Clock, TrendingUp, CheckCircle, Send, Image, Video, Bell, BarChart3, Target, Crown, Trophy, Lightbulb, Share2, Download, Upload, Search, Filter, Plus, Eye, ThumbsUp, MessageCircle, UserPlus, Bookmark, Flag, HelpCircle, Phone, Mail, MapPin, ExternalLink, Briefcase } from "lucide-react";
 import Logo from "@/components/ui/Logo";
+import { VideoPlayer } from "@/components/ui/VideoPlayer";
 import { CHARACTERS } from "@/data/characters";
 
 const Index = () => {
@@ -94,6 +95,40 @@ const Index = () => {
                 <div className="text-2xl sm:text-3xl font-bold text-purple-600 fredoka-bold">99%</div>
                 <div className="text-sm sm:text-base text-gray-600 fredoka-medium">Satisfaction</div>
               </div>
+            </div>
+
+            {/* Video Section */}
+            <div className="mt-12 sm:mt-16 max-w-5xl mx-auto animate-slide-up animation-delay-800 px-4">
+              <h3 className="text-xl sm:text-2xl font-bold text-center mb-6 fredoka-bold text-gray-800">
+                See Bunifu in Action
+              </h3>
+              
+              {/* Video with Round Frame */}
+              <div className="relative mx-auto max-w-4xl">
+                <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white/50 bg-gradient-to-br from-purple-100 to-pink-100 p-4">
+                  <div className="relative rounded-2xl overflow-hidden">
+                    <VideoPlayer
+                      src="/video/BUNIFU WEBSITE VIDEO FINAL.mp4"
+                      poster="/video/poster.jpg"
+                      className="w-full h-64 sm:h-80 md:h-96 rounded-2xl"
+                      autoPlay={true}
+                      muted={false}
+                      loop={true}
+                      showControls={true}
+                    />
+                  </div>
+                  
+                  {/* Decorative Elements */}
+                  <div className="absolute -top-2 -left-2 w-6 h-6 bg-purple-400 rounded-full animate-pulse"></div>
+                  <div className="absolute -top-2 -right-2 w-4 h-4 bg-pink-400 rounded-full animate-pulse animation-delay-500"></div>
+                  <div className="absolute -bottom-2 -left-2 w-5 h-5 bg-orange-400 rounded-full animate-pulse animation-delay-1000"></div>
+                  <div className="absolute -bottom-2 -right-2 w-3 h-3 bg-blue-400 rounded-full animate-pulse animation-delay-1500"></div>
+                </div>
+              </div>
+              
+              <p className="text-base sm:text-lg text-gray-600 text-center mt-6 fredoka-medium">
+                Watch how Bunifu transforms your university experience
+              </p>
             </div>
           </div>
         </div>
