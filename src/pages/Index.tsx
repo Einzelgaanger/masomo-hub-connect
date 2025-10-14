@@ -44,67 +44,71 @@ const Index = () => {
         </div>
         
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 relative flex-1 flex flex-col justify-center z-10">
-          <div className="text-center mb-8 sm:mb-16">
-            {/* Mobile: Custom Layout, Desktop: Logo Component */}
-            <div className="block sm:hidden mb-6 animate-fade-in">
-              <div className="flex items-start gap-2 mb-4">
-                {/* Large Owl Icon filling top-left */}
-                <div className="flex-shrink-0 -mt-4">
-                  <img src="/logo.svg" alt="Bunifu Logo" className="h-40 w-40" />
-                </div>
-                
-                {/* Name and Tagline to the right */}
-                <div className="flex-1 min-w-0 text-left">
-                  <h1 className="text-5xl font-bold fredoka-bold text-gray-900 leading-tight mb-1 text-left">Bunifu</h1>
-                  <p className="text-xl fredoka-medium text-gray-600 leading-tight text-left">Where learning meets creativity</p>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:gap-12 xl:gap-16">
+            {/* Left Side - Content */}
+            <div className="flex-1 lg:max-w-2xl">
+              {/* Mobile: Custom Layout, Desktop: Logo Component */}
+              <div className="block sm:hidden mb-6 animate-fade-in">
+                <div className="flex items-start gap-2 mb-4 ml-4">
+                  {/* Large Owl Icon filling top-left */}
+                  <div className="flex-shrink-0 -mt-4">
+                    <img src="/logo.svg" alt="Bunifu Logo" className="h-40 w-40" />
+                  </div>
+                  
+                  {/* Name and Tagline to the right */}
+                  <div className="flex-1 min-w-0 text-left">
+                    <h1 className="text-5xl font-bold fredoka-bold text-gray-900 leading-tight mb-1 text-left">Bunifu</h1>
+                    <p className="text-xl fredoka-medium text-gray-600 leading-tight text-left">Where learning meets creativity</p>
+                  </div>
                 </div>
               </div>
-            </div>
-            
-            {/* Desktop: Logo Component */}
-            <div className="hidden sm:flex justify-center mb-6 sm:mb-8 animate-fade-in">
-              <Logo size="xl" showText={true} className="scale-150 sm:scale-200" />
-            </div>
-            
-            <p className="text-lg sm:text-xl md:text-2xl text-gray-600 mb-6 sm:mb-8 max-w-xs sm:max-w-2xl md:max-w-3xl mx-auto fredoka-medium animate-slide-up animation-delay-200 px-4">
-              The complete university platform that transforms your academic journey with gamification, collaboration, and smart organization.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-8 sm:mb-12 animate-slide-up animation-delay-400 px-4">
-              <Link to="/login?mode=signup">
-                <Button size="lg" className="w-full sm:w-auto gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg fredoka-semibold">
-                  Start Learning <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
-                </Button>
-              </Link>
+              
+              {/* Desktop: Logo Component */}
+              <div className="hidden sm:flex mb-6 sm:mb-8 animate-fade-in ml-8">
+                <Logo size="xl" showText={true} className="scale-150 sm:scale-200" />
+              </div>
+              
+              <p className="text-lg sm:text-xl md:text-2xl text-gray-600 mb-6 sm:mb-8 fredoka-medium animate-slide-up animation-delay-200">
+                The complete university platform that transforms your academic journey with gamification, collaboration, and smart organization.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8 sm:mb-12 animate-slide-up animation-delay-400">
+                <Link to="/login?mode=signup">
+                  <Button size="lg" className="w-full sm:w-auto gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg fredoka-semibold">
+                    Start Learning <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </Button>
+                </Link>
+              </div>
+
+              {/* Stats - Left Aligned */}
+              <div className="grid grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6 animate-slide-up animation-delay-600">
+                <div className="text-left">
+                  <div className="text-2xl sm:text-3xl font-bold text-blue-600 fredoka-bold">10K+</div>
+                  <div className="text-sm sm:text-base text-gray-600 fredoka-medium">Students</div>
+                </div>
+                <div className="text-left">
+                  <div className="text-2xl sm:text-3xl font-bold text-orange-500 fredoka-bold">500+</div>
+                  <div className="text-sm sm:text-base text-gray-600 fredoka-medium">Universities</div>
+                </div>
+                <div className="text-left">
+                  <div className="text-2xl sm:text-3xl font-bold text-green-600 fredoka-bold">50K+</div>
+                  <div className="text-sm sm:text-base text-gray-600 fredoka-medium">Resources</div>
+                </div>
+                <div className="text-left">
+                  <div className="text-2xl sm:text-3xl font-bold text-purple-600 fredoka-bold">99%</div>
+                  <div className="text-sm sm:text-base text-gray-600 fredoka-medium">Satisfaction</div>
+                </div>
+              </div>
             </div>
 
-            {/* Stats - Mobile Optimized */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-xs sm:max-w-2xl md:max-w-4xl mx-auto animate-slide-up animation-delay-600 px-4">
-              <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-blue-600 fredoka-bold">10K+</div>
-                <div className="text-sm sm:text-base text-gray-600 fredoka-medium">Students</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-orange-500 fredoka-bold">500+</div>
-                <div className="text-sm sm:text-base text-gray-600 fredoka-medium">Universities</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-green-600 fredoka-bold">50K+</div>
-                <div className="text-sm sm:text-base text-gray-600 fredoka-medium">Resources</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-purple-600 fredoka-bold">99%</div>
-                <div className="text-sm sm:text-base text-gray-600 fredoka-medium">Satisfaction</div>
-              </div>
-            </div>
-
-            {/* Video Section */}
-            <div className="mt-12 sm:mt-16 max-w-5xl mx-auto animate-slide-up animation-delay-800 px-4">
-              <h3 className="text-xl sm:text-2xl font-bold text-center mb-6 fredoka-bold text-gray-800">
+            {/* Right Side - Video */}
+            <div className="flex-1 lg:max-w-2xl mt-8 lg:mt-0 animate-slide-up animation-delay-800">
+              <h3 className="text-xl sm:text-2xl font-bold mb-6 fredoka-bold text-gray-800 text-center lg:text-left">
                 See Bunifu in Action
               </h3>
               
               {/* Video with Round Frame */}
-              <div className="relative mx-auto max-w-4xl">
+              <div className="relative">
                 <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white/50 bg-gradient-to-br from-purple-100 to-pink-100 p-4">
                   <div className="relative rounded-2xl overflow-hidden">
                     <VideoPlayer
@@ -126,7 +130,7 @@ const Index = () => {
                 </div>
               </div>
               
-              <p className="text-base sm:text-lg text-gray-600 text-center mt-6 fredoka-medium">
+              <p className="text-base sm:text-lg text-gray-600 mt-6 fredoka-medium text-center lg:text-left">
                 Watch how Bunifu transforms your university experience
               </p>
             </div>
