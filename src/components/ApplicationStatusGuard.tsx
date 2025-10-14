@@ -43,8 +43,7 @@ const ApplicationStatusGuard = ({ children }: ApplicationStatusGuardProps) => {
     if (currentPath === '/application-status' || 
         currentPath === '/application-rejected' || 
         currentPath === '/login' || 
-        currentPath === '/application' ||
-        currentPath === '/class-selection') {
+        currentPath === '/application') {
       return;
     }
 
@@ -112,10 +111,19 @@ const ApplicationStatusGuard = ({ children }: ApplicationStatusGuardProps) => {
           navigate('/application-rejected');
         }
       } else if (!hasApplication) {
-        // No profile and no applications - redirect to application form
-        if (currentPath !== '/application') {
+        // No application - allow user to stay on dashboard and fill out profile later
+        // Only redirect to application if they're on an invalid page
+        const validPaths = [
+          '/dashboard', '/ukumbi', '/events', '/ajira', '/inbox', '/alumni', 
+          '/profile', '/info', '/units', '/unit', '/application'
+        ];
+        
+        const isValidPath = validPaths.some(path => currentPath.startsWith(path));
+        
+        if (!isValidPath && currentPath !== '/') {
+          // Only redirect if they're on an invalid page
           isNavigatingRef.current = true;
-          navigate('/application');
+          navigate('/dashboard');
         }
       }
     }, 100); // Small delay to prevent flash

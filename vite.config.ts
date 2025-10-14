@@ -45,9 +45,9 @@ export default defineConfig(({ mode }) => ({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Bunifu - University Education Platform',
+        name: 'Bunifu - The University Ecosystem',
         short_name: 'Bunifu',
-        description: 'A comprehensive educational platform for university students',
+        description: 'The complete university platform where students learn, connect, and launch careers. Gamified learning, real-time collaboration, and direct access to employers.',
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',

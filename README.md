@@ -1,6 +1,6 @@
-# Bunifu - Where Learning Meets Creativity
+# Bunifu - The University Ecosystem
 
-A comprehensive educational platform that transforms university learning through gamification, collaborative features, and structured content management.
+The complete university platform where students learn, connect, and launch careers. The only platform that connects your entire university experience with gamified learning, real-time collaboration, and direct access to employers.
 
 ## 🎯 Features
 

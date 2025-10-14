@@ -1,7 +1,7 @@
 {
-  "name": "Bunifu - University Education Platform",
+  "name": "Bunifu - The University Ecosystem",
   "short_name": "Bunifu",
-  "description": "A comprehensive educational platform that transforms university learning through gamification, collaborative features, and structured content management.",
+  "description": "The complete university platform where students learn, connect, and launch careers. Gamified learning, real-time collaboration, and direct access to employers.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

@@ -21,8 +21,10 @@ const Login = () => {
           redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
             access_type: 'offline',
-            prompt: 'consent'
-          }
+            prompt: 'consent',
+            hd: 'bunifu.world' // Custom domain hint
+          },
+          scopes: 'openid email profile'
         }
       });
       if (error) throw error;

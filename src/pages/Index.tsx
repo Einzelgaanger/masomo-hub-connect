@@ -58,7 +58,7 @@ const Index = () => {
                   {/* Name and Tagline to the right */}
                   <div className="flex-1 min-w-0 text-left">
                     <h1 className="text-5xl font-bold fredoka-bold text-gray-900 leading-tight mb-1 text-left">Bunifu</h1>
-                    <p className="text-xl fredoka-medium text-gray-600 leading-tight text-left">Where learning meets creativity</p>
+                    <p className="text-xl fredoka-medium text-gray-600 leading-tight text-left">Your university, your future, your way</p>
                   </div>
                 </div>
               </div>
@@ -69,7 +69,7 @@ const Index = () => {
               </div>
               
               <p className="text-lg sm:text-xl md:text-2xl text-gray-600 mb-6 sm:mb-8 fredoka-medium animate-slide-up animation-delay-200">
-                The complete university platform that transforms your academic journey with gamification, collaboration, and smart organization.
+                The only platform that connects your entire university experience: learn with 25+ unique characters, collaborate in real-time, and launch your career directly with employers.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8 sm:mb-12 animate-slide-up animation-delay-400">
