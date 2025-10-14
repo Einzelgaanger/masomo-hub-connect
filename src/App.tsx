@@ -11,6 +11,8 @@ import ProfileGuard from "@/components/ProfileGuard";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { FloatingConcernsButton } from "@/components/ui/FloatingConcernsButton";
 import { AuthErrorHandler } from "@/components/AuthErrorHandler";
+import { PWAUpdatePrompt } from "@/components/PWAUpdatePrompt";
+import { usePWAUpdate } from "@/hooks/usePWAUpdate";
 import { initSentry, Sentry } from "@/lib/sentry";
 import { initPerformanceMonitoring } from "@/lib/performance";
 
@@ -75,6 +77,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const App = () => {
+  const { updateAvailable, isUpdating, handleUpdate, dismissUpdate } = usePWAUpdate();
+
   useEffect(() => {
     // Initialize performance monitoring
     initPerformanceMonitoring();
@@ -87,6 +91,12 @@ const App = () => {
         <TooltipProvider>
         <Toaster />
         <Sonner />
+        <PWAUpdatePrompt 
+          updateAvailable={updateAvailable}
+          isUpdating={isUpdating}
+          onUpdate={handleUpdate}
+          onDismiss={dismissUpdate}
+        />
         <div className="min-h-screen overflow-x-hidden">
           <ErrorBoundary>
             <BrowserRouter

@@ -66,6 +66,12 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // Force update on every deployment
+        skipWaiting: true,
+        clientsClaim: true,
+        // Clear old caches
+        cleanupOutdatedCaches: true,
+        // Update strategy for different file types
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
@@ -77,8 +83,24 @@ export default defineConfig(({ mode }) => ({
                 maxAgeSeconds: 60 * 60 * 24 // 24 hours
               }
             }
+          },
+          {
+            urlPattern: /\.(?:js|css|html)$/,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'static-resources',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
+              }
+            }
           }
         ]
+      },
+      // Force update on every build
+      devOptions: {
+        enabled: true,
+        type: 'module'
       }
     }),
     mode === 'production' && visualizer({
