@@ -68,9 +68,38 @@ const AuthCallback = () => {
           console.log('Profile already exists, continuing...');
         }
 
-        // Redirect to dashboard after successful authentication
-        console.log('Authentication successful, redirecting to dashboard');
-        navigate('/dashboard');
+        // Check if user has an application to determine where to redirect
+        const { data: application, error: appError } = await supabase
+          .from('applications')
+          .select('status')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (appError) {
+          console.error('Error checking application:', appError);
+        }
+
+        if (!application) {
+          // New user - redirect to application form
+          console.log('New user, redirecting to application form');
+          navigate('/application');
+        } else if (application.status === 'approved') {
+          // Approved user - redirect to dashboard
+          console.log('Approved user, redirecting to dashboard');
+          navigate('/dashboard');
+        } else if (application.status === 'pending') {
+          // Pending user - redirect to status page
+          console.log('Pending user, redirecting to application status');
+          navigate('/application-status');
+        } else if (application.status === 'rejected') {
+          // Rejected user - redirect to rejected page
+          console.log('Rejected user, redirecting to application rejected');
+          navigate('/application-rejected');
+        } else {
+          // Fallback to dashboard
+          console.log('Unknown status, redirecting to dashboard');
+          navigate('/dashboard');
+        }
       } catch (error) {
         console.error('Auth callback error:', error);
         navigate('/login');

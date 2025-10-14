@@ -43,6 +43,7 @@ const ApplicationStatusGuard = ({ children }: ApplicationStatusGuardProps) => {
     if (currentPath === '/application-status' || 
         currentPath === '/application-rejected' || 
         currentPath === '/login' || 
+        currentPath === '/application' ||
         currentPath === '/class-selection') {
       return;
     }
@@ -111,10 +112,10 @@ const ApplicationStatusGuard = ({ children }: ApplicationStatusGuardProps) => {
           navigate('/application-rejected');
         }
       } else if (!hasApplication) {
-        // No profile and no applications - redirect to class selection
-        if (currentPath !== '/class-selection') {
+        // No profile and no applications - redirect to application form
+        if (currentPath !== '/application') {
           isNavigatingRef.current = true;
-          navigate('/class-selection');
+          navigate('/application');
         }
       }
     }, 100); // Small delay to prevent flash
